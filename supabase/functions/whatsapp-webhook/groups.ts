@@ -10,7 +10,7 @@ export async function getOrCreateGroup(
     .select('id')
     .eq('group_jid', whatsappGroupId)
     .eq('instance_id', instanceId)
-    .single();
+    .maybeSingle();
 
   if (existingGroup) {
     return existingGroup.id;

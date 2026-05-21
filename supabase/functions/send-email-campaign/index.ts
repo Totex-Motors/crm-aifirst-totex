@@ -125,7 +125,7 @@ async function resolveAudienceFromList(
     .select("criteria")
     .eq("id", listId)
     .eq("tenant_id", tenantId)
-    .single();
+    .maybeSingle();
   if (!list) return [];
   return resolveAudienceByCriteria(supabase, tenantId, list.criteria || {});
 }
@@ -242,7 +242,8 @@ Deno.serve(async (req: Request) => {
       const fEmail = (cfg.from_email || "").trim();
       const fName = (cfg.from_name || "CRM").trim();
       const rTo = cfg.reply_to || undefined;
-      const appUrlT = cfg.app_url || "https://YOUR_APP_URL";
+      const appUrlT = (cfg.app_url || "").replace(/\/?$/, "");
+      if (!appUrlT) console.warn("[send-email-campaign] app_url não configurado — links de unsubscribe ficarão vazios. Configure em Configurações > Integrações > Email.");
 
       const variables: Record<string, string> = {
         nome: "Teste",
@@ -291,7 +292,7 @@ Deno.serve(async (req: Request) => {
       .select("*")
       .eq("id", campaign_id)
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
     if (campaignErr || !campaign) throw new Error("Campanha não encontrada");
 
     // Lê config Resend do tenant
@@ -301,7 +302,8 @@ Deno.serve(async (req: Request) => {
     const fromEmail = (campaign.from_email || config.from_email || "").trim();
     const fromName = (campaign.from_name || config.from_name || "").trim() || "CRM";
     const replyTo = campaign.reply_to || config.reply_to || undefined;
-    const appUrl = config.app_url || "https://YOUR_APP_URL";
+    const appUrl = (config.app_url || "").replace(/\/?$/, "");
+    if (!appUrl) throw new Error("app_url não configurado. Configure a URL do frontend em Configurações > Integrações > Email antes de disparar campanhas.");
 
     // === MODO TESTE com campaign_id ===
     if (test_email) {

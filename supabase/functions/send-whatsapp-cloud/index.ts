@@ -394,10 +394,11 @@ async function callCloudAPI(payload: any, cfg: CloudApiCfg): Promise<{ ok: boole
 // ==================== HELPERS ====================
 
 async function getOfficialInstanceId(supabase: any): Promise<string | null> {
+  const instanceName = await getIntegrationKey(supabase, 'WHATSAPP_CLOUD_INSTANCE_NAME') || 'cloud-oficial';
   const { data } = await supabase
     .from("whatsapp_instances")
     .select("id")
-    .eq("name", "IAP - OFICIAL")
+    .eq("name", instanceName)
     .limit(1)
     .maybeSingle();
   return data?.id || null;

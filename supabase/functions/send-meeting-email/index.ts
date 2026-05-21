@@ -475,7 +475,7 @@ Deno.serve(async (req: Request) => {
       .from("leads")
       .select("*")
       .eq("id", input.lead_id)
-      .single();
+      .maybeSingle();
 
     if (!lead) {
       return new Response(
@@ -504,7 +504,7 @@ Deno.serve(async (req: Request) => {
         .from("team_members")
         .select("name")
         .eq("id", input.specialist_id)
-        .single();
+        .maybeSingle();
       if (member?.name) specialistName = member.name;
     }
 
@@ -516,7 +516,7 @@ Deno.serve(async (req: Request) => {
         .from("deals")
         .select("*, product:products(name, description)")
         .eq("id", input.deal_id)
-        .single();
+        .maybeSingle();
       if (deal?.product) {
         productName = deal.product.name || "";
         productDesc = deal.product.description || "";
@@ -526,7 +526,7 @@ Deno.serve(async (req: Request) => {
         .from("products")
         .select("name, description")
         .eq("id", input.product_id)
-        .single();
+        .maybeSingle();
       if (product) {
         productName = product.name || "";
         productDesc = product.description || "";

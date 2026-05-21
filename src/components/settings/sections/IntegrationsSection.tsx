@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 
 // =====================================================
@@ -26,7 +27,8 @@ interface IntegrationDef {
   description: string;
   placeholder: string;
   docsUrl?: string;
-  category: "ai" | "whatsapp" | "telephony" | "payment" | "email" | "other";
+  isSecret?: boolean;
+  category: "ai" | "whatsapp" | "telephony" | "payment" | "email" | "stock" | "other";
 }
 
 const INTEGRATIONS: IntegrationDef[] = [
@@ -133,6 +135,36 @@ const INTEGRATIONS: IntegrationDef[] = [
     docsUrl: "https://console.cloud.google.com/apis/credentials",
     category: "other",
   },
+  // Estoque
+  {
+    key: "VEHICLE_FEED_URL",
+    label: "Feed de Estoque (XML)",
+    description: "URL do feed XML de veículos no formato AutoConf. O estoque é sincronizado automaticamente a cada 15 minutos.",
+    placeholder: "https://www.autoconf.com.br/feeds/sua-loja/estoque.xml",
+    isSecret: false,
+    category: "stock",
+  },
+  {
+    key: "AUTOCONF_WEBHOOK_SECRET",
+    label: "AutoConf — Webhook Secret",
+    description: "Token secreto para validar os leads recebidos via webhook do AutoConf. Configure o mesmo valor no painel do AutoConf.",
+    placeholder: "secret-token-...",
+    category: "stock",
+  },
+  {
+    key: "AUTOCONF_REVENDA_TOKEN",
+    label: "AutoConf — Revenda Token",
+    description: "Token da revenda no AutoConf. Necessário para consultar e sincronizar leads históricos via API REST.",
+    placeholder: "revenda_token_...",
+    category: "stock",
+  },
+  {
+    key: "AUTOCONF_BEARER_TOKEN",
+    label: "AutoConf — Bearer Token (API)",
+    description: "Bearer token para autenticação na API REST do AutoConf (api.autoconf.com.br). Solicitar ao suporte AutoConf.",
+    placeholder: "Bearer eyJ...",
+    category: "stock",
+  },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -141,6 +173,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   telephony: "Telefonia",
   payment: "Pagamentos",
   email: "Email",
+  stock: "Estoque",
   other: "Google & Outros",
 };
 
@@ -154,6 +187,7 @@ export function IntegrationsSection() {
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   // Load existing keys on mount
   useEffect(() => {
@@ -213,6 +247,23 @@ export function IntegrationsSection() {
     setVisibleKeys((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleSyncStock = async () => {
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("sync-vehicle-stock");
+      if (error) throw error;
+      toast({ title: "Estoque sincronizado com sucesso" });
+    } catch (err) {
+      toast({
+        title: "Erro ao sincronizar estoque",
+        description: "Verifique se o feed URL está configurado e tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const maskValue = (value: string) => {
     if (!value || value.length < 8) return "••••••••";
     return value.slice(0, 4) + "••••••••" + value.slice(-4);
@@ -247,11 +298,30 @@ export function IntegrationsSection() {
 
       {Object.entries(grouped).map(([category, integrations]) => (
         <div key={category}>
-          <h3 className="text-sm font-medium text-muted-foreground/80 uppercase tracking-wider mb-3">
-            {CATEGORY_LABELS[category] || category}
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-muted-foreground/80 uppercase tracking-wider">
+              {CATEGORY_LABELS[category] || category}
+            </h3>
+            {category === "stock" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSyncStock}
+                disabled={syncing || !keys["VEHICLE_FEED_URL"]}
+                className="h-7 px-2 text-xs gap-1.5"
+              >
+                {syncing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                Sincronizar agora
+              </Button>
+            )}
+          </div>
           <div className="space-y-3">
             {integrations.map((integration) => {
+              const isSecret = integration.isSecret !== false;
               const value = keys[integration.key] || "";
               const isVisible = visibleKeys[integration.key];
               const isConfigured = !!value;
@@ -291,7 +361,7 @@ export function IntegrationsSection() {
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <Input
-                              type={isVisible ? "text" : "password"}
+                              type={isSecret && !isVisible ? "password" : "text"}
                               value={keys[integration.key] || ""}
                               onChange={(e) =>
                                 setKeys((prev) => ({
@@ -300,19 +370,21 @@ export function IntegrationsSection() {
                                 }))
                               }
                               placeholder={integration.placeholder}
-                              className="pr-10 font-mono text-xs h-9"
+                              className={`${isSecret ? "pr-10" : ""} font-mono text-xs h-9`}
                             />
-                            <button
-                              type="button"
-                              onClick={() => toggleVisibility(integration.key)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              {isVisible ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </button>
+                            {isSecret && (
+                              <button
+                                type="button"
+                                onClick={() => toggleVisibility(integration.key)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {isVisible ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            )}
                           </div>
                           <Button
                             size="sm"

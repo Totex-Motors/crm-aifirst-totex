@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
         .from("deals")
         .select("lead_id, tenant_id")
         .eq("id", deal_id)
-        .single();
+        .maybeSingle();
       resolvedLeadId = deal?.lead_id || null;
       if (!tenantId) tenantId = deal?.tenant_id || null;
     }
@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
         .from("organizations")
         .select("primary_contact_id, tenant_id")
         .eq("id", organization_id)
-        .single();
+        .maybeSingle();
       resolvedLeadId = org?.primary_contact_id || null;
       if (!tenantId) tenantId = org?.tenant_id || null;
     }

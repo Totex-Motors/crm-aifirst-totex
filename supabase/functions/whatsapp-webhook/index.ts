@@ -43,12 +43,21 @@ serve(async (req: Request) => {
 
     let instanceData = null;
     if (instanceIdentifier) {
-      const { data } = await supabase
+      const { data: byName } = await supabase
         .from('whatsapp_instances')
         .select('id, teams, api_key, api_url, name')
-        .or(`name.eq.${instanceIdentifier},metadata->>uazapi_instance_id.eq.${instanceIdentifier}`)
-        .single();
-      instanceData = data;
+        .eq('name', instanceIdentifier)
+        .maybeSingle();
+      if (byName) {
+        instanceData = byName;
+      } else {
+        const { data: byMeta } = await supabase
+          .from('whatsapp_instances')
+          .select('id, teams, api_key, api_url, name')
+          .eq('metadata->>uazapi_instance_id', instanceIdentifier)
+          .maybeSingle();
+        instanceData = byMeta;
+      }
     }
 
     if (!instanceData) {
@@ -59,7 +68,7 @@ serve(async (req: Request) => {
           .from('whatsapp_instances')
           .select('id, teams, api_key, api_url, name')
           .eq('api_key', cleanToken)
-          .single();
+          .maybeSingle();
         instanceData = data;
       }
     }
@@ -73,7 +82,7 @@ serve(async (req: Request) => {
           .from('whatsapp_instances')
           .select('id, teams, api_key, api_url, name')
           .eq('api_key', queryToken)
-          .single();
+          .maybeSingle();
         instanceData = data;
       }
     }
@@ -162,7 +171,7 @@ async function handleIncomingMessage(
   
   if (fromMe) {
     actualContactPhone = String(remoteJid).replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '');
-    senderPhone = payload.owner || '553123917958';
+    senderPhone = payload.owner || null;
   } else {
     senderPhone = payload.sender_pn || payload.sender || payload.Sender || remoteJid;
     actualContactPhone = String(senderPhone).replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '');
@@ -345,7 +354,7 @@ async function handleIncomingMessage(
       .from('whatsapp_groups')
       .select('purposes')
       .eq('id', groupDbId)
-      .single();
+      .maybeSingle();
 
     const purposes = Array.isArray(groupRow?.purposes) ? groupRow.purposes : [];
     groupTeam = (purposes?.[0] as string) || null;
@@ -421,7 +430,7 @@ async function handleIncomingMessage(
       is_from_me: fromMe,
       media_url: mediaUrl,
       sent_at: payload.messageTimestamp
-        ? new Date(payload.messageTimestamp).toISOString()
+        ? new Date(Number(payload.messageTimestamp) < 1e12 ? Number(payload.messageTimestamp) * 1000 : Number(payload.messageTimestamp)).toISOString()
         : new Date().toISOString(),
       metadata: payload,
     })
@@ -429,6 +438,11 @@ async function handleIncomingMessage(
     .single();
 
   if (msgError) {
+    // 23505 = unique_violation — duplicate message_id, safe to skip
+    if ((msgError as any).code === '23505') {
+      console.log('[Webhook] Dedup (constraint): message_id already exists, skipping:', messageId);
+      return;
+    }
     console.error('[Webhook] Error saving message:', msgError);
     return;
   }
@@ -463,7 +477,7 @@ async function handleIncomingMessage(
         .from('leads')
         .select('id, name, etapa_funil')
         .eq('id', leadId)
-        .single();
+        .maybeSingle();
 
       if (lead?.etapa_funil === 'no_show') {
         console.log(`[Webhook] 🔔 Lead no-show ${lead.name} respondeu!`);
@@ -745,7 +759,7 @@ async function handleConversationMessage(
       .in('status', ['novo', 'em_atendimento', 'aguardando_cliente'])
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     existingTicket = data;
   } else if (leadId) {
     const { data } = await supabase
@@ -756,7 +770,7 @@ async function handleConversationMessage(
       .in('status', ['novo', 'em_atendimento', 'aguardando_cliente'])
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     existingTicket = data;
   }
 
@@ -822,7 +836,7 @@ async function handleConversationMessage(
           .from('ticket_categories')
           .select('id')
           .eq('slug', category)
-          .single();
+          .maybeSingle();
         if (cat) ticketData.category_id = cat.id;
       }
 
@@ -1073,7 +1087,6 @@ async function handleEditedMessage(supabase: any, instanceId: string, payload: a
   }
 }
 
-const ALERT_GROUP_JID = '120363421838905056@g.us'; // TIME-IAP
 const DISCONNECT_ALERT_COOLDOWN_MS = 30 * 60 * 1000; // 30 min
 let lastDisconnectAlertAt = 0;
 
@@ -1085,7 +1098,7 @@ async function handleConnectionChange(supabase: any, instanceId: string, payload
     .from('whatsapp_instances')
     .select('name, status, phone_number, api_url, api_key')
     .eq('id', instanceId)
-    .single();
+    .maybeSingle();
 
   if (!instance) {
     console.error('[Webhook] Instance not found:', instanceId);
@@ -1155,11 +1168,17 @@ async function handleConnectionChange(supabase: any, instanceId: string, payload
     }
     const alertMsg = `⚠️ *ALERTA: WhatsApp Desconectado*\n\nInstância *${instanceName}* acabou de desconectar.\n\n📱 Número: ${instance?.phone_number || 'N/A'}\n⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}\n\n_Reconecte em Configurações > WhatsApp_`;
 
+    const alertGroupJid = await getIntegrationKey(supabase, 'WHATSAPP_ALERT_GROUP_JID');
+    if (!alertGroupJid) {
+      console.log('[Webhook] WHATSAPP_ALERT_GROUP_JID não configurado, pulando alerta de desconexão');
+      return;
+    }
+
     try {
       await fetch(`${baseUrl}/send/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', token: alertInstance.api_key },
-        body: JSON.stringify({ number: ALERT_GROUP_JID, text: alertMsg }),
+        body: JSON.stringify({ number: alertGroupJid, text: alertMsg }),
       });
       console.log(`[Webhook] ✅ Alerta enviado via ${alertInstance.name}`);
     } catch (e) {

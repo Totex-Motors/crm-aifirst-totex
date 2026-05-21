@@ -96,7 +96,7 @@ export async function getOrCreateContactWithProfilePic(
     .select('id, name, phone, photo_url')
     .ilike('phone', `%${last8Digits}`)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (existingLead) {
     console.log('[Webhook] Found existing lead:', existingLead.id, 'phone:', existingLead.phone);
