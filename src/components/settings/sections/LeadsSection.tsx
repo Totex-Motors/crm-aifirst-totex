@@ -169,6 +169,23 @@ export function LeadsSection() {
   };
 
   const copyToClipboard = (text: string, label: string) => {
+    if (!navigator.clipboard) {
+      // Fallback for insecure contexts or older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        toast({ title: `${label} copiado` });
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        toast({ title: "Erro ao copiar para área de transferência", variant: "destructive" });
+      }
+      document.body.removeChild(textarea);
+      return;
+    }
+
     navigator.clipboard.writeText(text)
       .then(() => {
         toast({ title: `${label} copiado` });

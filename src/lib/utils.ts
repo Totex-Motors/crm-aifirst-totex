@@ -45,5 +45,5 @@ export function escapePostgrest(str: string): string {
  * Used to ensure consistent navigation between leads and contacts views.
  */
 export function getLeadsBasePath(pathname: string): string {
-  return pathname.includes('/comercial/contatos/') ? '/comercial/contatos' : '/comercial/leads';
+  return pathname.includes('/comercial/contatos') ? '/comercial/contatos' : '/comercial/leads';
 }
