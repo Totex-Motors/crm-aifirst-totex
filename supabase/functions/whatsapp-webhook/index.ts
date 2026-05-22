@@ -429,9 +429,16 @@ async function handleIncomingMessage(
       sender_name: pushName,
       is_from_me: fromMe,
       media_url: mediaUrl,
-      sent_at: payload.messageTimestamp
-        ? new Date(Number(payload.messageTimestamp) < 1e12 ? Number(payload.messageTimestamp) * 1000 : Number(payload.messageTimestamp)).toISOString()
-        : new Date().toISOString(),
+      sent_at: (() => {
+        if (!payload.messageTimestamp) return new Date().toISOString();
+
+        const parsedTimestamp = Number(payload.messageTimestamp);
+        if (!Number.isFinite(parsedTimestamp)) return new Date().toISOString();
+
+        const normalizedTimestamp = parsedTimestamp < 1e12 ? parsedTimestamp * 1000 : parsedTimestamp;
+        const sentAt = new Date(normalizedTimestamp);
+        return Number.isNaN(sentAt.getTime()) ? new Date().toISOString() : sentAt.toISOString();
+      })(),
       metadata: payload,
     })
     .select()
