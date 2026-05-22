@@ -56,20 +56,40 @@ Deno.serve(async (req: Request) => {
     null;
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const envConfiguredSecret =
+    Deno.env.get("AUTOCONF_WEBHOOK_SECRET")?.trim() || null;
+  const environment =
+    Deno.env.get("DENO_ENV")?.trim().toLowerCase() || "production";
+  const allowInsecureWebhook =
+    Deno.env.get("AUTOCONF_WEBHOOK_ALLOW_INSECURE") === "true";
+  const isNonProductionEnvironment = [
+    "development",
+    "dev",
+    "setup",
+    "local",
+    "test",
+  ].includes(environment);
 
-  // Validate secret against config table (if configured; open during initial setup)
+  // Prefer env secret; keep config-table fallback for compatibility.
   const { data: secretRow } = await supabase
     .from("config")
     .select("value")
     .eq("key", "AUTOCONF_WEBHOOK_SECRET")
     .maybeSingle();
 
-  const configuredSecret = secretRow?.value?.trim();
-  if (configuredSecret) {
-    if (!receivedToken || receivedToken !== configuredSecret) {
-      console.warn("[AutoConf] Unauthorized webhook attempt");
-      return new Response("Unauthorized", { status: 401 });
+  const configuredSecret =
+    envConfiguredSecret || secretRow?.value?.trim() || null;
+
+  if (!configuredSecret) {
+    if (!(allowInsecureWebhook && isNonProductionEnvironment)) {
+      console.error(
+        "[AutoConf] Webhook secret is not configured; refusing to run in open mode",
+      );
+      return new Response("Forbidden", { status: 403 });
     }
+  } else if (!receivedToken || receivedToken !== configuredSecret) {
+    console.warn("[AutoConf] Unauthorized webhook attempt");
+    return new Response("Unauthorized", { status: 401 });
   }
 
   let body: AutoconfPayload;
