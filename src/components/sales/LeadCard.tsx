@@ -27,6 +27,7 @@ import {
   Star,
 } from "lucide-react";
 import { useUpdateLeadSales } from "@/hooks/useSalesLeads";
+import { VehicleInterestCard } from "./VehicleInterestCard";
 
 interface LeadCardProps {
   lead: SalesLead;
@@ -333,6 +334,17 @@ export function LeadCard({
             </div>
           )}
         </div>
+
+        {/* Vehicle of interest (AutoConf leads) */}
+        {lead.vehicle_of_interest && (
+          <VehicleInterestCard
+            vehicleData={lead.vehicle_of_interest as Record<string, unknown>}
+            negotiationType={lead.negotiation_type}
+            source={lead.source}
+            utmSource={lead.utm_source}
+            utmMedium={lead.utm_medium}
+          />
+        )}
 
         {/* AI Insights preview */}
         {lead.ai_sentiment && (

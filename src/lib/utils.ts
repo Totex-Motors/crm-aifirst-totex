@@ -31,3 +31,20 @@ export function ensureHttps(url: string | null | undefined): string {
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   return `https://${trimmed}`;
 }
+
+/**
+ * Escapes PostgREST filter special characters for safe use in ilike queries.
+ * Escapes: . , ( ) " % *
+ */
+export function escapePostgrest(str: string): string {
+  return str.replace(/[.,()"%*]/g, '\\$&');
+}
+
+/**
+ * Determines the base path for leads or contacts based on the current pathname.
+ * Expected to be called with pathnames within /comercial section.
+ * Returns '/comercial/contatos' if path contains '/comercial/contatos', otherwise '/comercial/leads'.
+ */
+export function getLeadsBasePath(pathname: string): string {
+  return pathname.includes('/comercial/contatos') ? '/comercial/contatos' : '/comercial/leads';
+}

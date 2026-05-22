@@ -262,6 +262,14 @@ export interface SalesLead {
   attachments?: string[];
   created_at: string;
   updated_at: string;
+
+  // AutoConf / ERP integration
+  external_id?: string;
+  source?: string;
+  negotiation_type?: string;
+  vehicle_of_interest?: Record<string, unknown>;
+  evaluated_vehicles?: Record<string, unknown>[];
+  lost_reason?: string;
 }
 
 // =====================================================

@@ -144,27 +144,6 @@ const INTEGRATIONS: IntegrationDef[] = [
     isSecret: false,
     category: "stock",
   },
-  {
-    key: "AUTOCONF_WEBHOOK_SECRET",
-    label: "AutoConf — Webhook Secret",
-    description: "Token secreto para validar os leads recebidos via webhook do AutoConf. Configure o mesmo valor no painel do AutoConf.",
-    placeholder: "secret-token-...",
-    category: "stock",
-  },
-  {
-    key: "AUTOCONF_REVENDA_TOKEN",
-    label: "AutoConf — Revenda Token",
-    description: "Token da revenda no AutoConf. Necessário para consultar e sincronizar leads históricos via API REST.",
-    placeholder: "revenda_token_...",
-    category: "stock",
-  },
-  {
-    key: "AUTOCONF_BEARER_TOKEN",
-    label: "AutoConf — Bearer Token (API)",
-    description: "Bearer token para autenticação na API REST do AutoConf (api.autoconf.com.br). Solicitar ao suporte AutoConf.",
-    placeholder: "Bearer eyJ...",
-    category: "stock",
-  },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
