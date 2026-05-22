@@ -176,6 +176,7 @@ export function LeadsSection() {
       textarea.style.position = 'absolute';
       textarea.style.left = '-9999px';
       textarea.setAttribute('aria-hidden', 'true');
+      textarea.setAttribute('tabindex', '-1');
       document.body.appendChild(textarea);
       textarea.select();
       try {

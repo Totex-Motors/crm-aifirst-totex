@@ -32,7 +32,7 @@ import {
   Zap,
   Car,
 } from "lucide-react";
-import { cn, navigateTo, getLeadsBasePath } from "@/lib/utils";
+import { cn, navigateTo } from "@/lib/utils";
 import type { SalesStage, SalesLead } from "@/types/sales.types";
 
 const STAGES: { value: SalesStage | "all" | "new"; label: string }[] = [
@@ -107,7 +107,7 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
   };
 
   const handleLeadClick = (lead: SalesLead, e?: React.MouseEvent) => {
-    const basePath = getLeadsBasePath(`/comercial/${isAutoconf ? 'leads' : 'contatos'}`);
+    const basePath = isAutoconf ? '/comercial/leads' : '/comercial/contatos';
     if (e) {
       navigateTo(e, `${basePath}/${lead.id}`, navigate);
     } else {
