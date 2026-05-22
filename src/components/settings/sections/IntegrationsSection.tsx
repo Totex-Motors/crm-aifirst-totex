@@ -376,6 +376,9 @@ export function IntegrationsSection() {
                               <button
                                 type="button"
                                 onClick={() => toggleVisibility(integration.key)}
+                                aria-label={isVisible ? "Ocultar chave" : "Mostrar chave"}
+                                title={isVisible ? "Ocultar chave" : "Mostrar chave"}
+                                aria-pressed={isVisible}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                               >
                                 {isVisible ? (
