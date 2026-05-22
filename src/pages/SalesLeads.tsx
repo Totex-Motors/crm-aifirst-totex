@@ -32,7 +32,7 @@ import {
   Zap,
   Car,
 } from "lucide-react";
-import { cn, navigateTo } from "@/lib/utils";
+import { cn, navigateTo, getLeadsBasePath } from "@/lib/utils";
 import type { SalesStage, SalesLead } from "@/types/sales.types";
 
 const STAGES: { value: SalesStage | "all" | "new"; label: string }[] = [

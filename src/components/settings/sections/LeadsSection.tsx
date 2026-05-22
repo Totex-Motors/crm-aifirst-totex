@@ -173,7 +173,8 @@ export function LeadsSection() {
       .then(() => {
         toast({ title: `${label} copiado` });
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Clipboard copy failed:', err);
         toast({ title: "Erro ao copiar para área de transferência", variant: "destructive" });
       });
   };

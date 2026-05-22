@@ -117,7 +117,7 @@ import {
 } from "@/components/ui/popover";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn, navigateTo } from "@/lib/utils";
+import { cn, navigateTo, getLeadsBasePath } from "@/lib/utils";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { supabase } from "@/lib/supabase";
 import type { SalesStage } from "@/types/sales.types";
@@ -138,7 +138,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const { whatsappDraft, clearWhatsAppDraft } = useCall();
 
   // Determine base path based on current route (contatos vs leads)
-  const basePath = location.pathname.includes('/comercial/contatos/') ? '/comercial/contatos' : '/comercial/leads';
+  const basePath = getLeadsBasePath(location.pathname);
 
   // Instâncias comerciais (para seletor de envio no chat)
   const [commercialInstances, setCommercialInstances] = useState<{ id: string; name: string; status?: string; metadata?: any }[]>([]);

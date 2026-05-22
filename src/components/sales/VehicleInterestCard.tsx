@@ -107,7 +107,7 @@ export function VehicleInterestCard({ vehicleData, negotiationType, source, utmS
         .select("id, make, model, year, version, images, is_sold, is_active, price")
         .eq("id", vehicleId!)
         .maybeSingle();
-      if (error) throw error;
+      if (error) throw new Error(`Failed to fetch vehicle ${vehicleId}: ${error.message}`);
       return data as StockVehicle | null;
     },
   });
