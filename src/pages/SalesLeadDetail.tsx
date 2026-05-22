@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -117,7 +117,7 @@ import {
 } from "@/components/ui/popover";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn, navigateTo } from "@/lib/utils";
+import { cn, navigateTo, getLeadsBasePath } from "@/lib/utils";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { supabase } from "@/lib/supabase";
 import type { SalesStage } from "@/types/sales.types";
@@ -131,10 +131,14 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'timeline';
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { teamMember } = useAuth();
   const queryClient = useQueryClient();
   const { whatsappDraft, clearWhatsAppDraft } = useCall();
+
+  // Get base path using utility function (contatos vs leads)
+  const basePath = getLeadsBasePath(location.pathname);
 
   // Instâncias comerciais (para seletor de envio no chat)
   const [commercialInstances, setCommercialInstances] = useState<{ id: string; name: string; status?: string; metadata?: any }[]>([]);
@@ -645,7 +649,9 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         <div className="text-6xl mb-4">😕</div>
         <h2 className="text-xl font-semibold mb-2">Lead não encontrado</h2>
         <p className="text-muted-foreground mb-4">O lead que você procura não existe.</p>
-        <Button onClick={() => navigate("/comercial/leads")}>Voltar para Leads</Button>
+        <Button onClick={() => navigate(basePath)}>
+          {basePath === '/comercial/contatos' ? 'Voltar para Contatos' : 'Voltar para Leads'}
+        </Button>
       </div>
     );
   }
@@ -674,7 +680,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           } else if (from === 'deals') {
             navigate('/comercial/deals');
           } else if (from === 'leads') {
-            navigate('/comercial/leads');
+            navigate(basePath);
           } else if (from === 'marketing-pipeline') {
             navigate('/marketing/pipeline');
           } else {
@@ -1155,7 +1161,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                     {pl && (
                       <div
                         className="flex items-center gap-3 p-2.5 rounded-lg bg-blue-50/60 border border-blue-200/50 hover:bg-blue-50 cursor-pointer transition-colors"
-                        onClick={(e) => navigateTo(e, `/comercial/leads/${pl.id}`, navigate)}
+                        onClick={(e) => navigateTo(e, `${basePath}/${pl.id}`, navigate)}
                       >
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                           <User className="h-4 w-4 text-blue-600" />
@@ -1177,7 +1183,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                       <div
                         key={contact.lead_id}
                         className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 border hover:bg-muted/50 cursor-pointer transition-colors group"
-                        onClick={(e) => navigateTo(e, `/comercial/leads/${contact.lead_id}`, navigate)}
+                        onClick={(e) => navigateTo(e, `${basePath}/${contact.lead_id}`, navigate)}
                       >
                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                           <User className="h-4 w-4 text-muted-foreground" />
@@ -2681,7 +2687,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                 try {
                   await deleteLead.mutateAsync(id);
                   toast({ title: "Lead excluído com sucesso" });
-                  navigate('/comercial/leads');
+                  navigate(basePath);
                 } catch {
                   toast({ title: "Erro ao excluir lead", variant: "destructive" });
                 }

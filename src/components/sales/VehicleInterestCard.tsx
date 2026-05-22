@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { Car, CheckCircle2, XCircle, ArrowLeftRight, ShoppingCart, Tag } from "lucide-react";
 
 interface Props {
@@ -104,11 +102,15 @@ export function VehicleInterestCard({ vehicleData, negotiationType, source, utmS
     enabled: !!vehicleId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("vehicles")
         .select("id, make, model, year, version, images, is_sold, is_active, price")
         .eq("id", vehicleId!)
         .maybeSingle();
+      if (error) {
+        console.error(`Failed to fetch vehicle ${vehicleId}:`, error);
+        throw new Error('Não foi possível carregar os dados do veículo');
+      }
       return data as StockVehicle | null;
     },
   });
