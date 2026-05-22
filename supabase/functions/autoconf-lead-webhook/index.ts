@@ -56,20 +56,40 @@ Deno.serve(async (req: Request) => {
     null;
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const envConfiguredSecret =
+    Deno.env.get("AUTOCONF_WEBHOOK_SECRET")?.trim() || null;
+  const environment =
+    Deno.env.get("DENO_ENV")?.trim().toLowerCase() || "production";
+  const allowInsecureWebhook =
+    Deno.env.get("AUTOCONF_WEBHOOK_ALLOW_INSECURE") === "true";
+  const isNonProductionEnvironment = [
+    "development",
+    "dev",
+    "setup",
+    "local",
+    "test",
+  ].includes(environment);
 
-  // Validate secret against config table (if configured; open during initial setup)
+  // Prefer env secret; keep config-table fallback for compatibility.
   const { data: secretRow } = await supabase
     .from("config")
     .select("value")
     .eq("key", "AUTOCONF_WEBHOOK_SECRET")
     .maybeSingle();
 
-  const configuredSecret = secretRow?.value?.trim();
-  if (configuredSecret) {
-    if (!receivedToken || receivedToken !== configuredSecret) {
-      console.warn("[AutoConf] Unauthorized webhook attempt");
-      return new Response("Unauthorized", { status: 401 });
+  const configuredSecret =
+    envConfiguredSecret || secretRow?.value?.trim() || null;
+
+  if (!configuredSecret) {
+    if (!(allowInsecureWebhook && isNonProductionEnvironment)) {
+      console.error(
+        "[AutoConf] Webhook secret is not configured; refusing to run in open mode",
+      );
+      return new Response("Forbidden", { status: 403 });
     }
+  } else if (!receivedToken || receivedToken !== configuredSecret) {
+    console.warn("[AutoConf] Unauthorized webhook attempt");
+    return new Response("Unauthorized", { status: 401 });
   }
 
   let body: AutoconfPayload;
@@ -95,6 +115,16 @@ Deno.serve(async (req: Request) => {
   const sourceParts = [body.lead_source, body.lead_medium].filter(Boolean);
   const source = sourceParts.length > 0 ? sourceParts.join(" / ") : "autoconf";
   const salesStage = STAGE_MAP[type] ?? "new";
+  const autoconfMetadata: Record<string, unknown> = {
+    lead_id: externalId,
+    negotiation_type: body.negotiation_type || null,
+    vehicle_of_interest: body.interested_in_vehicle ?? null,
+    evaluated_vehicles: body.evaluated_vehicles?.length ? body.evaluated_vehicles : null,
+    lost_reason: type === "insucesso" ? body.reason ?? null : null,
+    event_type: type,
+    event_date: body.date || null,
+    creates_rescue_lead: body.creates_rescue_lead ?? null,
+  };
 
   const sharedFields: Record<string, unknown> = {
     source,
@@ -102,26 +132,31 @@ Deno.serve(async (req: Request) => {
     utm_medium: body.lead_medium_slug || body.lead_medium || null,
     utm_campaign: body.lead_campaign_slug || body.lead_campaign || null,
     utm_content: body.lead_content_slug || body.lead_content || null,
-    negotiation_type: body.negotiation_type || null,
-    vehicle_of_interest: body.interested_in_vehicle ?? null,
-    evaluated_vehicles: body.evaluated_vehicles?.length ? body.evaluated_vehicles : null,
     sales_stage: salesStage,
     updated_at: new Date().toISOString(),
   };
 
-  if (type === "insucesso") {
-    sharedFields.lost_reason = body.reason ?? null;
-  }
-
   // 1. Find by external_id (primary dedup key — AutoConf lead_id)
   const { data: byExternalId } = await supabase
     .from("leads")
-    .select("id")
-    .eq("external_id", externalId)
+    .select("id, metadata")
+    .eq("metadata->autoconf->>lead_id", externalId)
     .maybeSingle();
 
   if (byExternalId) {
-    await supabase.from("leads").update(sharedFields).eq("id", byExternalId.id);
+    await supabase
+      .from("leads")
+      .update({
+        ...sharedFields,
+        metadata: {
+          ...(byExternalId.metadata ?? {}),
+          autoconf: {
+            ...(byExternalId.metadata?.autoconf ?? {}),
+            ...autoconfMetadata,
+          },
+        },
+      })
+      .eq("id", byExternalId.id);
     console.log(`[AutoConf] Updated lead ${byExternalId.id} via external_id (type=${type})`);
     return new Response(JSON.stringify({ ok: true, lead_id: byExternalId.id }), {
       headers: { "Content-Type": "application/json" },
@@ -133,7 +168,7 @@ Deno.serve(async (req: Request) => {
     const last8 = phone.replace(/\D/g, "").slice(-8);
     const { data: byPhone } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, metadata")
       .ilike("phone", `%${last8}`)
       .limit(1)
       .maybeSingle();
@@ -141,7 +176,17 @@ Deno.serve(async (req: Request) => {
     if (byPhone) {
       await supabase
         .from("leads")
-        .update({ ...sharedFields, external_id: externalId, phone })
+        .update({
+          ...sharedFields,
+          phone,
+          metadata: {
+            ...(byPhone.metadata ?? {}),
+            autoconf: {
+              ...(byPhone.metadata?.autoconf ?? {}),
+              ...autoconfMetadata,
+            },
+          },
+        })
         .eq("id", byPhone.id);
       console.log(`[AutoConf] Updated lead ${byPhone.id} via phone fallback (type=${type})`);
       return new Response(JSON.stringify({ ok: true, lead_id: byPhone.id }), {
@@ -173,8 +218,10 @@ Deno.serve(async (req: Request) => {
       name: body.name || phone || body.email || "Sem nome",
       email: body.email || null,
       phone: phone || null,
-      external_id: externalId,
       status: "new",
+      metadata: {
+        autoconf: autoconfMetadata,
+      },
       ...sharedFields,
     })
     .select("id")

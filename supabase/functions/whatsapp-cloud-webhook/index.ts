@@ -25,12 +25,36 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 const APP_SECRET = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET") || "";
 
-async function verifyMetaSignature(rawBody: string, signature: string | null): Promise<boolean> {
+function hexToBytes(hex: string): Uint8Array | null {
+  if (!hex || hex.length % 2 !== 0) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    const value = Number.parseInt(hex.slice(i, i + 2), 16);
+    if (Number.isNaN(value)) return null;
+    bytes[i / 2] = value;
+  }
+  return bytes;
+}
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
+}
+
+async function verifyMetaSignature(rawBody: Uint8Array, signatureHeader: string | null): Promise<boolean> {
   if (!APP_SECRET) {
     console.warn("[Cloud Webhook] WHATSAPP_CLOUD_APP_SECRET not set — skipping HMAC verification");
     return true;
   }
-  if (!signature || !signature.startsWith("sha256=")) return false;
+  const normalizedSignature = signatureHeader?.trim().toLowerCase() || "";
+  if (!normalizedSignature.startsWith("sha256=")) return false;
+
+  const receivedSignature = hexToBytes(normalizedSignature.slice("sha256=".length));
+  if (!receivedSignature) return false;
+
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(APP_SECRET),
@@ -38,9 +62,8 @@ async function verifyMetaSignature(rawBody: string, signature: string | null): P
     false,
     ["sign"],
   );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
-  const hexSig = "sha256=" + Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return hexSig === signature;
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, rawBody));
+  return timingSafeEqual(sig, receivedSignature);
 }
 
 Deno.serve(async (req) => {
@@ -70,8 +93,9 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Ler body como texto para poder verificar HMAC antes de fazer parse
-    const rawBody = await req.text();
+    // Ler body como bytes exatos do request para validar HMAC
+    const rawBodyBuffer = await req.arrayBuffer();
+    const rawBody = new Uint8Array(rawBodyBuffer);
     const signature = req.headers.get("x-hub-signature-256");
 
     if (!(await verifyMetaSignature(rawBody, signature))) {
@@ -79,7 +103,7 @@ Deno.serve(async (req) => {
       return new Response("Forbidden", { status: 403 });
     }
 
-    const body = JSON.parse(rawBody);
+    const body = JSON.parse(new TextDecoder().decode(rawBody));
 
     // Meta envelopa em object.entry[].changes[].value
     const entries = body.entry || [];

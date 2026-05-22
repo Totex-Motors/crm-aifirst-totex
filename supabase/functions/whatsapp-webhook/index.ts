@@ -415,6 +415,15 @@ async function handleIncomingMessage(
     }
   }
 
+  const timestampValue = Number(payload.messageTimestamp);
+  const timestampMs = Number.isFinite(timestampValue)
+    ? (timestampValue < 1e12 ? timestampValue * 1000 : timestampValue)
+    : null;
+  const parsedSentAt = timestampMs !== null ? new Date(timestampMs) : null;
+  const sentAt = parsedSentAt && !Number.isNaN(parsedSentAt.getTime())
+    ? parsedSentAt.toISOString()
+    : new Date().toISOString();
+
   const { data: savedMessage, error: msgError } = await supabase
     .from('whatsapp_messages')
     .insert({
@@ -429,9 +438,7 @@ async function handleIncomingMessage(
       sender_name: pushName,
       is_from_me: fromMe,
       media_url: mediaUrl,
-      sent_at: payload.messageTimestamp
-        ? new Date(Number(payload.messageTimestamp) < 1e12 ? Number(payload.messageTimestamp) * 1000 : Number(payload.messageTimestamp)).toISOString()
-        : new Date().toISOString(),
+      sent_at: sentAt,
       metadata: payload,
     })
     .select()
