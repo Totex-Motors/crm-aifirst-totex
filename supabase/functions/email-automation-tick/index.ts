@@ -118,15 +118,22 @@ async function evaluateBranch(
       .not(field === "email_opened" ? "opened_at" : "clicked_at", "is", null);
     currentValue = (count || 0) > 0;
   } else if (field === "has_tag") {
-    // TODO: integrar com tabela de tags quando criada
-    currentValue = false;
+    // leads.tags é string[] — verifica se o lead tem a tag especificada em `value`
+    const { data: tagLead } = await supabase
+      .from("leads")
+      .select("tags")
+      .eq("id", leadId)
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    const tags: string[] = tagLead?.tags || [];
+    return tags.includes(String(value));
   } else {
     const { data: lead } = await supabase
       .from("leads")
       .select(field)
       .eq("id", leadId)
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
     currentValue = lead?.[field];
   }
 
@@ -175,7 +182,7 @@ async function executeNode(
         .from("email_templates").select("id, name, subject, html_content, design_json")
         .eq("id", templateId)
         .eq("tenant_id", tenantId)
-        .single();
+        .maybeSingle();
       if (!template) {
         console.warn(`[run ${run.id}] template ${templateId} não encontrado (tenant=${tenantId})`);
         const next = getNextNode(run.flow, node.id);
@@ -186,7 +193,7 @@ async function executeNode(
         .from("leads").select("id, name, email")
         .eq("id", leadId)
         .eq("tenant_id", tenantId)
-        .single();
+        .maybeSingle();
       if (!lead?.email) {
         console.warn(`[run ${run.id}] lead ${leadId} sem email`);
         const next = getNextNode(run.flow, node.id);
@@ -266,7 +273,7 @@ async function executeNode(
         // Busca tags atuais e adiciona
         const { data: lead } = await supabase
           .from("leads").select("tags")
-          .eq("id", leadId).eq("tenant_id", tenantId).single();
+          .eq("id", leadId).eq("tenant_id", tenantId).maybeSingle();
         const current = (lead?.tags || []) as string[];
         if (!current.includes(tag)) {
           await supabase
@@ -309,7 +316,7 @@ async function executeNode(
       if (message) {
         const { data: lead } = await supabase
           .from("leads").select("phone, name")
-          .eq("id", leadId).eq("tenant_id", tenantId).single();
+          .eq("id", leadId).eq("tenant_id", tenantId).maybeSingle();
         if (lead?.phone) {
           // Substitui variáveis básicas
           const text = message

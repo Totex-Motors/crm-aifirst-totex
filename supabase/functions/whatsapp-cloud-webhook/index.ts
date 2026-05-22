@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { getIntegrationKey } from "../_shared/config.ts";
 
 /**
  * WhatsApp Cloud API Webhook
@@ -22,6 +23,48 @@ const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_VERIFY_TOKEN") || "";
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_CLOUD_API_TOKEN") || "";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
+const APP_SECRET = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET") || "";
+
+function hexToBytes(hex: string): Uint8Array | null {
+  if (!hex || hex.length % 2 !== 0) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    const value = Number.parseInt(hex.slice(i, i + 2), 16);
+    if (Number.isNaN(value)) return null;
+    bytes[i / 2] = value;
+  }
+  return bytes;
+}
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
+}
+
+async function verifyMetaSignature(rawBody: Uint8Array, signatureHeader: string | null): Promise<boolean> {
+  if (!APP_SECRET) {
+    console.warn("[Cloud Webhook] WHATSAPP_CLOUD_APP_SECRET not set — skipping HMAC verification");
+    return true;
+  }
+  const normalizedSignature = signatureHeader?.trim().toLowerCase() || "";
+  if (!normalizedSignature.startsWith("sha256=")) return false;
+
+  const receivedSignature = hexToBytes(normalizedSignature.slice("sha256=".length));
+  if (!receivedSignature) return false;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(APP_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, rawBody));
+  return timingSafeEqual(sig, receivedSignature);
+}
 
 Deno.serve(async (req) => {
   // CORS
@@ -49,7 +92,18 @@ Deno.serve(async (req) => {
   // ========== WEBHOOK EVENTS (POST) ==========
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const body = await req.json();
+
+    // Ler body como bytes exatos do request para validar HMAC
+    const rawBodyBuffer = await req.arrayBuffer();
+    const rawBody = new Uint8Array(rawBodyBuffer);
+    const signature = req.headers.get("x-hub-signature-256");
+
+    if (!(await verifyMetaSignature(rawBody, signature))) {
+      console.error("[Cloud Webhook] Invalid HMAC signature — request rejected");
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const body = JSON.parse(new TextDecoder().decode(rawBody));
 
     // Meta envelopa em object.entry[].changes[].value
     const entries = body.entry || [];
@@ -65,13 +119,17 @@ Deno.serve(async (req) => {
         const phoneNumberId = metadata?.phone_number_id;
 
         // Buscar instância oficial pelo phone_number_id
-        const { data: instance } = await supabase
-          .from("whatsapp_instances")
-          .select("id, name")
-          .eq("metadata->>phone_number_id", phoneNumberId)
-          .maybeSingle();
+        let instance = null;
+        if (phoneNumberId) {
+          const { data } = await supabase
+            .from("whatsapp_instances")
+            .select("id, name")
+            .eq("metadata->>phone_number_id", phoneNumberId)
+            .maybeSingle();
+          instance = data;
+        }
 
-        // Fallback: buscar por nome
+        // Fallback: buscar por nome configurado
         const instanceId = instance?.id || await getOfficialInstanceId(supabase);
 
         // ===== MENSAGENS RECEBIDAS =====
@@ -212,7 +270,7 @@ async function handleIncomingMessage(supabase: any, msg: any, contacts: any[], i
         phone: cleanPhone,
       })
       .select("id")
-      .single();
+      .maybeSingle();
     finalLeadId = newLead?.id || null;
     console.log(`[Cloud Webhook] Created new lead: ${finalLeadId}`);
   }
@@ -236,6 +294,10 @@ async function handleIncomingMessage(supabase: any, msg: any, contacts: any[], i
   });
 
   if (error) {
+    if ((error as any).code === '23505') {
+      console.log(`[Cloud Webhook] Dedup (constraint): message_id already exists, skipping: ${msgId}`);
+      return;
+    }
     console.error(`[Cloud Webhook] Error saving message:`, error.message);
     return;
   }
@@ -401,10 +463,11 @@ async function downloadAndStoreMedia(supabase: any, mediaId: string, msgType: st
 }
 
 async function getOfficialInstanceId(supabase: any): Promise<string | null> {
+  const instanceName = await getIntegrationKey(supabase, 'WHATSAPP_CLOUD_INSTANCE_NAME') || 'cloud-oficial';
   const { data } = await supabase
     .from("whatsapp_instances")
     .select("id")
-    .eq("name", "IAP - OFICIAL")
+    .eq("name", instanceName)
     .limit(1)
     .maybeSingle();
   return data?.id || null;

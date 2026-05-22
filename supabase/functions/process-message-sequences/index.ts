@@ -65,7 +65,7 @@ async function processEnrollment(enrollment: Enrollment): Promise<{ ok: boolean;
     .from("wa_message_sequences")
     .select("id, community_id, is_active, community:wa_communities(instance_id)")
     .eq("id", enrollment.sequence_id)
-    .single<Sequence>();
+    .maybeSingle<Sequence>();
 
   if (seqErr || !sequence) {
     await supabase
