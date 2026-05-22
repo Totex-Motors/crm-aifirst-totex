@@ -31,3 +31,11 @@ export function ensureHttps(url: string | null | undefined): string {
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   return `https://${trimmed}`;
 }
+
+/**
+ * Escapes PostgREST filter special characters for safe use in ilike queries.
+ * Escapes: . , ( ) " % *
+ */
+export function escapePostgrest(str: string): string {
+  return str.replace(/[.,()"%*]/g, '\\$&');
+}

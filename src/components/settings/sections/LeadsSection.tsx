@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -170,9 +169,13 @@ export function LeadsSection() {
   };
 
   const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({ title: `${label} copiado` });
-    });
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast({ title: `${label} copiado` });
+      })
+      .catch(() => {
+        toast({ title: "Erro ao copiar para área de transferência", variant: "destructive" });
+      });
   };
 
   const activeProvider = PROVIDERS.find((p) => p.value === provider) ?? PROVIDERS[0];
@@ -308,6 +311,9 @@ export function LeadsSection() {
                           setVisible((prev) => ({ ...prev, [field.key]: !prev[field.key] }))
                         }
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={isVisible ? "Hide password" : "Show password"}
+                        aria-pressed={isVisible}
+                        title={isVisible ? "Hide password" : "Show password"}
                       >
                         {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
