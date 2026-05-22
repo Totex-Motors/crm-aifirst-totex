@@ -42,7 +42,8 @@ export function escapePostgrest(str: string): string {
 
 /**
  * Determines the base path for leads or contacts based on the current pathname.
- * Used to ensure consistent navigation between leads and contacts views.
+ * Expected to be called with pathnames within /comercial section.
+ * Returns '/comercial/contatos' if path contains '/comercial/contatos', otherwise '/comercial/leads'.
  */
 export function getLeadsBasePath(pathname: string): string {
   return pathname.includes('/comercial/contatos') ? '/comercial/contatos' : '/comercial/leads';

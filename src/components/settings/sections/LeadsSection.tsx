@@ -173,6 +173,9 @@ export function LeadsSection() {
       // Fallback for insecure contexts or older browsers
       const textarea = document.createElement('textarea');
       textarea.value = text;
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      textarea.setAttribute('aria-hidden', 'true');
       document.body.appendChild(textarea);
       textarea.select();
       try {

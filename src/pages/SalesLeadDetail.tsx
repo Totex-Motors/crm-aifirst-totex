@@ -137,7 +137,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const queryClient = useQueryClient();
   const { whatsappDraft, clearWhatsAppDraft } = useCall();
 
-  // Determine base path based on current route (contatos vs leads)
+  // Get base path using utility function (contatos vs leads)
   const basePath = getLeadsBasePath(location.pathname);
 
   // Instâncias comerciais (para seletor de envio no chat)
