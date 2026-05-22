@@ -210,8 +210,10 @@ const AppRoutes = () => {
       <Route path="/comercial/agenda" element={<ProtectedRoute><SalesAgenda /></ProtectedRoute>} />
       <Route path="/comercial" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
       <Route path="/comercial/workspace" element={<ProtectedRoute><SalesWorkspace /></ProtectedRoute>} />
-      <Route path="/comercial/leads" element={<ProtectedRoute><SalesLeads /></ProtectedRoute>} />
+      <Route path="/comercial/leads" element={<ProtectedRoute><SalesLeads mode="autoconf" /></ProtectedRoute>} />
       <Route path="/comercial/leads/:id" element={<ProtectedRoute><SalesLeadDetail /></ProtectedRoute>} />
+      <Route path="/comercial/contatos" element={<ProtectedRoute><SalesLeads mode="contacts" /></ProtectedRoute>} />
+      <Route path="/comercial/contatos/:id" element={<ProtectedRoute><SalesLeadDetail /></ProtectedRoute>} />
       <Route path="/comercial/pipeline" element={<ProtectedRoute><SalesPipeline /></ProtectedRoute>} />
       <Route path="/comercial/deals" element={<ProtectedRoute><SalesDeals /></ProtectedRoute>} />
       <Route path="/comercial/deals/:id" element={<ProtectedRoute><SalesDealDetail /></ProtectedRoute>} />

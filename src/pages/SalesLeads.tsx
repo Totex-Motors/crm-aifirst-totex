@@ -22,7 +22,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Users,
   Search,
-  Filter,
   LayoutGrid,
   List,
   SortAsc,
@@ -31,6 +30,7 @@ import {
   RefreshCw,
   UserPlus,
   Zap,
+  Car,
 } from "lucide-react";
 import { cn, navigateTo } from "@/lib/utils";
 import type { SalesStage, SalesLead } from "@/types/sales.types";
@@ -46,7 +46,12 @@ const STAGES: { value: SalesStage | "all" | "new"; label: string }[] = [
   { value: "perdido", label: "Perdido" },
 ];
 
-const SalesLeads = () => {
+interface SalesLeadsProps {
+  mode?: "contacts" | "autoconf";
+}
+
+const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
+  const isAutoconf = mode === "autoconf";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
@@ -67,9 +72,10 @@ const SalesLeads = () => {
     sales_stage: selectedStage !== "all" ? selectedStage : undefined,
     search: search || undefined,
     min_score: showHotOnly ? 70 : undefined,
+    autoconfOnly: isAutoconf,
     page,
     pageSize: 50,
-  }), [selectedStage, search, showHotOnly, page]);
+  }), [selectedStage, search, showHotOnly, isAutoconf, page]);
 
   const { data: leadsData, isLoading, refetch } = useSalesLeads(filters);
   const leads = leadsData?.leads || [];
@@ -127,11 +133,15 @@ const SalesLeads = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-              <Users className="h-7 w-7 text-primary" />
-              Leads Comerciais
+              {isAutoconf
+                ? <Car className="h-7 w-7 text-primary" />
+                : <Users className="h-7 w-7 text-primary" />}
+              {isAutoconf ? "Leads" : "Contatos"}
             </h1>
             <p className="text-muted-foreground">
-              {leads?.length || 0} leads encontrados
+              {isAutoconf
+                ? `${totalLeads} leads recebidos`
+                : `${leads?.length || 0} contatos encontrados`}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -196,10 +206,12 @@ const SalesLeads = () => {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
-            <Button onClick={() => setIsCreateLeadOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Novo Lead
-            </Button>
+            {!isAutoconf && (
+              <Button onClick={() => setIsCreateLeadOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Novo Contato
+              </Button>
+            )}
           </div>
         </div>
 
@@ -317,11 +329,15 @@ const SalesLeads = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum lead encontrado</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {isAutoconf ? "Nenhum lead recebido ainda" : "Nenhum contato encontrado"}
+              </h3>
               <p className="text-muted-foreground mb-4">
                 {search
                   ? "Tente ajustar sua busca ou filtros"
-                  : "Não há leads neste estágio no momento"}
+                  : isAutoconf
+                    ? "Aguardando leads do AutoConf. Configure o webhook em Configurações → Integrações → Leads."
+                    : "Não há contatos neste estágio no momento"}
               </p>
               {(search || selectedStage !== "all" || showHotOnly) && (
                 <Button

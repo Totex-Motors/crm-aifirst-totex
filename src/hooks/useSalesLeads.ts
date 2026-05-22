@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { escapePostgrest } from '@/lib/utils';
 import type {
   SalesLead,
   SalesLeadFilters,
@@ -8,7 +9,7 @@ import type {
 } from '@/types/sales.types';
 
 // Fetch all sales leads with pagination
-export const useSalesLeads = (filters?: SalesLeadFilters & { page?: number; pageSize?: number }) => {
+export const useSalesLeads = (filters?: SalesLeadFilters & { page?: number; pageSize?: number; autoconfOnly?: boolean }) => {
   return useQuery({
     queryKey: ['sales-leads', filters],
     queryFn: async () => {
@@ -23,6 +24,9 @@ export const useSalesLeads = (filters?: SalesLeadFilters & { page?: number; page
         .order('created_at', { ascending: false })
         .range(from, to);
 
+      if (filters?.autoconfOnly) {
+        query = query.not('external_id', 'is', null);
+      }
       if (filters?.sales_stage) {
         query = query.eq('sales_stage', filters.sales_stage);
       }
@@ -33,13 +37,14 @@ export const useSalesLeads = (filters?: SalesLeadFilters & { page?: number; page
         query = query.gte('sales_score', filters.min_score);
       }
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,instagram.ilike.%${filters.search}%`);
+        const s = escapePostgrest(filters.search);
+        query = query.or(`name.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%,instagram.ilike.%${s}%`);
       }
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { 
-        leads: (data || []) as SalesLead[], 
+      return {
+        leads: (data || []) as SalesLead[],
         total: count || 0,
         page,
         pageSize,

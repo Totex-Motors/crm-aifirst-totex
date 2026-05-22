@@ -21,6 +21,7 @@ import {
   Sparkles,
   TrendingUp,
   User2,
+  Users,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useNotificationContext } from "@/hooks/useNotifications";
@@ -71,6 +72,8 @@ const sections: NavSection[] = [
     items: [
       { title: "Cockpit", url: "/comercial/cockpit", icon: Headphones },
       { title: "Dashboard", url: "/comercial", icon: LayoutDashboard },
+      { title: "Leads", url: "/comercial/leads", icon: Car },
+      { title: "Contatos", url: "/comercial/contatos", icon: Users },
       { title: "Pipeline", url: "/comercial/pipeline", icon: Kanban },
       { title: "Inbox", url: "/comercial/inbox", icon: MessageSquare },
       { title: "Estoque", url: "/comercial/produtos", icon: Car },

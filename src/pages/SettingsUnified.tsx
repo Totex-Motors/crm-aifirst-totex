@@ -27,6 +27,7 @@ import {
   Settings,
   LogOut,
   LayoutGrid,
+  Inbox,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ import { ProfileSection } from "@/components/settings/sections/ProfileSection";
 import { GoogleCalendarSection } from "@/components/settings/sections/GoogleCalendarSection";
 import { ThemeSection } from "@/components/settings/sections/ThemeSection";
 import { IntegrationsSection } from "@/components/settings/sections/IntegrationsSection";
+import { LeadsSection } from "@/components/settings/sections/LeadsSection";
 import { WhatsAppInstancesSection } from "@/components/settings/sections/WhatsAppInstancesSection";
 import { ModulesSection } from "@/components/settings/sections/ModulesSection";
 import { NotificationRulesBuilder } from "@/components/settings/NotificationRulesBuilder";
@@ -132,6 +134,13 @@ const navigationSections: NavSection[] = [
         label: "Telefonia (VoIP)",
         icon: Phone,
         description: "Configure dispositivos WaVoIP para fazer e receber ligações pelo CRM. As ligações são gravadas e transcritas pela IA.",
+      },
+      {
+        id: "leads",
+        label: "Leads",
+        icon: Inbox,
+        description: "Configure a origem dos leads. Escolha o sistema que envia leads para o CRM (AutoConf, OLX, WebMotors, etc.) e informe as credenciais de integração.",
+        hint: "AutoConf, OLX, WebMotors...",
       },
     ],
   },
@@ -388,6 +397,8 @@ function SettingsContent({ section }: { section: string }) {
       return <WhatsAppInstancesSection />;
     case "wavoip":
       return <WavoipAdminPanel />;
+    case "leads":
+      return <LeadsSection />;
 
     // Comercial
     case "pipeline":
