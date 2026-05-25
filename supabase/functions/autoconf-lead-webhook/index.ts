@@ -201,6 +201,10 @@ Deno.serve(async (req: Request) => {
 
   const sharedFields: Record<string, unknown> = {
     external_id: externalId,
+    negotiation_type: body.negotiation_type || null,
+    // Store first vehicle in dedicated column; full array stays in metadata.autoconf
+    vehicle_of_interest: body.interested_in_vehicle?.[0] ?? null,
+    evaluated_vehicles: body.evaluated_vehicles?.length ? body.evaluated_vehicles : null,
     source,
     utm_source: sourceSlug || sourceLabel || null,
     utm_medium: body.lead_medium_slug || body.lead_medium || null,
