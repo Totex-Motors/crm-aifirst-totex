@@ -123,16 +123,63 @@ Deno.serve(async (req: Request) => {
       .eq("active", true)
       .limit(10);
 
-    // Preparar dados AutoConf se disponível
+    // Preparar dados AutoConf se disponível (normalizado para reduzir tokens no prompt)
     const autoconfMeta = lead.metadata?.autoconf ?? null;
+    const MAX_AUTOCONF_CLIENT_MESSAGE_CHARS = 500;
+    const MAX_EVALUATED_VEHICLES = 3;
+
+    const summarizeVehicle = (vehicle: unknown) => {
+      if (!vehicle || typeof vehicle !== "object" || Array.isArray(vehicle)) return null;
+
+      const vehicleObj = vehicle as Record<string, unknown>;
+      const summary = {
+        brand: vehicleObj.brand ?? vehicleObj.marca ?? null,
+        model: vehicleObj.model ?? vehicleObj.modelo ?? null,
+        year: vehicleObj.year ?? vehicleObj.ano ?? null,
+        version: vehicleObj.version ?? vehicleObj.versao ?? null,
+        condition: vehicleObj.condition ?? vehicleObj.condicao ?? null,
+        price: vehicleObj.price ?? vehicleObj.preco ?? vehicleObj.valor ?? null,
+      };
+
+      return Object.values(summary).some((value) => value !== null && value !== undefined && value !== "")
+        ? summary
+        : null;
+    };
+
+    const normalizeOrigins = (origins: unknown) => {
+      if (Array.isArray(origins)) {
+        return origins
+          .filter((origin): origin is string => typeof origin === "string")
+          .slice(0, 5);
+      }
+      return typeof origins === "string" ? [origins] : [];
+    };
+
+    const summarizeStore = (store: unknown) => {
+      if (typeof store === "string") return store;
+      if (!store || typeof store !== "object" || Array.isArray(store)) return null;
+      const storeObj = store as Record<string, unknown>;
+      return {
+        id: storeObj.id ?? null,
+        name: storeObj.name ?? storeObj.nome ?? null,
+      };
+    };
+
     const autoconfContext = autoconfMeta ? {
-      vehicle_of_interest: lead.vehicle_of_interest ?? null,
-      evaluated_vehicles: lead.evaluated_vehicles ?? null,
+      vehicle_of_interest: summarizeVehicle(lead.vehicle_of_interest),
+      evaluated_vehicles: Array.isArray(lead.evaluated_vehicles)
+        ? lead.evaluated_vehicles
+          .map((vehicle: unknown) => summarizeVehicle(vehicle))
+          .filter((vehicle): vehicle is Record<string, unknown> => vehicle !== null)
+          .slice(0, MAX_EVALUATED_VEHICLES)
+        : [],
       negotiation_type: lead.negotiation_type ?? autoconfMeta.negotiation_type ?? null,
-      client_message: autoconfMeta.message ?? null,
-      store: autoconfMeta.store ?? null,
+      client_message: typeof autoconfMeta.message === "string"
+        ? autoconfMeta.message.slice(0, MAX_AUTOCONF_CLIENT_MESSAGE_CHARS)
+        : null,
+      store: summarizeStore(autoconfMeta.store),
       event_type: autoconfMeta.event_type ?? null,
-      origins: autoconfMeta.origins ?? null,
+      origins: normalizeOrigins(autoconfMeta.origins),
     } : null;
 
     // Preparar contexto para a IA
