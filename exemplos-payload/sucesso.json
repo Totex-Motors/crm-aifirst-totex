@@ -1,0 +1,66 @@
+{
+    "type": "Sucesso",
+    "create_at": "2026-05-24 10:30:00",
+    "visited": null,
+    "reason": "Comprou na loja",
+    "store": "Nome da loja",
+    "creates_rescue_lead": false,
+    "lead_id": 1001,
+    "user_res": "Nome do vendedor",
+    "user_email": "vendedor@loja.com.br",
+    "name": "Cliente Exemplo",
+    "email": "cliente@email.com",
+    "mobile_phone": "(11) 98888-7777",
+    "phone": "(11) 3456-7890",
+    "message": "Mensagem deixada no lead",
+    "negotiation_type": "Compra",
+    "negotiation_type_slug": "compra",
+    "interested_in_vehicle": [
+        {
+            "id": 12345,
+            "vehicle_type": "Carro",
+            "url": "https://loja.exemplo.com.br/veiculo/12345",
+            "brand": "Marca",
+            "model": "Modelo",
+            "version": "Versão",
+            "year": 2024,
+            "fabric_year": 2023,
+            "color": "Branco",
+            "color_slug": "branco",
+            "fuel": "Flex",
+            "fuel_slug": "flex",
+            "gear": "Automático",
+            "gear_slug": "automatico",
+            "plate": "ABC1D23",
+            "application_id": null,
+            "application_name": null,
+            "condition": "usado"
+        }
+    ],
+    "evaluated_vehicles": [
+        {
+            "id": 67890,
+            "url": null,
+            "vehicle_type": "Carro",
+            "brand": "Marca",
+            "model": "Modelo avaliado",
+            "version": "Versão",
+            "year": 2020,
+            "fabric_year": 2019,
+            "color": "Prata",
+            "color_slug": "prata",
+            "fuel": "Flex",
+            "fuel_slug": "flex",
+            "gear": "Manual",
+            "gear_slug": "manual",
+            "plate": "XYZ9A87",
+            "condition": "usado"
+        }
+    ],
+    "origins": [
+        {
+            "nome": "Site",
+            "slug": "site"
+        }
+    ]
+}
