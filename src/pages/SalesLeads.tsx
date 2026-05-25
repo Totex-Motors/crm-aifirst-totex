@@ -109,9 +109,9 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
   const handleLeadClick = (lead: SalesLead, e?: React.MouseEvent) => {
     const basePath = isAutoconf ? '/comercial/leads' : '/comercial/contatos';
     if (e) {
-      navigateTo(e, `${basePath}/${lead.id}`, navigate);
+      navigateTo(e, `${basePath}/${lead.id}?from=leads`, navigate);
     } else {
-      navigate(`${basePath}/${lead.id}`);
+      navigate(`${basePath}/${lead.id}?from=leads`);
     }
   };
 
