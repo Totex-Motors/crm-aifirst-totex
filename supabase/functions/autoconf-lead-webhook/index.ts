@@ -314,7 +314,7 @@ Deno.serve(async (req: Request) => {
       },
       ...sharedFields,
     })
-    .select("id")
+    .select("id, tenant_id")
     .single();
 
   if (error) {
@@ -328,6 +328,77 @@ Deno.serve(async (req: Request) => {
   console.log(
     `[AutoConf] Created lead ${newLead.id} name="${body.name}" source=${source}`,
   );
+
+  // 5. Trigger BANT + score analysis async (fire-and-forget — does not block response)
+  const scoreFnUrl = `${SUPABASE_URL}/functions/v1/calculate-lead-score`;
+  fetch(scoreFnUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({ lead_id: newLead.id }),
+  }).catch((err) => console.warn("[AutoConf] Score trigger failed (non-fatal):", err));
+
+  // 6. Auto-create deal in first pipeline stage
+  try {
+    let defaultPipelineQuery = supabase
+      .from("sales_pipelines")
+      .select("id")
+      .eq("is_default", true)
+      .eq("is_active", true)
+      .order("position", { ascending: true })
+      .limit(1);
+
+    if (newLead.tenant_id) {
+      defaultPipelineQuery = defaultPipelineQuery.eq("tenant_id", newLead.tenant_id);
+    }
+
+    const { data: defaultPipeline } = await defaultPipelineQuery.maybeSingle();
+
+    if (defaultPipeline) {
+      let firstStageQuery = supabase
+        .from("sales_pipeline_stages")
+        .select("id, pipeline_id")
+        .eq("pipeline_id", defaultPipeline.id)
+        .eq("is_won", false)
+        .eq("is_lost", false)
+        .order("position", { ascending: true })
+        .limit(1);
+
+      if (newLead.tenant_id) {
+        firstStageQuery = firstStageQuery.eq("tenant_id", newLead.tenant_id);
+      }
+
+      const { data: firstStage } = await firstStageQuery.maybeSingle();
+
+      if (firstStage) {
+        const dealData: Record<string, unknown> = {
+          lead_id: newLead.id,
+          pipeline_stage_id: firstStage.id,
+          pipeline_id: firstStage.pipeline_id,
+          title: body.name || phone || body.email || "Lead AutoConf",
+          status: "negotiation",
+          stage_changed_at: new Date().toISOString(),
+        };
+        if (newLead.tenant_id) dealData.tenant_id = newLead.tenant_id;
+
+        const { error: dealError } = await supabase.from("deals").insert(dealData);
+        if (dealError) {
+          console.warn("[AutoConf] Could not create deal:", dealError.message);
+        } else {
+          console.log(`[AutoConf] Created deal for lead ${newLead.id} in stage ${firstStage.id}`);
+        }
+      } else {
+        console.warn("[AutoConf] No eligible initial stage found — deal not created");
+      }
+    } else {
+      console.warn("[AutoConf] No default active pipeline found — deal not created");
+    }
+  } catch (dealErr) {
+    console.warn("[AutoConf] Deal creation failed (non-fatal):", dealErr);
+  }
+
   return new Response(
     JSON.stringify({ ok: true, lead_id: newLead.id }),
     { headers: { "Content-Type": "application/json" } },

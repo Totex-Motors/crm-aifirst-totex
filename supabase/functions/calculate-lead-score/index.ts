@@ -123,6 +123,65 @@ Deno.serve(async (req: Request) => {
       .eq("active", true)
       .limit(10);
 
+    // Preparar dados AutoConf se disponível (normalizado para reduzir tokens no prompt)
+    const autoconfMeta = lead.metadata?.autoconf ?? null;
+    const MAX_AUTOCONF_CLIENT_MESSAGE_CHARS = 500;
+    const MAX_EVALUATED_VEHICLES = 3;
+
+    const summarizeVehicle = (vehicle: unknown) => {
+      if (!vehicle || typeof vehicle !== "object" || Array.isArray(vehicle)) return null;
+
+      const vehicleObj = vehicle as Record<string, unknown>;
+      const summary = {
+        brand: vehicleObj.brand ?? vehicleObj.marca ?? null,
+        model: vehicleObj.model ?? vehicleObj.modelo ?? null,
+        year: vehicleObj.year ?? vehicleObj.ano ?? null,
+        version: vehicleObj.version ?? vehicleObj.versao ?? null,
+        condition: vehicleObj.condition ?? vehicleObj.condicao ?? null,
+        price: vehicleObj.price ?? vehicleObj.preco ?? vehicleObj.valor ?? null,
+      };
+
+      return Object.values(summary).some((value) => value !== null && value !== undefined && value !== "")
+        ? summary
+        : null;
+    };
+
+    const normalizeOrigins = (origins: unknown) => {
+      if (Array.isArray(origins)) {
+        return origins
+          .filter((origin): origin is string => typeof origin === "string")
+          .slice(0, 5);
+      }
+      return typeof origins === "string" ? [origins] : [];
+    };
+
+    const summarizeStore = (store: unknown) => {
+      if (typeof store === "string") return store;
+      if (!store || typeof store !== "object" || Array.isArray(store)) return null;
+      const storeObj = store as Record<string, unknown>;
+      return {
+        id: storeObj.id ?? null,
+        name: storeObj.name ?? storeObj.nome ?? null,
+      };
+    };
+
+    const autoconfContext = autoconfMeta ? {
+      vehicle_of_interest: summarizeVehicle(lead.vehicle_of_interest),
+      evaluated_vehicles: Array.isArray(lead.evaluated_vehicles)
+        ? lead.evaluated_vehicles
+          .map((vehicle: unknown) => summarizeVehicle(vehicle))
+          .filter((vehicle): vehicle is Record<string, unknown> => vehicle !== null)
+          .slice(0, MAX_EVALUATED_VEHICLES)
+        : [],
+      negotiation_type: lead.negotiation_type ?? autoconfMeta.negotiation_type ?? null,
+      client_message: typeof autoconfMeta.message === "string"
+        ? autoconfMeta.message.slice(0, MAX_AUTOCONF_CLIENT_MESSAGE_CHARS)
+        : null,
+      store: summarizeStore(autoconfMeta.store),
+      event_type: autoconfMeta.event_type ?? null,
+      origins: normalizeOrigins(autoconfMeta.origins),
+    } : null;
+
     // Preparar contexto para a IA
     const context = {
       lead: {
@@ -146,6 +205,7 @@ Deno.serve(async (req: Request) => {
         },
         ai_conversation_insights: lead.ai_conversation_insights,
       },
+      autoconf: autoconfContext,
       playbook_context: playbook_context || null,
       conversations: (whatsappMessages || []).slice(0, 30).map((m: any) => ({
         from: m.is_from_me ? "Vendedor" : "Lead",
@@ -191,7 +251,21 @@ Deno.serve(async (req: Request) => {
       : "";
 
     // Chamar Anthropic Claude
-    const systemPrompt = `Você é um especialista em qualificação de leads de vendas.${playbookSection}
+    const autoconfSection = autoconfContext ? `
+
+**CONTEXTO AUTOCONF — CONCESSIONÁRIA DE VEÍCULOS:**
+Este lead veio de uma plataforma de gestão de leads automotivos (AutoConf). Use estes sinais adicionais:
+- Veículo de interesse: identifica necessidade específica e intenção de compra
+- Veículo avaliado (troca): presença indica capacidade financeira (tem ativo para negociar) e seriedade
+- Tipo de negociação: "Compra" = intenção direta; "Troca" = tem ativo + intenção clara
+- Mensagem do cliente: analise urgência, especificidade, perguntas, sinalização de prazo
+- Critérios BANT para este contexto:
+  * Need: Lead enviou interesse ativo em veículo específico → quase sempre true
+  * Budget: Tem veículo para troca (evaluated_vehicles preenchido) → true; sem dados → false
+  * Authority: Não determinável pelo payload → false (salvo se mensagem indicar poder de decisão)
+  * Timeline: Tipo "Compra" direta, mensagem com urgência ou prazo mencionado → true` : "";
+
+    const systemPrompt = `Você é um especialista em qualificação de leads de vendas.${playbookSection}${autoconfSection}
 
 Analise TODOS os dados do lead e calcule um SCORE DE 0 A 100 baseado em:
 
@@ -208,14 +282,15 @@ Analise TODOS os dados do lead e calcule um SCORE DE 0 A 100 baseado em:
 - Histórico de deals/negociações
 - Produtos disponíveis e preços
 - Dados do Instagram (se disponível)
+- Dados AutoConf (veículo de interesse, troca, mensagem do cliente — se disponível)
 - Insights anteriores de IA (se existirem)
 
 **BANT QUALIFICATION:**
 Identifique se o lead demonstrou:
-- Budget (Orçamento): Perguntou preço, parcelas, demonstrou capacidade financeira, mencionou valores
+- Budget (Orçamento): Perguntou preço, parcelas, demonstrou capacidade financeira, mencionou valores, tem veículo para troca
 - Authority (Autoridade): É o decisor ou mencionou precisar consultar alguém, cargo/função
-- Need (Necessidade): Expressou claramente o problema/dor que quer resolver, interesse específico
-- Timeline (Urgência): Mencionou prazo, demonstrou urgência, evento gatilho
+- Need (Necessidade): Expressou claramente o problema/dor que quer resolver, interesse específico em produto/veículo
+- Timeline (Urgência): Mencionou prazo, demonstrou urgência, evento gatilho, tipo de negociação direta
 
 Responda APENAS em JSON válido:
 {
