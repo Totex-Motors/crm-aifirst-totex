@@ -329,7 +329,18 @@ Deno.serve(async (req: Request) => {
     `[AutoConf] Created lead ${newLead.id} name="${body.name}" source=${source}`,
   );
 
-  // 5. Auto-create deal in first pipeline stage
+  // 5. Trigger BANT + score analysis async (fire-and-forget — does not block response)
+  const scoreFnUrl = `${SUPABASE_URL}/functions/v1/calculate-lead-score`;
+  fetch(scoreFnUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({ lead_id: newLead.id }),
+  }).catch((err) => console.warn("[AutoConf] Score trigger failed (non-fatal):", err));
+
+  // 6. Auto-create deal in first pipeline stage
   try {
     let stagesQuery = supabase
       .from("sales_pipeline_stages")

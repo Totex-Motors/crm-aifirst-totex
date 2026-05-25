@@ -123,6 +123,18 @@ Deno.serve(async (req: Request) => {
       .eq("active", true)
       .limit(10);
 
+    // Preparar dados AutoConf se disponível
+    const autoconfMeta = lead.metadata?.autoconf ?? null;
+    const autoconfContext = autoconfMeta ? {
+      vehicle_of_interest: lead.vehicle_of_interest ?? null,
+      evaluated_vehicles: lead.evaluated_vehicles ?? null,
+      negotiation_type: lead.negotiation_type ?? autoconfMeta.negotiation_type ?? null,
+      client_message: autoconfMeta.message ?? null,
+      store: autoconfMeta.store ?? null,
+      event_type: autoconfMeta.event_type ?? null,
+      origins: autoconfMeta.origins ?? null,
+    } : null;
+
     // Preparar contexto para a IA
     const context = {
       lead: {
@@ -146,6 +158,7 @@ Deno.serve(async (req: Request) => {
         },
         ai_conversation_insights: lead.ai_conversation_insights,
       },
+      autoconf: autoconfContext,
       playbook_context: playbook_context || null,
       conversations: (whatsappMessages || []).slice(0, 30).map((m: any) => ({
         from: m.is_from_me ? "Vendedor" : "Lead",
@@ -191,7 +204,21 @@ Deno.serve(async (req: Request) => {
       : "";
 
     // Chamar Anthropic Claude
-    const systemPrompt = `Você é um especialista em qualificação de leads de vendas.${playbookSection}
+    const autoconfSection = autoconfContext ? `
+
+**CONTEXTO AUTOCONF — CONCESSIONÁRIA DE VEÍCULOS:**
+Este lead veio de uma plataforma de gestão de leads automotivos (AutoConf). Use estes sinais adicionais:
+- Veículo de interesse: identifica necessidade específica e intenção de compra
+- Veículo avaliado (troca): presença indica capacidade financeira (tem ativo para negociar) e seriedade
+- Tipo de negociação: "Compra" = intenção direta; "Troca" = tem ativo + intenção clara
+- Mensagem do cliente: analise urgência, especificidade, perguntas, sinalização de prazo
+- Critérios BANT para este contexto:
+  * Need: Lead enviou interesse ativo em veículo específico → quase sempre true
+  * Budget: Tem veículo para troca (evaluated_vehicles preenchido) → true; sem dados → false
+  * Authority: Não determinável pelo payload → false (salvo se mensagem indicar poder de decisão)
+  * Timeline: Tipo "Compra" direta, mensagem com urgência ou prazo mencionado → true` : "";
+
+    const systemPrompt = `Você é um especialista em qualificação de leads de vendas.${playbookSection}${autoconfSection}
 
 Analise TODOS os dados do lead e calcule um SCORE DE 0 A 100 baseado em:
 
@@ -208,14 +235,15 @@ Analise TODOS os dados do lead e calcule um SCORE DE 0 A 100 baseado em:
 - Histórico de deals/negociações
 - Produtos disponíveis e preços
 - Dados do Instagram (se disponível)
+- Dados AutoConf (veículo de interesse, troca, mensagem do cliente — se disponível)
 - Insights anteriores de IA (se existirem)
 
 **BANT QUALIFICATION:**
 Identifique se o lead demonstrou:
-- Budget (Orçamento): Perguntou preço, parcelas, demonstrou capacidade financeira, mencionou valores
+- Budget (Orçamento): Perguntou preço, parcelas, demonstrou capacidade financeira, mencionou valores, tem veículo para troca
 - Authority (Autoridade): É o decisor ou mencionou precisar consultar alguém, cargo/função
-- Need (Necessidade): Expressou claramente o problema/dor que quer resolver, interesse específico
-- Timeline (Urgência): Mencionou prazo, demonstrou urgência, evento gatilho
+- Need (Necessidade): Expressou claramente o problema/dor que quer resolver, interesse específico em produto/veículo
+- Timeline (Urgência): Mencionou prazo, demonstrou urgência, evento gatilho, tipo de negociação direta
 
 Responda APENAS em JSON válido:
 {
