@@ -328,7 +328,9 @@ export function LeadCard({
           const vehicleData: Record<string, unknown> | null = Array.isArray(rawVehicle)
             ? (rawVehicle[0] as Record<string, unknown>) ?? null
             : (rawVehicle as Record<string, unknown>) ?? null;
-          const evaluatedVehicles = (lead.evaluated_vehicles as Record<string, unknown>[]) ?? [];
+          // Fallback to metadata if dedicated column is null
+          const rawEvaluated = lead.evaluated_vehicles ?? (autoconfMeta?.evaluated_vehicles as unknown);
+          const evaluatedVehicles: Record<string, unknown>[] = Array.isArray(rawEvaluated) ? rawEvaluated as Record<string, unknown>[] : [];
           const userRes = autoconfMeta?.user_res ? String(autoconfMeta.user_res) : null;
           const clientMessage = autoconfMeta?.message ? String(autoconfMeta.message) : null;
 
