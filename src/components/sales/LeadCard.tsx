@@ -25,6 +25,8 @@ import {
   Building,
   Flame,
   Star,
+  ArrowLeftRight,
+  Quote,
 } from "lucide-react";
 import { useUpdateLeadSales } from "@/hooks/useSalesLeads";
 import { VehicleInterestCard } from "./VehicleInterestCard";
@@ -320,31 +322,91 @@ export function LeadCard({
         )}
 
         {/* Contact info */}
-        <div className="space-y-1 text-sm text-muted-foreground mb-3">
-          {lead.phone && (
-            <div className="flex items-center gap-2">
-              <Phone className="h-3.5 w-3.5" />
-              <span>{formatPhone(lead.phone)}</span>
-            </div>
-          )}
-          {lead.email && (
-            <div className="flex items-center gap-2">
-              <Mail className="h-3.5 w-3.5" />
-              <span className="truncate">{lead.email}</span>
-            </div>
-          )}
-        </div>
+        {(() => {
+          const autoconfMeta = (lead.metadata as Record<string, Record<string, unknown>> | undefined)?.autoconf;
+          const rawVehicle = lead.vehicle_of_interest;
+          const vehicleData: Record<string, unknown> | null = Array.isArray(rawVehicle)
+            ? (rawVehicle[0] as Record<string, unknown>) ?? null
+            : (rawVehicle as Record<string, unknown>) ?? null;
+          // Fallback to metadata if dedicated column is null
+          const rawEvaluated = lead.evaluated_vehicles ?? (autoconfMeta?.evaluated_vehicles as unknown);
+          const evaluatedVehicles: Record<string, unknown>[] = Array.isArray(rawEvaluated) ? rawEvaluated as Record<string, unknown>[] : [];
+          const userRes = autoconfMeta?.user_res ? String(autoconfMeta.user_res) : null;
+          const clientMessage = autoconfMeta?.message ? String(autoconfMeta.message) : null;
 
-        {/* Vehicle of interest (AutoConf leads) */}
-        {lead.vehicle_of_interest && (
-          <VehicleInterestCard
-            vehicleData={lead.vehicle_of_interest as Record<string, unknown>}
-            negotiationType={lead.negotiation_type}
-            source={lead.source}
-            utmSource={lead.utm_source}
-            utmMedium={lead.utm_medium}
-          />
-        )}
+          return (
+            <>
+              <div className="space-y-1 text-sm text-muted-foreground mb-3">
+                {lead.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5" />
+                    <span>{formatPhone(lead.phone)}</span>
+                  </div>
+                )}
+                {lead.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5" />
+                    <span className="truncate">{lead.email}</span>
+                  </div>
+                )}
+                {userRes && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-3.5 w-3.5" />
+                    <span className="truncate">Atendido por: <span className="font-medium text-foreground">{userRes}</span></span>
+                  </div>
+                )}
+              </div>
+
+              {/* Vehicle of interest (AutoConf leads) */}
+              {vehicleData && (
+                <VehicleInterestCard
+                  vehicleData={vehicleData}
+                  negotiationType={lead.negotiation_type}
+                  source={lead.source}
+                  utmSource={lead.utm_source}
+                  utmMedium={lead.utm_medium}
+                />
+              )}
+
+              {/* Evaluated vehicle (trade-in) */}
+              {evaluatedVehicles.length > 0 && (
+                <div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5">
+                  <p className="text-[10px] font-medium text-amber-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                    <ArrowLeftRight className="h-3 w-3" />
+                    Veículo avaliado (troca)
+                  </p>
+                  {evaluatedVehicles.map((ev, i) => {
+                    const brand = ev.brand ?? ev.marca;
+                    const model = ev.model ?? ev.modelo;
+                    const version = ev.version ?? ev.versao;
+                    const year = ev.year ?? ev.ano;
+                    const plate = ev.plate ?? ev.placa;
+                    const condition = ev.condition ?? ev.condicao;
+                    return (
+                      <div key={i} className="text-sm">
+                        <span className="font-medium">{[brand, model].filter(Boolean).join(" ")}</span>
+                        {version && <span className="text-muted-foreground"> {String(version)}</span>}
+                        <div className="flex gap-2 text-xs text-muted-foreground mt-0.5">
+                          {year && <span>{String(year)}</span>}
+                          {plate && <span className="font-mono uppercase">{String(plate)}</span>}
+                          {condition && <span className="capitalize">{String(condition)}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Client message from AutoConf */}
+              {clientMessage && (
+                <div className="mb-3 flex gap-2 text-xs text-muted-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50 italic">
+                  <Quote className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground/60" />
+                  <span>{clientMessage}</span>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* AI Insights preview */}
         {lead.ai_sentiment && (

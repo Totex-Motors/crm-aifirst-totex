@@ -3,29 +3,64 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+interface AutoconfVehicle {
+  id?: number | null;
+  vehicle_type?: string | null;
+  url?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  version?: string | null;
+  year?: number | null;
+  fabric_year?: number | null;
+  color?: string | null;
+  color_slug?: string | null;
+  fuel?: string | null;
+  fuel_slug?: string | null;
+  gear?: string | null;
+  gear_slug?: string | null;
+  plate?: string | null;
+  condition?: string | null;
+  application_id?: string | null;
+  application_name?: string | null;
+  simulations?: unknown[];
+}
+
+interface AutoconfOrigin {
+  nome: string;
+  slug: string;
+}
+
 interface AutoconfPayload {
   type: string;
-  date: string;
-  lead_id: number;
-  lead_source: string | null;
-  lead_source_slug: string | null;
-  lead_medium: string | null;
-  lead_medium_slug: string | null;
-  lead_content: string | null;
-  lead_content_slug: string | null;
-  lead_campaign: string | null;
-  lead_campaign_slug: string | null;
-  name: string | null;
-  email: string | null;
-  mobile_phone: string | null;
-  phone: string | null;
-  negotiation_type: string | null;
-  negotiation_type_slug: string | null;
-  interested_in_vehicle: unknown;
-  evaluated_vehicles: unknown[];
-  // sucesso / insucesso extras
+  // Actual field name in payload is create_at; date kept for backwards compat
+  create_at?: string | null;
+  date?: string | null;
+  visited?: string | null;
   reason?: string | null;
+  store?: string | null;
   creates_rescue_lead?: boolean | null;
+  lead_id: number;
+  user_res?: string | null;
+  user_email?: string | null;
+  name?: string | null;
+  email?: string | null;
+  mobile_phone?: string | null;
+  phone?: string | null;
+  message?: string | null;
+  negotiation_type?: string | null;
+  negotiation_type_slug?: string | null;
+  interested_in_vehicle?: AutoconfVehicle[] | null;
+  evaluated_vehicles?: AutoconfVehicle[] | null;
+  origins?: AutoconfOrigin[] | null;
+  // Legacy UTM fields (may not be present in newer payloads)
+  lead_source?: string | null;
+  lead_source_slug?: string | null;
+  lead_medium?: string | null;
+  lead_medium_slug?: string | null;
+  lead_content?: string | null;
+  lead_content_slug?: string | null;
+  lead_campaign?: string | null;
+  lead_campaign_slug?: string | null;
 }
 
 function normalizePhone(raw: string | null): string | null {
@@ -37,10 +72,21 @@ function normalizePhone(raw: string | null): string | null {
   return `+55${digits}`;
 }
 
+// Maps AutoConf type strings (capitalized or slug) to internal event slugs
+function normalizeEventType(type: string): string {
+  const t = type.toLowerCase().trim();
+  if (t === "novo atendimento" || t === "novo") return "novo";
+  if (t === "sucesso") return "sucesso";
+  if (t === "insucesso") return "insucesso";
+  if (t === "visita") return "visita";
+  return t;
+}
+
 const STAGE_MAP: Record<string, string> = {
   novo: "new",
   sucesso: "ganho",
   insucesso: "perdido",
+  // visita: no stage change — keep existing stage
 };
 
 Deno.serve(async (req: Request) => {
@@ -99,48 +145,81 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  const { type, lead_id } = body;
-  console.log(`[AutoConf] Event type=${type} lead_id=${lead_id}`);
+  const eventType = normalizeEventType(body.type);
+  const { lead_id } = body;
+  console.log(
+    `[AutoConf] Event type="${body.type}" (normalized=${eventType}) lead_id=${lead_id}`,
+  );
 
-  if (!["novo", "sucesso", "insucesso"].includes(type)) {
+  if (!["novo", "sucesso", "insucesso", "visita"].includes(eventType)) {
     return new Response(
-      JSON.stringify({ ok: true, skipped: true, reason: `type=${type} not handled` }),
-      { headers: { "Content-Type": "application/json" } }
+      JSON.stringify({
+        ok: true,
+        skipped: true,
+        reason: `type="${body.type}" not handled`,
+      }),
+      { headers: { "Content-Type": "application/json" } },
     );
   }
 
   const phone = normalizePhone(body.mobile_phone || body.phone || null);
   const externalId = String(lead_id);
 
-  const sourceParts = [body.lead_source, body.lead_medium].filter(Boolean);
-  const source = sourceParts.length > 0 ? sourceParts.join(" / ") : "autoconf";
-  const salesStage = STAGE_MAP[type] ?? "new";
+  // Source from origins[] (actual payload) or legacy lead_source fields
+  const primaryOrigin = body.origins?.[0];
+  const sourceLabel = primaryOrigin?.nome || body.lead_source || null;
+  const sourceSlug = primaryOrigin?.slug || body.lead_source_slug || null;
+  const source = sourceLabel || "autoconf";
+
+  const eventDate = body.create_at || body.date || null;
+  const salesStage = STAGE_MAP[eventType] ?? null;
+
   const autoconfMetadata: Record<string, unknown> = {
     lead_id: externalId,
+    event_type: eventType,
+    event_date: eventDate,
+    store: body.store || null,
+    user_res: body.user_res || null,
+    user_email: body.user_email || null,
+    message: body.message || null,
     negotiation_type: body.negotiation_type || null,
-    vehicle_of_interest: body.interested_in_vehicle ?? null,
-    evaluated_vehicles: body.evaluated_vehicles?.length ? body.evaluated_vehicles : null,
-    lost_reason: type === "insucesso" ? body.reason ?? null : null,
-    event_type: type,
-    event_date: body.date || null,
+    negotiation_type_slug: body.negotiation_type_slug || null,
+    vehicle_of_interest: body.interested_in_vehicle?.length
+      ? body.interested_in_vehicle
+      : null,
+    evaluated_vehicles: body.evaluated_vehicles?.length
+      ? body.evaluated_vehicles
+      : null,
+    visited: body.visited || null,
+    reason: body.reason || null,
     creates_rescue_lead: body.creates_rescue_lead ?? null,
+    origins: body.origins || null,
+    ...(eventType === "insucesso"
+      ? { lost_reason: body.reason ?? null }
+      : {}),
   };
 
   const sharedFields: Record<string, unknown> = {
+    external_id: externalId,
+    negotiation_type: body.negotiation_type || null,
+    // Store first vehicle in dedicated column; full array stays in metadata.autoconf
+    vehicle_of_interest: body.interested_in_vehicle?.[0] ?? null,
+    evaluated_vehicles: body.evaluated_vehicles?.length ? body.evaluated_vehicles : null,
     source,
-    utm_source: body.lead_source_slug || body.lead_source || null,
+    utm_source: sourceSlug || sourceLabel || null,
     utm_medium: body.lead_medium_slug || body.lead_medium || null,
     utm_campaign: body.lead_campaign_slug || body.lead_campaign || null,
     utm_content: body.lead_content_slug || body.lead_content || null,
-    sales_stage: salesStage,
     updated_at: new Date().toISOString(),
+    // Only change sales_stage for events that have a mapped stage
+    ...(salesStage ? { sales_stage: salesStage } : {}),
   };
 
   // 1. Find by external_id (primary dedup key — AutoConf lead_id)
   const { data: byExternalId } = await supabase
     .from("leads")
     .select("id, metadata")
-    .eq("metadata->autoconf->>lead_id", externalId)
+    .eq("external_id", externalId)
     .maybeSingle();
 
   if (byExternalId) {
@@ -157,10 +236,13 @@ Deno.serve(async (req: Request) => {
         },
       })
       .eq("id", byExternalId.id);
-    console.log(`[AutoConf] Updated lead ${byExternalId.id} via external_id (type=${type})`);
-    return new Response(JSON.stringify({ ok: true, lead_id: byExternalId.id }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    console.log(
+      `[AutoConf] Updated lead ${byExternalId.id} via external_id (type=${eventType})`,
+    );
+    return new Response(
+      JSON.stringify({ ok: true, lead_id: byExternalId.id }),
+      { headers: { "Content-Type": "application/json" } },
+    );
   }
 
   // 2. Fallback: match by last 8 phone digits (handles 9th digit divergence)
@@ -188,26 +270,34 @@ Deno.serve(async (req: Request) => {
           },
         })
         .eq("id", byPhone.id);
-      console.log(`[AutoConf] Updated lead ${byPhone.id} via phone fallback (type=${type})`);
-      return new Response(JSON.stringify({ ok: true, lead_id: byPhone.id }), {
-        headers: { "Content-Type": "application/json" },
-      });
+      console.log(
+        `[AutoConf] Updated lead ${byPhone.id} via phone fallback (type=${eventType})`,
+      );
+      return new Response(
+        JSON.stringify({ ok: true, lead_id: byPhone.id }),
+        { headers: { "Content-Type": "application/json" } },
+      );
     }
   }
 
-  // 3. sucesso/insucesso without a matching lead is unexpected — don't create a ghost
-  if (type !== "novo") {
-    console.warn(`[AutoConf] No lead found for type=${type} lead_id=${lead_id}`);
+  // 3. Non-novo events without a matching lead — don't create a ghost record
+  if (eventType !== "novo") {
+    console.warn(
+      `[AutoConf] No lead found for type=${eventType} lead_id=${lead_id}`,
+    );
     return new Response(
-      JSON.stringify({ ok: false, error: `No existing lead found for ${type} event` }),
-      { status: 404, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({
+        ok: false,
+        error: `No existing lead found for ${eventType} event`,
+      }),
+      { status: 404, headers: { "Content-Type": "application/json" } },
     );
   }
 
   if (!phone && !body.email) {
     return new Response(
       JSON.stringify({ ok: false, error: "No phone or email in payload" }),
-      { status: 422, headers: { "Content-Type": "application/json" } }
+      { status: 422, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -231,13 +321,15 @@ Deno.serve(async (req: Request) => {
     console.error("[AutoConf] Error creating lead:", error);
     return new Response(
       JSON.stringify({ ok: false, error: "Failed to create lead" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
-  console.log(`[AutoConf] Created lead ${newLead.id} name="${body.name}" source=${source}`);
+  console.log(
+    `[AutoConf] Created lead ${newLead.id} name="${body.name}" source=${source}`,
+  );
   return new Response(
     JSON.stringify({ ok: true, lead_id: newLead.id }),
-    { headers: { "Content-Type": "application/json" } }
+    { headers: { "Content-Type": "application/json" } },
   );
 });
