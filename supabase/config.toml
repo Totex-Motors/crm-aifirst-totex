@@ -42,6 +42,11 @@ verify_jwt = false
 [functions.proxy-pain-webhook]
 verify_jwt = false
 
+# Sync de estoque de veículos — disparado por cron pg_cron sem header de auth.
+# Precisa de verify_jwt=false senão o cron toma 401 e o estoque nunca atualiza.
+[functions.sync-vehicle-stock]
+verify_jwt = false
+
 # ============================================================
 # ENDPOINTS PÚBLICOS — chamados por páginas sem auth CRM
 # ============================================================
