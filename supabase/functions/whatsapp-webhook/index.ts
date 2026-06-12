@@ -7,6 +7,7 @@ import { callTicketRouterLLM, TicketDecisionAction } from "./llm.ts";
 import { getOrCreateContactWithProfilePic } from "./contacts.ts";
 import { getOrCreateGroup } from "./groups.ts";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { tryHandleViaAgentPlatform } from "./agent-platform.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -455,6 +456,27 @@ async function handleIncomingMessage(
   }
 
   console.log('[Webhook] Message saved:', savedMessage.id);
+
+  // === ROTEADOR V2 (Plataforma de Agentes) — PORTEIRO ===
+  // Gated por config.agent_platform_v2_enabled (off = legado intacto).
+  if (!fromMe && !isGroup && content && content.trim()) {
+    try {
+      const handledByV2 = await tryHandleViaAgentPlatform({
+        supabase,
+        instance: { id: instanceId, api_url: instanceApiUrl, api_key: instanceApiKey },
+        senderPhone: actualContactPhone,
+        text: content,
+        messageId,
+        leadId,   // o lead que o webhook criou/achou — agente usa pra agendar/qualificar
+      });
+      if (handledByV2) {
+        return; // agente V2 respondeu — não segue pro fluxo legado
+      }
+    } catch (e) {
+      console.error('[Webhook] V2 router error (caindo pro legado):', (e as Error).message);
+    }
+  }
+  // === FIM ROTEADOR V2 ===
 
   // === LEAD REPLIED — TRIGGER AUTOMATION RULES ===
   if (leadId && !fromMe && !isGroup) {
