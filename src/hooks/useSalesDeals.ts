@@ -21,6 +21,7 @@ export const useSalesDeals = (filters?: DealFilters) => {
           *,
           lead:leads!deals_lead_id_fkey(id, name, email, phone, sales_score),
           product:products!deals_product_id_fkey(id, name),
+          vehicle:vehicles!deals_vehicle_id_fkey(id, title, make, model, year, price, images),
           pipeline_stage:sales_pipeline_stages!deals_pipeline_stage_id_fkey(id, name, color, position, is_won, is_lost, pipeline_id, pipeline:sales_pipelines(id, name)),
           sdr:team_members!deals_sdr_id_fkey(id, name)
         `)
@@ -300,7 +301,8 @@ export const useCreateDeal = () => {
         .from('deals')
         .insert({
           lead_id: leadId, // support both for compatibility
-          product_id: input.product_id,
+          product_id: input.product_id || null,
+          vehicle_id: input.vehicle_id || null,
           pipeline_id: pipelineId,
           pipeline_stage_id: pipelineStageId,
           sales_rep_id: salesRepId,

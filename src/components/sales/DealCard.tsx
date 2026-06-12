@@ -94,7 +94,7 @@ export function DealCard({
     : null;
 
   const contactName = companyName || leadOrContact?.name || "Sem contato";
-  const productName = deal.product?.name || "Sem produto";
+  const productName = deal.vehicle?.title || deal.product?.name || "Sem veículo";
 
   if (compact) {
     return (
@@ -490,7 +490,7 @@ export function DealKanbanCard({
 
         <div className="flex items-center gap-1 flex-wrap">
           <p className="text-xs text-muted-foreground truncate">
-            {deal.product?.name}
+            {deal.vehicle?.title || deal.product?.name}
           </p>
           {(deal.commitment_amount ?? 0) > 0 && (
             <Badge className="text-[10px] h-4 px-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">

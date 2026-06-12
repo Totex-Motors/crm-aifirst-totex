@@ -24,19 +24,19 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useCreateDeal } from "@/hooks/useSalesDeals";
-import { useProducts } from "@/hooks/useProducts";
 import { useCreateDealPaymentsBatch } from "@/hooks/useDealPayments";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { FlexiblePaymentForm } from "./payments/FlexiblePaymentForm";
+import { VehiclePicker, type PickedVehicle } from "./VehiclePicker";
 import type { PaymentPart } from "@/types/payment.types";
 import type { CreateDealInput } from "@/types/sales.types";
 import {
   Loader2,
   DollarSign,
-  Package,
+  Car,
   CreditCard,
   Calendar,
   ChevronDown,
@@ -83,7 +83,6 @@ export function CreateDealModal({
   const { teamMember } = useAuth();
   const createDeal = useCreateDeal();
   const createPaymentsBatch = useCreateDealPaymentsBatch();
-  const { data: products, isLoading: productsLoading } = useProducts();
 
   // Buscar todos os membros do time (mesma query do LeadDetail)
   const { data: teamMembers = [] } = useQuery({
@@ -105,7 +104,7 @@ export function CreateDealModal({
 
   const [formData, setFormData] = useState<Partial<CreateDealInput>>({
     contact_id: leadId,
-    product_id: "",
+    vehicle_id: "",
     sales_rep_id: "",
     sdr_id: "",
     original_price: 0,
@@ -152,18 +151,20 @@ export function CreateDealModal({
     }
   }, [formData.negotiated_price, useFlexiblePayments]);
 
-  const handleProductChange = (productId: string) => {
-    const product = products?.find((p) => p.id === productId);
-    if (product) {
+  const handleVehicleChange = (vehicle: PickedVehicle | null) => {
+    if (vehicle) {
+      // Preço do carro do estoque vira o preço de tabela da negociação
       setFormData({
         ...formData,
-        product_id: productId,
-        original_price: Number(product.price) || 0,
-        negotiated_price: Number(product.price) || 0,
+        vehicle_id: vehicle.id,
+        original_price: Number(vehicle.price) || 0,
+        negotiated_price: Number(vehicle.price) || 0,
         discount_percent: 0,
       });
-      setFlexiblePayments([]); // Reset payments when product changes
+    } else {
+      setFormData({ ...formData, vehicle_id: "" });
     }
+    setFlexiblePayments([]); // Reset payments when vehicle changes
   };
 
   const handlePriceChange = (negotiatedPrice: number) => {
@@ -181,10 +182,10 @@ export function CreateDealModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.product_id) {
+    if (!formData.vehicle_id) {
       toast({
         title: "Erro",
-        description: "Selecione um produto",
+        description: "Selecione um veículo do estoque",
         variant: "destructive",
       });
       return;
@@ -227,7 +228,7 @@ export function CreateDealModal({
       // Create the deal
       const deal = await createDeal.mutateAsync({
         contact_id: leadId,
-        product_id: formData.product_id,
+        vehicle_id: formData.vehicle_id,
         sales_rep_id: formData.sales_rep_id || undefined,
         sdr_id: formData.sdr_id || undefined,
         original_price: formData.original_price || 0,
@@ -264,7 +265,7 @@ export function CreateDealModal({
       // Reset form
       setFormData({
         contact_id: leadId,
-        product_id: "",
+        vehicle_id: "",
         sales_rep_id: teamMember?.id || "",
         sdr_id: "",
         original_price: 0,
@@ -311,36 +312,21 @@ export function CreateDealModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Produto e Responsável */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Produto *
-              </Label>
-              <Select
-                value={formData.product_id}
-                onValueChange={handleProductChange}
-                disabled={productsLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o produto..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products?.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      <div className="flex justify-between items-center w-full gap-4">
-                        <span>{product.name}</span>
-                        <span className="text-muted-foreground text-sm">
-                          {formatCurrency(Number(product.price) || 0)}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Veículo do estoque */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Car className="h-4 w-4" />
+              Veículo do estoque *
+            </Label>
+            <VehiclePicker
+              value={formData.vehicle_id || null}
+              onChange={handleVehicleChange}
+              placeholder="Buscar carro do estoque..."
+            />
+          </div>
 
+          {/* Responsável e SDR */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -364,37 +350,36 @@ export function CreateDealModal({
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* SDR */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              SDR (quem agendou)
-            </Label>
-            <Select
-              value={formData.sdr_id || ""}
-              onValueChange={(value) =>
-                setFormData({ ...formData, sdr_id: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Opcional..." />
-              </SelectTrigger>
-              <SelectContent>
-                {teamMembers.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                SDR (quem agendou)
+              </Label>
+              <Select
+                value={formData.sdr_id || ""}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, sdr_id: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Precos */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Preco Original</Label>
+              <Label>Preco de Tabela (estoque)</Label>
               <Input
                 type="number"
                 value={formData.original_price || ""}
