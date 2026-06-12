@@ -170,6 +170,27 @@ verify_jwt = false
 verify_jwt = false
 
 # ============================================================
+# PLATAFORMA DE AGENTES IA (agents-platform-pack)
+# runner/poller/import/embedding são chamados por webhooks/cron
+# com service key; telegram-webhook é chamado pelo Telegram sem JWT
+# ============================================================
+
+[functions.agent-runner]
+verify_jwt = false
+
+[functions.agent-jobs-poller]
+verify_jwt = false
+
+[functions.generate-embedding]
+verify_jwt = false
+
+[functions.agents-codex-import]
+verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+# ============================================================
 # DEFAULT (verify_jwt = true) — não listadas aqui
 # ============================================================
 # Todas as outras funções (~40) herdam o default `verify_jwt = true`,
