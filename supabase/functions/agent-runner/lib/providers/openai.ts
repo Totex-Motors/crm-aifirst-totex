@@ -15,12 +15,21 @@ import type {
   AgentRegistry,
   AgentTool,
   ProviderCallResult,
+  ProviderCredential,
   ToolCall,
 } from "../../_shared/types.ts";
 import { sanitizeForJSON } from "../safety.ts";
 
 const OPENAI_BASE = "https://api.openai.com/v1/chat/completions";
-const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const OPENAI_KEY_ENV = Deno.env.get("OPENAI_API_KEY") || "";
+
+// base_url por provider OpenAI-compatible (o adapter é reusado p/ groq/together/etc)
+const OPENAI_COMPAT_BASE: Record<string, string> = {
+  groq:      "https://api.groq.com/openai/v1/chat/completions",
+  together:  "https://api.together.xyz/v1/chat/completions",
+  fireworks: "https://api.fireworks.ai/inference/v1/chat/completions",
+  deepseek:  "https://api.deepseek.com/v1/chat/completions",
+};
 
 const PRICING: Record<string, { in: number; out: number; cached: number }> = {
   "gpt-5":      { in: 5,    out: 15,  cached: 0.5 },
@@ -37,12 +46,25 @@ export interface OpenAICallParams {
   history: AgentMessage[];
   newUserMessage: string;
   onTextDelta: (delta: string) => void;
+  credential?: ProviderCredential | null;
 }
 
 export async function callOpenAI(params: OpenAICallParams): Promise<ProviderCallResult> {
-  if (!OPENAI_KEY) {
-    throw new Error("OPENAI_API_KEY ausente nos secrets");
+  // Chave da credencial salva na UI tem prioridade; env é só fallback (legado)
+  const apiKey = (params.credential?.auth_data?.api_key as string | undefined) || OPENAI_KEY_ENV;
+  if (!apiKey) {
+    throw new Error(
+      "Nenhuma API key encontrada. Cadastre uma credencial em " +
+      "/agentes/credenciais e vincule-a ao agente na aba Modelo.",
+    );
   }
+  // Endpoint: credencial custom (endpoint_url/base_url) > mapa por provider > OpenAI
+  const provType = params.credential?.provider_type || "";
+  const baseUrl =
+    (params.credential?.auth_data?.endpoint_url as string | undefined) ||
+    (params.credential?.auth_data?.base_url as string | undefined) ||
+    OPENAI_COMPAT_BASE[provType] ||
+    OPENAI_BASE;
 
   // ────────── Messages ──────────
   const messages: Array<Record<string, unknown>> = [
@@ -97,10 +119,10 @@ export async function callOpenAI(params: OpenAICallParams): Promise<ProviderCall
     stream_options: { include_usage: true },
   };
 
-  const res = await fetch(OPENAI_BASE, {
+  const res = await fetch(baseUrl, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${OPENAI_KEY}`,
+      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(sanitizeForJSON(body)),

@@ -20,13 +20,14 @@ import type {
   AgentRegistry,
   AgentTool,
   ProviderCallResult,
+  ProviderCredential,
   ToolCall,
 } from "../../_shared/types.ts";
 import { cacheControl, estimateTokens, getCacheConfig, shouldCacheCumulative } from "../caching.ts";
 import { sanitizeForJSON } from "../safety.ts";
 
 const ANTHROPIC_BASE = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
+const ANTHROPIC_KEY_ENV = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const ANTHROPIC_BETA = "prompt-caching-2024-07-31";
 
 // USD por milhão de tokens (atualizar quando mudar tabela)
@@ -47,13 +48,19 @@ export interface AnthropicCallParams {
   history: AgentMessage[];
   newUserMessage: string;
   onTextDelta: (delta: string) => void;
+  credential?: ProviderCredential | null;
 }
 
 export async function callAnthropic(
   params: AnthropicCallParams,
 ): Promise<ProviderCallResult> {
-  if (!ANTHROPIC_KEY) {
-    throw new Error("ANTHROPIC_API_KEY ausente nos secrets");
+  // Chave da credencial salva na UI tem prioridade; env é só fallback (legado)
+  const apiKey = (params.credential?.auth_data?.api_key as string | undefined) || ANTHROPIC_KEY_ENV;
+  if (!apiKey) {
+    throw new Error(
+      "Nenhuma API key da Anthropic encontrada. Cadastre uma credencial em " +
+      "/agentes/credenciais e vincule-a ao agente na aba Modelo.",
+    );
   }
 
   const cacheCfg = getCacheConfig(params.agent);
@@ -133,7 +140,7 @@ export async function callAnthropic(
   const res = await fetch(ANTHROPIC_BASE, {
     method: "POST",
     headers: {
-      "x-api-key": ANTHROPIC_KEY,
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
       "anthropic-beta": [ANTHROPIC_BETA, ...extraBetas].join(","),
       "content-type": "application/json",
