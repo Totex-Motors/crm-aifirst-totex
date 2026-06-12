@@ -33,10 +33,14 @@ export async function tryHandleViaAgentPlatform(args: {
   // Ignora placeholders de mídia que não viraram texto/transcrição
   if (text === "[Mídia]") return false;
 
-  // 1. Flag global — off = legado
+  // 1. Flag global — off = legado (config.value é TEXT neste CRM: JSON serializado)
   const { data: cfgRow } = await supabase
     .from("config").select("value").eq("key", "agent_platform_v2_enabled").maybeSingle();
-  if (cfgRow?.value?.enabled !== true) return false;
+  let flag: unknown = cfgRow?.value;
+  if (typeof flag === "string") {
+    try { flag = JSON.parse(flag); } catch { flag = null; }
+  }
+  if ((flag as { enabled?: boolean } | null)?.enabled !== true) return false;
 
   // 2. Lookup deployment (instância + palavra-chave via agent_route_lookup)
   const { data: routeRows, error: routeErr } = await supabase.rpc("agent_route_lookup", {

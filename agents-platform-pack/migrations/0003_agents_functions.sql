@@ -858,10 +858,11 @@ CREATE OR REPLACE FUNCTION public.agent_skill_my_hot_leads(p_user_id uuid, p_lim
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  SELECT l.id, l.name, l.phone, l.lead_temperature::text, l.temperature_reason, l.created_at
+  -- Neste CRM não há lead_temperature: hot = sales_score >= 70 (padrão do check-hot-leads)
+  SELECT l.id, l.name, l.phone, 'hot'::text, l.sales_score_reason, l.created_at
   FROM leads l
-  WHERE l.sales_rep_id = p_user_id AND l.lead_temperature = 'hot'
-  ORDER BY l.created_at DESC LIMIT p_limit;
+  WHERE l.sales_rep_id = p_user_id AND l.sales_score >= 70
+  ORDER BY l.sales_score DESC, l.created_at DESC LIMIT p_limit;
 $function$
 ;
 

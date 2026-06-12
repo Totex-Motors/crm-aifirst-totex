@@ -57,7 +57,16 @@ export function V2RouterToggle() {
         .select('value')
         .eq('key', 'agent_platform_v2_enabled')
         .maybeSingle();
-      return (data?.value as RouterStatus) || { enabled: false, updated_at: null, updated_by: null };
+      // config.value é TEXT neste CRM: JSON serializado em string
+      const raw = data?.value;
+      if (typeof raw === 'string') {
+        try {
+          return JSON.parse(raw) as RouterStatus;
+        } catch {
+          return { enabled: false, updated_at: null, updated_by: null };
+        }
+      }
+      return (raw as RouterStatus) || { enabled: false, updated_at: null, updated_by: null };
     },
     staleTime: 30_000,
   });
@@ -99,15 +108,14 @@ export function V2RouterToggle() {
   // 4. Mutation pra atualizar
   const toggleMutation = useMutation({
     mutationFn: async (newEnabled: boolean) => {
-      const value = {
+      const value = JSON.stringify({
         enabled: newEnabled,
         updated_at: new Date().toISOString(),
         updated_by: teamMember?.id || null,
-      };
+      });
       const { error } = await supabase
         .from('config')
-        .update({ value })
-        .eq('key', 'agent_platform_v2_enabled');
+        .upsert({ key: 'agent_platform_v2_enabled', value }, { onConflict: 'key' });
       if (error) throw error;
     },
     onSuccess: (_, newEnabled) => {

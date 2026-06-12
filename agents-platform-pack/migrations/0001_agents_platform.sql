@@ -367,12 +367,13 @@ END $$;
 -- ============================================================
 -- 6. CONFIG KEYS (require `config` table no CRM)
 -- ============================================================
+-- Nota: neste CRM a config.value é TEXT (não jsonb) e não há coluna description.
+-- A flag é armazenada como JSON serializado em texto; webhook e frontend fazem parse.
 DO $$ BEGIN
   IF to_regclass('public.config') IS NOT NULL THEN
-    INSERT INTO public.config (key, value, description)
+    INSERT INTO public.config (key, value)
     SELECT 'agent_platform_v2_enabled',
-      '{"enabled": false, "updated_at": null, "updated_by": null}'::jsonb,
-      'Toggle global do roteador WhatsApp V2 (plataforma agents_*). Quando ON, msgs chegando no WhatsApp tentam match em agents_deployments; se acha, roteia pra agent-runner.'
+      '{"enabled": false, "updated_at": null, "updated_by": null}'
     WHERE NOT EXISTS (SELECT 1 FROM public.config WHERE key = 'agent_platform_v2_enabled');
   END IF;
 END $$;
@@ -425,4 +426,6 @@ BEGIN
   );
 END $$;
 
-RAISE NOTICE 'Agents Platform: instalação CORE concluída. Próximo: rode 0002_agents_functions.sql.';
+DO $$ BEGIN
+  RAISE NOTICE 'Agents Platform: instalação CORE concluída. Próximo: rode 0002_agents_functions.sql.';
+END $$;

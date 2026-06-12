@@ -152,7 +152,7 @@ EXCEPTION WHEN duplicate_object THEN NULL;
           WHEN insufficient_privilege THEN RAISE NOTICE 'sem privilégio em storage — crie a policy pelo Dashboard';
 END $$;
 
--- ─── 8. Flag do roteador V2 na tabela config (texto, padrão desligado) ───
+-- ─── 8. Flag do roteador V2 na tabela config (JSON em texto, padrão desligado) ───
 INSERT INTO public.config (key, value)
-VALUES ('agent_platform_v2_enabled', 'false')
+VALUES ('agent_platform_v2_enabled', '{"enabled": false, "updated_at": null, "updated_by": null}')
 ON CONFLICT (key) DO NOTHING;
