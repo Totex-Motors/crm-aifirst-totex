@@ -18,6 +18,7 @@ export default function AgentChatPage() {
         channel="chat_web"
         fullscreen
         onClose={() => navigate('/agentes')}
+        backLabel="Agentes"
       />
     </div>
   );

@@ -17,7 +17,7 @@ import { useAgent, type AgentMessage } from '../hooks/useAgent';
 import {
   Loader2, Send, Plus, MessageSquare, Trash2, X,
   Mic, MicOff, Pencil, Check, Menu, ChevronDown, ChevronUp,
-  Paperclip, Image as ImageIcon,
+  Paperclip, Image as ImageIcon, ArrowLeft,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -36,6 +36,8 @@ export interface AgentChatProps {
   subtitle?: string;
   suggestions?: string[];
   onClose?: () => void;
+  /** Se definido, o botao de fechar vira seta "voltar" com este rotulo (ex: "Agentes"). */
+  backLabel?: string;
   className?: string;
   /** Opcional: passar agent externo (compartilha state com pai — ex: ToolCallsPanel) */
   agentOverride?: ReturnType<typeof useAgent>;
@@ -49,6 +51,7 @@ export function AgentChat({
   subtitle: subtitleProp,
   suggestions,
   onClose,
+  backLabel,
   className,
   agentOverride,
 }: AgentChatProps) {
@@ -257,6 +260,15 @@ export function AgentChat({
       <div className="flex-1 flex flex-col min-w-0 bg-background">
         <header className="flex items-center justify-between border-b border-border px-3 py-2.5 shrink-0 bg-card">
           <div className="flex items-center gap-2 min-w-0">
+            {onClose && backLabel && (
+              <Button
+                variant="ghost" size="sm" className="h-8 gap-1.5 px-2 shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={onClose} title={`Voltar para ${backLabel}`}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-xs font-medium">{backLabel}</span>
+              </Button>
+            )}
             {!showSidebar && (
               <Button
                 variant="ghost" size="icon" className="h-8 w-8 shrink-0"
@@ -275,7 +287,7 @@ export function AgentChat({
               <p className="text-[10px] text-muted-foreground truncate">{displaySubtitle}</p>
             </div>
           </div>
-          {onClose && (
+          {onClose && !backLabel && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} title="Fechar">
               <X className="h-4 w-4" />
             </Button>
