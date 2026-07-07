@@ -15,9 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { RegisterNegotiationModal, WinDealModal, DealOriginCard } from "@/components/sales";
-import { useSalesDeal } from "@/hooks/useSalesDeals";
-import { useDealPayments } from "@/hooks/useDealPayments";
+import { RegisterNegotiationModal, WinNegociacaoModal, NegociacaoOriginCard } from "@/components/sales";
+import { useSalesDeal } from "@/hooks/useNegociacoes";
+import { useNegociacaoPayments } from "@/hooks/useNegociacaoPayments";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -77,13 +77,13 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string; icon
   cancelled: { label: "Cancelado", color: "bg-gray-100 text-gray-700", icon: XCircle },
 };
 
-const SalesDealDetail = () => {
+const SalesNegociacaoDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const { data: deal, isLoading: dealLoading } = useSalesDeal(id);
-  const { data: payments, isLoading: paymentsLoading } = useDealPayments(id || "");
+  const { data: payments, isLoading: paymentsLoading } = useNegociacaoPayments(id || "");
 
   const [isPaymentConfigOpen, setIsPaymentConfigOpen] = useState(false);
   const [isWinDealOpen, setIsWinDealOpen] = useState(false);
@@ -112,15 +112,18 @@ const SalesDealDetail = () => {
       <AppLayout>
         <div className="flex flex-col items-center justify-center py-24">
           <Briefcase className="h-16 w-16 text-muted-foreground/50 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Deal nao encontrado</h2>
-          <p className="text-muted-foreground mb-4">O deal que voce procura nao existe.</p>
-          <Button onClick={() => navigate("/comercial/deals")}>Voltar para Deals</Button>
+          <h2 className="text-xl font-semibold mb-2">Negociação não encontrada</h2>
+          <p className="text-muted-foreground mb-4">A negociação que você procura não existe.</p>
+          <Button onClick={() => navigate("/comercial/negociacoes")}>Voltar para Negociações</Button>
         </div>
       </AppLayout>
     );
   }
 
   const leadOrContact = deal.lead || deal.contact;
+  const vehicleName = deal.vehicle
+    ? (deal.vehicle.title || [deal.vehicle.make, deal.vehicle.model, deal.vehicle.year].filter(Boolean).join(" "))
+    : null;
   const hasPayments = payments && payments.length > 0;
   const hasLinks = payments?.some((p) => p.payment_link);
   const totalPaid = payments?.filter((p) => p.status === "received" || p.status === "confirmed")
@@ -151,7 +154,7 @@ const SalesDealDetail = () => {
                 </Avatar>
                 <div>
                   <h1 className="text-xl font-bold">{leadOrContact?.name || "Cliente"}</h1>
-                  <p className="text-muted-foreground">{deal.product?.name || "Sem produto"}</p>
+                  <p className="text-muted-foreground">{vehicleName || deal.product?.name || "Sem veículo"}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge
                       variant="outline"
@@ -164,7 +167,7 @@ const SalesDealDetail = () => {
                     >
                       {deal.status === "won" && "Ganho"}
                       {deal.status === "lost" && "Perdido"}
-                      {deal.status === "negotiation" && "Em Negociacao"}
+                      {deal.status === "negotiation" && "Em Negociação"}
                       {deal.status === "proposal_sent" && "Proposta Enviada"}
                     </Badge>
                     {deal.pipeline_stage && (
@@ -257,22 +260,22 @@ const SalesDealDetail = () => {
         </Card>
 
         {/* Origem da oportunidade — webinario, UTMs, landing page, contexto */}
-        {id && <DealOriginCard dealId={id} leadId={deal.lead_id} />}
+        {id && <NegociacaoOriginCard dealId={id} leadId={deal.lead_id} />}
 
-        {/* Deal Details */}
+        {/* Negociacao Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Info Card */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
-                Detalhes do Deal
+                Detalhes da Negociação
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Produto</span>
-                <span className="font-medium">{deal.product?.name || "N/A"}</span>
+                <span className="text-sm text-muted-foreground">Veículo</span>
+                <span className="font-medium">{vehicleName || deal.product?.name || "N/A"}</span>
               </div>
               <Separator />
               <div className="flex justify-between">
@@ -465,7 +468,7 @@ const SalesDealDetail = () => {
             deal={deal}
             leadCpfCnpj={leadOrContact?.cpf_cnpj}
           />
-          <WinDealModal
+          <WinNegociacaoModal
             open={isWinDealOpen}
             onOpenChange={setIsWinDealOpen}
             deal={deal}
@@ -476,4 +479,4 @@ const SalesDealDetail = () => {
   );
 };
 
-export default SalesDealDetail;
+export default SalesNegociacaoDetail;

@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppMessage } from "@/services/whatsappService";
 import { supabase } from "@/lib/supabase";
-import type { PipelineColumn, Deal } from "@/types/sales.types";
+import type { PipelineColumn, Negociacao } from "@/types/sales.types";
 
 interface LeadRecipient {
   dealId: string;

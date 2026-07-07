@@ -742,7 +742,7 @@ function friendlyToolName(name: string): string {
     scrape_youtube_transcript: 'YouTube', scrape_instagram_reel_transcript: 'Instagram',
     uazapi_whatsapp_text: 'WhatsApp', notify_human: 'aviso ao time', agendar_lembrete: 'lembrete',
     qualify_lead: 'qualificação', change_stage: 'pipeline', schedule_meeting: 'agenda',
-    my_deals: 'seus deals', hot_leads: 'leads quentes', pipeline_summary: 'pipeline',
+    my_deals: 'suas negociações', hot_leads: 'leads quentes', pipeline_summary: 'pipeline',
   };
   return map[name] || name.replace(/_/g, ' ');
 }

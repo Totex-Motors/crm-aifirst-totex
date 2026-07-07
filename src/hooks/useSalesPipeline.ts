@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { PipelineStage, Deal, PipelineColumn } from '@/types/sales.types';
+import type { PipelineStage, Negociacao, PipelineColumn } from '@/types/sales.types';
 
 // Fetch all pipeline stages (optionally filtered by pipelineId)
 export const usePipelineStages = (pipelineId?: string) => {
@@ -231,7 +231,7 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
                 return { data: results.flatMap(r => r.data || []) };
               })()
             : Promise.resolve({ data: [] }),
-          // Deal contacts em batch
+          // Negociacao contacts em batch
           dealIds.length > 0
             ? (async () => {
                 const results = await Promise.all(
@@ -469,7 +469,7 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
 
         return {
           stage,
-          deals: stageDeals as Deal[],
+          deals: stageDeals as Negociacao[],
           total_value: totalValue,
           count: stageDeals.length,
         };

@@ -8,7 +8,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useLeadPayments, useDealPayments, useDeleteDealPayment } from "@/hooks/useDealPayments";
+import { useLeadPayments, useNegociacaoPayments, useDeleteDealPayment } from "@/hooks/useNegociacaoPayments";
 import { useCommissions } from "@/hooks/useCommissions";
 import { PaymentPartCard } from "../payments/PaymentPartCard";
 import { InstallmentsTable } from "../payments/InstallmentsTable";
@@ -29,7 +29,7 @@ interface DealGroup {
   payments: DealPayment[];
 }
 
-export function DealPaymentsList({ leadId, dealId }: DealPaymentsListProps) {
+export function NegociacaoPaymentsList({ leadId, dealId }: DealPaymentsListProps) {
   const {
     data: leadPayments,
     isLoading: leadLoading,
@@ -38,7 +38,7 @@ export function DealPaymentsList({ leadId, dealId }: DealPaymentsListProps) {
   const {
     data: dealPayments,
     isLoading: dealLoading,
-  } = useDealPayments(dealId || "");
+  } = useNegociacaoPayments(dealId || "");
 
   const payments = dealId ? dealPayments : leadPayments;
   const isLoading = dealId ? dealLoading : leadLoading;

@@ -23,16 +23,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useCreateDeal } from "@/hooks/useSalesDeals";
-import { useProducts } from "@/hooks/useProducts";
-import { useCreateDealPaymentsBatch } from "@/hooks/useDealPayments";
+import { useCreateDeal } from "@/hooks/useNegociacoes";
+import { useCreateDealPaymentsBatch } from "@/hooks/useNegociacaoPayments";
+import { VehiclePicker, type PickedVehicle } from "@/components/sales/VehiclePicker";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { FlexiblePaymentForm } from "./payments/FlexiblePaymentForm";
 import type { PaymentPart } from "@/types/payment.types";
-import type { CreateDealInput } from "@/types/sales.types";
+import type { CreateNegociacaoInput } from "@/types/sales.types";
 import {
   Loader2,
   DollarSign,
@@ -72,7 +72,7 @@ const installmentOptions = [
   { value: 12, label: "12x" },
 ];
 
-export function CreateDealModal({
+export function CreateNegociacaoModal({
   open,
   onOpenChange,
   leadId,
@@ -83,7 +83,6 @@ export function CreateDealModal({
   const { teamMember } = useAuth();
   const createDeal = useCreateDeal();
   const createPaymentsBatch = useCreateDealPaymentsBatch();
-  const { data: products, isLoading: productsLoading } = useProducts();
 
   // Buscar todos os membros do time (mesma query do LeadDetail)
   const { data: teamMembers = [] } = useQuery({
@@ -103,9 +102,9 @@ export function CreateDealModal({
   const [flexiblePayments, setFlexiblePayments] = useState<PaymentPart[]>([]);
   const [isPaymentsOpen, setIsPaymentsOpen] = useState(true);
 
-  const [formData, setFormData] = useState<Partial<CreateDealInput>>({
+  const [formData, setFormData] = useState<Partial<CreateNegociacaoInput>>({
     contact_id: leadId,
-    product_id: "",
+    vehicle_id: "",
     sales_rep_id: "",
     sdr_id: "",
     original_price: 0,
@@ -152,18 +151,16 @@ export function CreateDealModal({
     }
   }, [formData.negotiated_price, useFlexiblePayments]);
 
-  const handleProductChange = (productId: string) => {
-    const product = products?.find((p) => p.id === productId);
-    if (product) {
-      setFormData({
-        ...formData,
-        product_id: productId,
-        original_price: Number(product.price) || 0,
-        negotiated_price: Number(product.price) || 0,
-        discount_percent: 0,
-      });
-      setFlexiblePayments([]); // Reset payments when product changes
-    }
+  const handleVehiclePick = (vehicle: PickedVehicle | null) => {
+    const price = Number(vehicle?.price) || 0;
+    setFormData({
+      ...formData,
+      vehicle_id: vehicle?.id || "",
+      original_price: price,
+      negotiated_price: price,
+      discount_percent: 0,
+    });
+    setFlexiblePayments([]); // Reset payments when vehicle changes
   };
 
   const handlePriceChange = (negotiatedPrice: number) => {
@@ -181,10 +178,10 @@ export function CreateDealModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.product_id) {
+    if (!formData.vehicle_id) {
       toast({
         title: "Erro",
-        description: "Selecione um produto",
+        description: "Selecione um veículo",
         variant: "destructive",
       });
       return;
@@ -227,7 +224,7 @@ export function CreateDealModal({
       // Create the deal
       const deal = await createDeal.mutateAsync({
         contact_id: leadId,
-        product_id: formData.product_id,
+        vehicle_id: formData.vehicle_id,
         sales_rep_id: formData.sales_rep_id || undefined,
         sdr_id: formData.sdr_id || undefined,
         original_price: formData.original_price || 0,
@@ -258,13 +255,13 @@ export function CreateDealModal({
         await createPaymentsBatch.mutateAsync(paymentsToCreate);
       }
 
-      toast({ title: "Sucesso", description: "Deal criado com sucesso!" });
+      toast({ title: "Sucesso", description: "Negociação criada com sucesso!" });
       onOpenChange(false);
 
       // Reset form
       setFormData({
         contact_id: leadId,
-        product_id: "",
+        vehicle_id: "",
         sales_rep_id: teamMember?.id || "",
         sdr_id: "",
         original_price: 0,
@@ -279,10 +276,10 @@ export function CreateDealModal({
       setFlexiblePayments([]);
       setUseFlexiblePayments(false);
     } catch (error) {
-      console.error("Erro ao criar deal:", error);
+      console.error("Erro ao criar negociação:", error);
       toast({
         title: "Erro",
-        description: "Erro ao criar deal",
+        description: "Erro ao criar negociação",
         variant: "destructive",
       });
     }
@@ -303,7 +300,7 @@ export function CreateDealModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-green-600" />
-            Novo Deal
+            Nova Negociação
           </DialogTitle>
           {leadName && (
             <p className="text-sm text-muted-foreground">Lead: {leadName}</p>
@@ -311,36 +308,21 @@ export function CreateDealModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Produto e Responsável */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Produto *
-              </Label>
-              <Select
-                value={formData.product_id}
-                onValueChange={handleProductChange}
-                disabled={productsLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o produto..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products?.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      <div className="flex justify-between items-center w-full gap-4">
-                        <span>{product.name}</span>
-                        <span className="text-muted-foreground text-sm">
-                          {formatCurrency(Number(product.price) || 0)}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Veículo */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Veículo *
+            </Label>
+            <VehiclePicker
+              value={formData.vehicle_id}
+              onChange={handleVehiclePick}
+              placeholder="Selecione o veículo do estoque..."
+            />
+          </div>
 
+          {/* Responsável */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -581,7 +563,7 @@ export function CreateDealModal({
             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-green-700 dark:text-green-300">
-                  Valor do Deal
+                  Valor da Negociação
                 </span>
                 <span className="text-xl font-bold text-green-600">
                   {formatCurrency(formData.negotiated_price)}
@@ -614,7 +596,7 @@ export function CreateDealModal({
               {isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Criar Deal
+              Criar Negociação
             </Button>
           </DialogFooter>
         </form>

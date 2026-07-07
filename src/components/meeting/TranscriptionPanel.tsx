@@ -1015,7 +1015,7 @@ export function TranscriptionPanel({
               stage_changed_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             }).eq('id', deal.id).then(() => {
-              console.log('[Meeting] ✅ Deal movido para Call Realizada');
+              console.log('[Meeting] ✅ Negociacao movido para Call Realizada');
             });
             supabase.from('leads').update({
               pipeline_stage_id: CALL_REALIZADA_STAGE_ID,
@@ -1024,7 +1024,7 @@ export function TranscriptionPanel({
               console.log('[Meeting] ✅ Lead movido para Call Realizada');
             });
           } else {
-            console.log('[Meeting] ⏭️ Deal não está em Call Agendada — não moveu automaticamente');
+            console.log('[Meeting] ⏭️ Negociacao não está em Call Agendada — não moveu automaticamente');
           }
         });
     };

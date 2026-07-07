@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { PaymentLinkButton } from "./PaymentLinkButton";
 import { PaymentAuditLog } from "./PaymentAuditLog";
-import { useMarkPaymentAsPaid, useUpdateDealPayment, usePaymentHasEdits } from "@/hooks/useDealPayments";
+import { useMarkPaymentAsPaid, useUpdateDealPayment, usePaymentHasEdits } from "@/hooks/useNegociacaoPayments";
 import { useTriggerCommissionCalculation } from "@/hooks/useCommissions";
 import { usePaymentGateways } from "@/hooks/usePaymentGateways";
 import { useBillingReminderTemplate, useSendBillingReminder, buildBillingMessage, getDefaultTemplate } from "@/hooks/useBillingReminder";

@@ -197,7 +197,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         });
       });
 
-      // 3.5 Deals (negociações)
+      // 3.5 Negociacoes (negociações)
       const WEBINAR_PIPELINE_ID = '90b09d81-8282-4503-a869-1787baf8f736';
       const { data: deals } = await (supabase
         .from('deals' as any)
@@ -210,7 +210,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         const stageName = deal.pipeline_stage?.name || 'Em Negociação';
         const isWebinarPipeline = deal.pipeline_id === WEBINAR_PIPELINE_ID;
 
-        // Deal criado — pula se for pipeline Webinario (ja tem evento de inscricao)
+        // Negociacao criado — pula se for pipeline Webinario (ja tem evento de inscricao)
         if (!isWebinarPipeline) {
           events.push({
             id: `deal-created-${deal.id}`,
@@ -218,7 +218,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
             time: new Date(deal.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             type: 'checkout',
             team: 'sales',
-            title: `💼 Nova Negociação: ${deal.product?.name || deal.title || 'Deal'}`,
+            title: `💼 Nova Negociação: ${deal.product?.name || deal.title || 'Negociação'}`,
             description: `Negociação iniciada no valor de R$ ${dealValue.toLocaleString('pt-BR')}.`,
             details: `Estágio: ${stageName} • Produto: ${deal.product?.name || 'N/A'}`,
             amount: dealValue,
@@ -227,10 +227,10 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
           });
         }
 
-        // Deal fechado (won) — mostra mesmo se deal depois virou lost (churn/reembolso)
+        // Negociacao fechado (won) — mostra mesmo se deal depois virou lost (churn/reembolso)
         if (deal.won_at) {
           const repName = deal.sales_rep?.name || 'vendedor';
-          const productName = deal.product?.name || deal.title || 'Deal';
+          const productName = deal.product?.name || deal.title || 'Negociação';
           const negotiationDetails = deal.metadata?.negotiation_details || deal.negotiation_details;
           const detailParts = [`Valor: R$ ${dealValue.toLocaleString('pt-BR')}`];
           detailParts.push(`Responsável: ${repName}`);
@@ -246,7 +246,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
             time: new Date(deal.won_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             type: 'purchase',
             team: 'sales',
-            title: `🎉 Deal Fechado: ${productName}`,
+            title: `🎉 Negociação Fechada: ${productName}`,
             description: `Fechado por ${repName} — R$ ${dealValue.toLocaleString('pt-BR')}`,
             details: detailParts.join(' • '),
             amount: dealValue,
@@ -255,7 +255,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
           });
         }
 
-        // Deal perdido — pula se motivo é Churn/Reembolso (já tem evento de churn/refund da company_activities)
+        // Negociacao perdido — pula se motivo é Churn/Reembolso (já tem evento de churn/refund da company_activities)
         if (deal.status === 'lost' && deal.lost_at) {
           const lostReason = deal.lost_reason || '';
           const isChurnOrRefund = lostReason.startsWith('Churn:') || lostReason.startsWith('Reembolso:');
@@ -267,7 +267,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
               time: new Date(deal.lost_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
               type: 'lead',
               team: 'sales',
-              title: `❌ Deal Perdido: ${deal.product?.name || deal.title || 'Deal'}`,
+              title: `❌ Negociação Perdida: ${deal.product?.name || deal.title || 'Negociação'}`,
               description: `Perdido por ${repName}. Motivo: ${lostReason || 'Não informado'}`,
               details: `Responsável: ${repName} • Motivo: ${lostReason || 'Não informado'}`,
               tags: ['Perdido'],
@@ -843,7 +843,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
             return;
           }
 
-          // Deal won (ganho)
+          // Negociacao won (ganho)
           if (activity.task_type === 'deal_won') {
             events.push({
               id: `deal-won-audit-${activity.id}`,
@@ -861,7 +861,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
             return;
           }
 
-          // Deal lost (perdido) — pula se já tem evento de churn/refund (evita duplicata)
+          // Negociacao lost (perdido) — pula se já tem evento de churn/refund (evita duplicata)
           if (activity.task_type === 'deal_lost') {
             // Se deal já tem motivo Churn/Reembolso, o evento de churn é mais informativo
             const reason = activity.metadata?.reason || activity.description || '';

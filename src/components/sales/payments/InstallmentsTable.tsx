@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePaymentInstallments } from "@/hooks/useDealPayments";
+import { usePaymentInstallments } from "@/hooks/useNegociacaoPayments";
 import type { InstallmentStatus } from "@/types/payment.types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

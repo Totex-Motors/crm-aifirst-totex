@@ -18,6 +18,9 @@ import { useToast } from '@/hooks/use-toast';
 import { FocusItem } from '@/hooks/useFocusQueue';
 import { supabase } from '@/lib/supabase';
 import { cn, ensureHttps } from '@/lib/utils';
+import { getVehicleLabel } from '@/lib/vehicleLabel';
+import { QualificationBadge } from '@/components/sales/BANTIndicator';
+import { Car } from 'lucide-react';
 
 const getInitials = (name: string) =>
   name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
@@ -198,6 +201,7 @@ export const FocusActionCard = ({ item }: FocusActionCardProps) => {
     };
     const bantCount = Object.values(bant).filter(Boolean).length;
     const monthlyRevenue = item.data?.monthly_revenue;
+    const vehicleLabel = getVehicleLabel(item.data?.vehicle_of_interest);
     const dealTitle = item.data?.deal?.title;
     const salesStage = lead?.sales_stage;
 
@@ -250,49 +254,31 @@ export const FocusActionCard = ({ item }: FocusActionCardProps) => {
               </Badge>
             </div>
 
-            {/* Deal title if available */}
+            {/* Negociacao title if available */}
             {dealTitle && (
               <div className="text-xs text-muted-foreground mb-3 px-1">
-                <span className="font-medium">Deal:</span> {dealTitle}
+                <span className="font-medium">Negociação:</span> {dealTitle}
               </div>
             )}
 
-            {/* Info grid: Faturamento + BANT */}
+            {/* Info grid: Veículo de interesse + Qualificação */}
             <div className="grid grid-cols-2 gap-3 mb-4">
-              {/* Faturamento */}
+              {/* Veículo de interesse */}
               <div className="bg-muted/50 rounded-lg p-3">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <DollarSign className="h-3.5 w-3.5" /> Faturamento
+                  <Car className="h-3.5 w-3.5" /> Veículo de interesse
                 </div>
-                <p className="text-sm font-semibold">
-                  {monthlyRevenue || 'Não informado'}
+                <p className="text-sm font-semibold truncate">
+                  {vehicleLabel || 'Não informado'}
                 </p>
               </div>
 
-              {/* BANT */}
+              {/* Qualificação automotiva */}
               <div className="bg-muted/50 rounded-lg p-3">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <Target className="h-3.5 w-3.5" /> BANT ({bantCount}/4)
+                  <Target className="h-3.5 w-3.5" /> Qualificação
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {([
-                    { key: 'budget' as const, label: 'B' },
-                    { key: 'authority' as const, label: 'A' },
-                    { key: 'need' as const, label: 'N' },
-                    { key: 'timeline' as const, label: 'T' },
-                  ]).map(({ key, label }) => (
-                    <Badge
-                      key={key}
-                      variant={bant[key] ? 'default' : 'outline'}
-                      className={cn(
-                        'text-[10px] px-1.5 h-5',
-                        bant[key] && 'bg-green-600 text-white'
-                      )}
-                    >
-                      {label}
-                    </Badge>
-                  ))}
-                </div>
+                <QualificationBadge lead={(lead ?? {}) as never} size="sm" />
               </div>
             </div>
 

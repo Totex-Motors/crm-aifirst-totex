@@ -14,7 +14,7 @@ import {
 import { Car, RefreshCw, Search, ExternalLink, Gauge, Fuel, Calendar, MapPin, Tag, Plus } from "lucide-react";
 import { useVehicles, useVehicleStats, useSyncVehicles, useVehicleMakes, type Vehicle } from "@/hooks/useVehicles";
 import { usePipelines } from "@/hooks/usePipelineConfig";
-import { CreateLeadOrDealModal } from "@/components/sales/CreateLeadOrDealModal";
+import { CreateLeadOrNegociacaoModal } from "@/components/sales/CreateLeadOrNegociacaoModal";
 
 function brl(n: number | null | undefined) {
   if (!n) return "—";
@@ -279,7 +279,7 @@ const Products = () => {
       </div>
 
       {/* Modal: criar lead + deal vinculado ao veiculo escolhido */}
-      <CreateLeadOrDealModal
+      <CreateLeadOrNegociacaoModal
         open={dealModalOpen}
         onOpenChange={(o) => {
           setDealModalOpen(o);

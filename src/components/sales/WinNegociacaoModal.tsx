@@ -17,9 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWinDeal, useUpdateDeal } from "@/hooks/useSalesDeals";
-import { useDealPayments, useCreateDealPaymentsBatch } from "@/hooks/useDealPayments";
-import { useDealContacts } from "@/hooks/useDealContacts";
+import { useWinDeal, useUpdateDeal } from "@/hooks/useNegociacoes";
+import { useNegociacaoPayments, useCreateDealPaymentsBatch } from "@/hooks/useNegociacaoPayments";
+import { useNegociacaoContacts } from "@/hooks/useNegociacaoContacts";
 import { useAllProducts } from "@/hooks/useProducts";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,13 +53,13 @@ interface WinDealModalProps {
   deal: any;
 }
 
-export function WinDealModal({ open, onOpenChange, deal }: WinDealModalProps) {
+export function WinNegociacaoModal({ open, onOpenChange, deal }: WinDealModalProps) {
   const { toast } = useToast();
   const { teamMember } = useAuth();
   const winDeal = useWinDeal();
-  const { data: existingPayments } = useDealPayments(deal?.id);
+  const { data: existingPayments } = useNegociacaoPayments(deal?.id);
   const createPaymentsBatch = useCreateDealPaymentsBatch();
-  const { data: dealContacts } = useDealContacts(deal?.id);
+  const { data: dealContacts } = useNegociacaoContacts(deal?.id);
   const { data: allProducts } = useAllProducts();
   const updateDeal = useUpdateDeal();
 
@@ -167,8 +167,8 @@ export function WinDealModal({ open, onOpenChange, deal }: WinDealModalProps) {
             lead_id: leadId,
             team: 'sales',
             task_type: 'deal_won',
-            name: `🏆 Deal marcado como GANHO por ${teamMember?.name || 'vendedor'}`,
-            description: `${deal.title || 'Deal'} — ${valorFmt}${discountText}${notes ? ` Obs: ${notes}` : ''}`,
+            name: `🏆 Negociação marcada como GANHA por ${teamMember?.name || 'vendedor'}`,
+            description: `${deal.title || 'Negociação'} — ${valorFmt}${discountText}${notes ? ` Obs: ${notes}` : ''}`,
             status: 'completed',
             completed: true,
             metadata: {
@@ -186,7 +186,7 @@ export function WinDealModal({ open, onOpenChange, deal }: WinDealModalProps) {
         } catch { /* silent */ }
       }
 
-      toast({ title: "Deal ganho!", description: `${formatCurrency(editableValue)} — Parabéns!` });
+      toast({ title: "Negociação ganha!", description: `${formatCurrency(editableValue)} — Parabéns!` });
       onOpenChange(false);
     } catch (error) {
       console.error("Error winning deal:", error);

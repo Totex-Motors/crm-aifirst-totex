@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { usePipelines } from "@/hooks/usePipelineConfig";
 import { usePipelineStages } from "@/hooks/useSalesPipeline";
-import { useCreateDeal } from "@/hooks/useSalesDeals";
+import { useCreateDeal } from "@/hooks/useNegociacoes";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -46,7 +46,7 @@ interface LeadOption {
   company: string | null;
 }
 
-export function BatchImportDealsModal({
+export function BatchImportNegociacoesModal({
   open,
   onOpenChange,
   defaultPipelineId,
@@ -209,7 +209,7 @@ export function BatchImportDealsModal({
             Importar Leads no Pipeline
           </DialogTitle>
           <DialogDescription>
-            Selecione leads existentes para criar deals em batch.
+            Selecione leads existentes para criar negociações em lote.
           </DialogDescription>
         </DialogHeader>
 
@@ -376,8 +376,8 @@ export function BatchImportDealsModal({
             ) : (
               <Upload className="h-4 w-4 mr-2" />
             )}
-            Criar {selectedLeads.length || ""} Deal
-            {selectedLeads.length !== 1 ? "s" : ""}
+            Criar {selectedLeads.length || ""} Negociaç
+            {selectedLeads.length !== 1 ? "ões" : "ão"}
           </Button>
         </div>
       </DialogContent>

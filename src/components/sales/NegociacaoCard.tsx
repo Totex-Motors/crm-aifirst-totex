@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { Deal } from "@/types/sales.types";
+import type { Negociacao } from "@/types/sales.types";
 import {
   MoreHorizontal,
   FileText,
@@ -35,7 +35,7 @@ import { useNavigate } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 
 interface DealCardProps {
-  deal: Deal;
+  deal: Negociacao;
   onView?: () => void;
   onEdit?: () => void;
   onSendProposal?: () => void;
@@ -66,7 +66,7 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function DealCard({
+export function NegociacaoCard({
   deal,
   onView,
   onEdit,
@@ -94,7 +94,10 @@ export function DealCard({
     : null;
 
   const contactName = companyName || leadOrContact?.name || "Sem contato";
-  const productName = deal.product?.name || "Sem produto";
+  const vehicleName = deal.vehicle
+    ? (deal.vehicle.title || [deal.vehicle.make, deal.vehicle.model, deal.vehicle.year].filter(Boolean).join(" "))
+    : null;
+  const productName = vehicleName || deal.product?.name || "Sem veículo";
 
   if (compact) {
     return (
@@ -432,7 +435,7 @@ export function DealCard({
             {onView && (
               <Button variant="outline" size="sm" onClick={onView} className="flex-1">
                 <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                Ver Deal
+                Ver Negociação
               </Button>
             )}
             {onAddContact && (
@@ -449,14 +452,14 @@ export function DealCard({
 }
 
 // Kanban-style deal card for pipeline view
-export function DealKanbanCard({
+export function NegociacaoKanbanCard({
   deal,
   onView,
   onDragStart,
   isDragging,
   className,
 }: {
-  deal: Deal;
+  deal: Negociacao;
   onView?: () => void;
   onDragStart?: () => void;
   isDragging?: boolean;
@@ -490,7 +493,7 @@ export function DealKanbanCard({
 
         <div className="flex items-center gap-1 flex-wrap">
           <p className="text-xs text-muted-foreground truncate">
-            {deal.product?.name}
+            {productName}
           </p>
           {(deal.commitment_amount ?? 0) > 0 && (
             <Badge className="text-[10px] h-4 px-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">

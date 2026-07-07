@@ -13,7 +13,7 @@ import { X, Crosshair, ArrowLeft, CheckCircle2, ArrowRight, Flame } from 'lucide
 const MOTIVATIONAL_QUOTES = [
   "Cada ligação te aproxima do fechamento.",
   "Disciplina supera talento quando talento não tem disciplina.",
-  "O próximo lead pode ser o deal do mês.",
+  "O próximo lead pode ser a negociação do mês.",
   "Consistência é a mãe do resultado.",
   "Quem faz mais contatos, fecha mais negócios.",
   "Foco no processo, o resultado vem.",

@@ -27,9 +27,9 @@ import MarketingPageHeader from '@/components/marketing/MarketingPageHeader';
 const TRIGGER_META: Record<string, { label: string; icon: any; color: string }> = {
   lead_created:         { label: 'Lead criado',           icon: Users,    color: 'text-blue-500 bg-blue-500/10' },
   lead_stage_changed:   { label: 'Lead mudou de etapa',   icon: Target,   color: 'text-cyan-500 bg-cyan-500/10' },
-  deal_created:         { label: 'Deal criado',           icon: Target,   color: 'text-blue-500 bg-blue-500/10' },
-  deal_won:             { label: 'Deal fechado (ganho)',  icon: Target,   color: 'text-emerald-500 bg-emerald-500/10' },
-  deal_lost:            { label: 'Deal perdido',          icon: Target,   color: 'text-red-500 bg-red-500/10' },
+  deal_created:         { label: 'Negociação criada',           icon: Target,   color: 'text-blue-500 bg-blue-500/10' },
+  deal_won:             { label: 'Negociação ganha',  icon: Target,   color: 'text-emerald-500 bg-emerald-500/10' },
+  deal_lost:            { label: 'Negociação perdida',          icon: Target,   color: 'text-red-500 bg-red-500/10' },
   organization_created: { label: 'Cliente novo',          icon: Users,    color: 'text-amber-500 bg-amber-500/10' },
   custom:               { label: 'Customizado',           icon: Zap,      color: 'text-purple-500 bg-purple-500/10' },
 };

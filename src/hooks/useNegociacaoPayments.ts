@@ -11,7 +11,7 @@ import type {
 } from '@/types/payment.types';
 
 // List payments for a deal
-export const useDealPayments = (dealId: string) => {
+export const useNegociacaoPayments = (dealId: string) => {
   return useQuery({
     queryKey: ['deal-payments', dealId],
     queryFn: async () => {

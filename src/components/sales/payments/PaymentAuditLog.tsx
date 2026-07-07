@@ -1,4 +1,4 @@
-import { usePaymentAuditLog } from "@/hooks/useDealPayments";
+import { usePaymentAuditLog } from "@/hooks/useNegociacaoPayments";
 import {
   Collapsible,
   CollapsibleContent,

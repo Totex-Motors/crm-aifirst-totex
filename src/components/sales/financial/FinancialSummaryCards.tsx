@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useLeadFinancialSummary } from "@/hooks/useDealPayments";
+import { useLeadFinancialSummary } from "@/hooks/useNegociacaoPayments";
 import {
   DollarSign,
   CheckCircle,
@@ -40,7 +40,7 @@ export function FinancialSummaryCards({ leadId }: FinancialSummaryCardsProps) {
         <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
           <div className="text-center">
             <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Nenhum deal fechado ainda</p>
+            <p>Nenhuma negociação fechada ainda</p>
           </div>
         </CardContent>
       </Card>
@@ -49,7 +49,7 @@ export function FinancialSummaryCards({ leadId }: FinancialSummaryCardsProps) {
 
   const cards = [
     {
-      title: "Deals Ganhos",
+      title: "Negociações Ganhas",
       value: summary.total_deals.toString(),
       subtitle: "total de deals",
       icon: Briefcase,

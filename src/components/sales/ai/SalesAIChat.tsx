@@ -75,7 +75,7 @@ Ordene por relevância para contato IMEDIATO.`,
   },
   {
     id: 'hot-leads-action',
-    name: 'Leads Quentes + Criar Deals',
+    name: 'Leads Quentes + Criar Negociações',
     icon: Rocket,
     color: 'bg-orange-500',
     prompt: `Use bulk_analyze_leads com criteria='hot_leads' para encontrar leads quentes.
@@ -89,7 +89,7 @@ Ao final, pergunte se devo criar os deals para os leads que ainda não têm.`,
   },
   {
     id: 'stale-deals',
-    name: 'Deals Esfriando',
+    name: 'Negociações Esfriando',
     icon: AlertTriangle,
     color: 'bg-red-500',
     prompt: `Use bulk_analyze_leads com criteria='stale_deals' para encontrar deals que estão esfriando (sem atividade há mais de 7 dias).
@@ -116,7 +116,7 @@ ALERTA: Esses deals precisam de atenção URGENTE!`,
 Monte um resumo executivo com:
 - 🔥 Prioridade máxima (3 leads para ligar AGORA)
 - 📞 Follow-ups do dia
-- ⚠️ Deals que precisam de atenção
+- ⚠️ Negociações que precisam de atenção
 - 💰 Resumo financeiro do pipeline`,
   },
   {
@@ -137,7 +137,7 @@ Dê insights acionáveis para melhorar a conversão!`,
   },
   {
     id: 'create-deals-batch',
-    name: 'Criar Deals em Lote',
+    name: 'Criar Negociações em Lote',
     icon: Briefcase,
     color: 'bg-blue-500',
     prompt: `Quero criar oportunidades para leads qualificados que ainda não têm deal.
@@ -177,7 +177,7 @@ const LEAD_SPECIFIC_TEMPLATES = [
 Busque via query_supabase:
 1. Dados completos do lead
 2. Últimas 20 mensagens WhatsApp
-3. Deals existentes
+3. Negociações existentes
 4. Atividades recentes
 
 Depois monte o briefing:
@@ -190,7 +190,7 @@ Depois monte o briefing:
   },
   {
     id: 'create-deal-lead',
-    name: 'Criar Deal',
+    name: 'Criar Negociação',
     icon: Briefcase,
     color: 'bg-blue-500',
     prompt: `Quero criar um deal para este lead.
@@ -215,7 +215,7 @@ Busque e analise:
 2. Atividades realizadas
 3. Checkouts/Transações
 4. BANT atual
-5. Deals existentes
+5. Negociações existentes
 
 Calcule um score de 0 a 100 com justificativa.
 Depois use update_lead para atualizar o score no banco.`,
@@ -962,7 +962,7 @@ ${playbookContent}
                   <p className="text-sm text-muted-foreground">
                     {isLeadContext
                       ? `Posso ajudar com ${leadName}. Escolha uma ação ou pergunte!`
-                      : (chatTitle ? 'Escolha um template ou pergunte qualquer coisa!' : 'Posso buscar leads, analisar pipeline, criar deals e muito mais!')}
+                      : (chatTitle ? 'Escolha um template ou pergunte qualquer coisa!' : 'Posso buscar leads, analisar pipeline, criar negociações e muito mais!')}
                   </p>
                 </div>
 
@@ -1014,7 +1014,7 @@ ${playbookContent}
                       <Badge
                         variant="outline"
                         className="cursor-pointer hover:bg-blue-100"
-                        onClick={() => sendMessage(`Crie um deal para ${leadName} com o produto mais adequado`)}
+                        onClick={() => sendMessage(`Crie uma negociação para ${leadName} com o produto mais adequado`)}
                       >
                         Criar deal
                       </Badge>

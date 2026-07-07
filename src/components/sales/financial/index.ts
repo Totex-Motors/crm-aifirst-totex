@@ -1,3 +1,3 @@
 export { FinancialSummaryCards } from "./FinancialSummaryCards";
-export { DealPaymentsList } from "./DealPaymentsList";
+export { NegociacaoPaymentsList } from "./NegociacaoPaymentsList";
 export { FinancialTimeline } from "./FinancialTimeline";

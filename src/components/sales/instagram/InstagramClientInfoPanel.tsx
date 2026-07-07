@@ -36,12 +36,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLeadById } from "@/hooks/useWhatsAppInbox";
 import { useClientLTV } from "@/hooks/useTransactions";
 import { useLeadTasks } from "@/hooks/useTasks";
-import { useLeadDeals } from "@/hooks/useDealContacts";
+import { useLeadNegociacoes } from "@/hooks/useNegociacaoContacts";
 import { ConversationNotes } from "@/components/inbox/ConversationNotes";
 import { TaskList } from "@/components/tasks/TaskList";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
-import { CreateLeadOrDealModal } from "@/components/sales/CreateLeadOrDealModal";
-import { CreateDealModal } from "@/components/sales/CreateDealModal";
+import { CreateLeadOrNegociacaoModal } from "@/components/sales/CreateLeadOrNegociacaoModal";
+import { CreateNegociacaoModal } from "@/components/sales/CreateNegociacaoModal";
 import { SocialSellerStageBadge } from "./SocialSellerStageBadge";
 import {
   useInstagramConversation,
@@ -118,7 +118,7 @@ export function InstagramClientInfoPanel({
   const { data: lead } = useLeadById(conv?.lead_id || undefined);
   const { data: ltvData } = useClientLTV(conv?.lead_id || undefined);
   const { data: tasks = [] } = useLeadTasks(conv?.lead_id || undefined);
-  const { data: dealParticipations } = useLeadDeals(conv?.lead_id || undefined);
+  const { data: dealParticipations } = useLeadNegociacoes(conv?.lead_id || undefined);
   const { data: messages = [] } = useInstagramMessages(conv?.id, 100);
   const { data: stages = [] } = useSocialSellerStages();
   const linkToLead = useLinkConversationToLead();
@@ -467,7 +467,7 @@ export function InstagramClientInfoPanel({
           )}
         </div>
 
-        {/* No lead linked - Criar Lead + Deal */}
+        {/* No lead linked - Criar Lead + Negociação */}
         {!conv?.lead_id && (
           <div className="mt-3 space-y-2">
             {aiAnalysis?.telefone_detectado ? (
@@ -514,7 +514,7 @@ export function InstagramClientInfoPanel({
                   onClick={() => setIsCreateLeadOpen(true)}
                 >
                   <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                  Criar Lead + Deal
+                  Criar Lead + Negociação
                 </Button>
               </div>
             )}
@@ -643,7 +643,7 @@ export function InstagramClientInfoPanel({
         )}
       </div>
 
-      {/* Action Buttons - Deal/Lead Creation */}
+      {/* Action Buttons - Negociacao/Lead Creation */}
       <div className="p-3 border-b space-y-2">
         {conv?.lead_id ? (
           <Button
@@ -652,7 +652,7 @@ export function InstagramClientInfoPanel({
             onClick={() => setIsCreateDealOpen(true)}
           >
             <Handshake className="h-4 w-4 mr-2" />
-            Criar Oportunidade
+            Criar Negociação
           </Button>
         ) : (
           <Button
@@ -666,7 +666,7 @@ export function InstagramClientInfoPanel({
             ) : (
               <Plus className="h-4 w-4 mr-2" />
             )}
-            Criar Lead e Oportunidade
+            Criar Lead e Negociação
           </Button>
         )}
       </div>
@@ -724,7 +724,7 @@ export function InstagramClientInfoPanel({
           {/* Info Tab */}
           <TabsContent value="info" className="flex-1 m-0 overflow-y-auto">
             <div className="p-4 space-y-4">
-              {/* Deals */}
+              {/* Negociacoes */}
               {dealParticipations && dealParticipations.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5 uppercase tracking-wide">
@@ -735,12 +735,12 @@ export function InstagramClientInfoPanel({
                     {dealParticipations.map((p: any) => (
                       <Link
                         key={p.id}
-                        to={`/comercial/deals/${p.deal_id}`}
+                        to={`/comercial/negociacoes/${p.deal_id}`}
                         className="flex items-center justify-between p-2 rounded-lg border bg-purple-50/50 hover:bg-purple-100/50 transition-colors"
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">
-                            {p.deal?.title || "Deal"}
+                            {p.deal?.title || "Negociação"}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {p.role && (
@@ -822,9 +822,9 @@ export function InstagramClientInfoPanel({
         />
       )}
 
-      {/* Create Lead + Deal Modal (Instagram) */}
+      {/* Create Lead + Negociacao Modal (Instagram) */}
       {!conversation.lead_id && (
-        <CreateLeadOrDealModal
+        <CreateLeadOrNegociacaoModal
           open={isCreateLeadOpen}
           onOpenChange={setIsCreateLeadOpen}
           mode="deal"
@@ -833,8 +833,8 @@ export function InstagramClientInfoPanel({
         />
       )}
 
-      {/* Create Deal Modal */}
-      <CreateDealModal
+      {/* Create Negociacao Modal */}
+      <CreateNegociacaoModal
         open={isCreateDealOpen}
         onOpenChange={(open) => {
           setIsCreateDealOpen(open);

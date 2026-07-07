@@ -15,13 +15,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import type { PipelineColumn, Deal, PipelineStage } from "@/types/sales.types";
+import type { PipelineColumn, Negociacao, PipelineStage } from "@/types/sales.types";
 import {
   Plus, TrendingUp, DollarSign, Target, Phone, Video,
   Clock, MessageSquare, AlertTriangle, Flame, Snowflake,
   Calendar, User, Users, Crown, ExternalLink, Send, PhoneCall, CheckCircle,
-  UserX, Pause, XCircle, Building2, Star, Trash2, Sparkles
+  UserX, Pause, XCircle, Building2, Star, Trash2, Sparkles, Car
 } from "lucide-react";
+import { getVehicleLabel } from "@/lib/vehicleLabel";
 import { useUpdateLeadSales } from "@/hooks/useSalesLeads";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { AlertBadge } from "@/components/sales/AlertBadge";
@@ -55,7 +56,7 @@ function getRevenueRank(revenue: string | null | undefined): number {
 
 interface PipelineKanbanProps {
   columns: PipelineColumn[];
-  onDealClick?: (deal: Deal) => void;
+  onDealClick?: (deal: Negociacao) => void;
   onViewLead?: (leadId: string) => void;
   onDealMove?: (dealId: string, fromStageId: string, toStageId: string) => void;
   onAddDeal?: (stageId: string) => void;
@@ -112,7 +113,7 @@ export function PipelineKanban({
 }: PipelineKanbanProps) {
   const { dv } = useDemoMode();
   const [draggedDeal, setDraggedDeal] = useState<{
-    deal: Deal;
+    deal: Negociacao;
     fromStageId: string;
   } | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
@@ -178,7 +179,7 @@ export function PipelineKanban({
   // Fetch scheduled calls for all leads in pipeline
   const { data: callsByLead } = useUpcomingCallsForLeads(leadIds);
 
-  const handleDragStart = (deal: Deal, stageId: string) => {
+  const handleDragStart = (deal: Negociacao, stageId: string) => {
     setDraggedDeal({ deal, fromStageId: stageId });
   };
 
@@ -279,11 +280,11 @@ interface ScheduledCall {
 
 interface KanbanColumnProps {
   column: PipelineColumn;
-  onDealClick?: (deal: Deal) => void;
+  onDealClick?: (deal: Negociacao) => void;
   onViewLead?: (leadId: string) => void;
   onAddDeal?: (stageId: string) => void;
   onDeleteDeal?: (dealId: string) => void;
-  onDragStart: (deal: Deal, stageId: string) => void;
+  onDragStart: (deal: Negociacao, stageId: string) => void;
   onDragOver: (e: React.DragEvent, stageId: string) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent, stageId: string) => void;
@@ -409,7 +410,7 @@ function KanbanColumn({
         </p>
       </div>
 
-      {/* Deals List - Scrollable */}
+      {/* Negociacoes List - Scrollable */}
       <ColumnScrollArea stageId={stage.id}>
         <div className="p-2 space-y-2">
           {[...deals].sort((a, b) => {
@@ -463,7 +464,7 @@ function KanbanColumn({
               }
             }
           }).map((deal) => (
-            <DealCard
+            <NegociacaoCard
               key={deal.id}
               deal={deal}
               stageId={stage.id}
@@ -482,7 +483,7 @@ function KanbanColumn({
               <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
                 <Target className="h-5 w-5 text-slate-400" />
               </div>
-              <p className="text-xs text-slate-500">Nenhum deal neste estágio</p>
+              <p className="text-xs text-slate-500">Nenhuma negociação neste estágio</p>
               {onAddDeal && !stage.is_won && !stage.is_lost && (
                 <Button
                   variant="link"
@@ -643,7 +644,7 @@ function getUrgencyInfo(deal: any, stageId: string, scheduledCall?: ScheduledCal
 }
 
 // Calculate days since last interaction (uses pre-calculated value from hook)
-function getDaysSinceInteraction(deal: Deal): number {
+function getDaysSinceInteraction(deal: Negociacao): number {
   // Use pre-calculated value from usePipelineDeals hook
   if ((deal as any).days_since_interaction !== undefined) {
     return (deal as any).days_since_interaction;
@@ -663,8 +664,8 @@ function getTemperatureInfo(score?: number | null): { icon: React.ElementType; c
   return { icon: Snowflake, color: "text-blue-500", label: "Frio" };
 }
 
-// Deal Card Component - Mais Informativo
-function DealCard({
+// Negociacao Card Component - Mais Informativo
+function NegociacaoCard({
   deal,
   stageId,
   onView,
@@ -675,7 +676,7 @@ function DealCard({
   scheduledCall,
   isFinalized = false,
 }: {
-  deal: Deal;
+  deal: Negociacao;
   stageId: string;
   onView: () => void;
   onViewLead?: (leadId: string) => void;
@@ -796,7 +797,7 @@ function DealCard({
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Excluir deal</p>
+              <p>Excluir negociação</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -1155,17 +1156,17 @@ function DealCard({
             </Tooltip>
           )}
 
-          {/* Faturamento - prioriza monthly_revenue do lead, fallback pra diagnostic */}
-          {((deal.lead as any)?.monthly_revenue || (deal as any).diagnostic_revenue) && (
+          {/* Veículo de interesse */}
+          {getVehicleLabel((deal.lead as any)?.vehicle_of_interest) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700">
-                  <DollarSign className="h-3 w-3" />
-                  <span className="whitespace-nowrap">{(deal.lead as any)?.monthly_revenue || (deal as any).diagnostic_revenue}</span>
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700 max-w-[160px]">
+                  <Car className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{getVehicleLabel((deal.lead as any)?.vehicle_of_interest)}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Faturamento: {(deal.lead as any)?.monthly_revenue || (deal as any).diagnostic_revenue}</p>
+                <p>Veículo de interesse: {getVehicleLabel((deal.lead as any)?.vehicle_of_interest)}</p>
               </TooltipContent>
             </Tooltip>
           )}
@@ -1233,7 +1234,7 @@ function DealCard({
             </PopoverTrigger>
             <PopoverContent className="w-64 p-0" align="start" side="right">
               <div className="p-3 border-b">
-                <p className="text-sm font-semibold text-slate-800">{companyName || deal.title || "Deal"}</p>
+                <p className="text-sm font-semibold text-slate-800">{companyName || deal.title || "Negociação"}</p>
                 <p className="text-xs text-muted-foreground">{deal.contacts!.length} contatos vinculados</p>
               </div>
               <div className="p-1">
@@ -1307,7 +1308,7 @@ export function PipelineKanbanHeader({
         </div>
         <div>
           <p className="text-2xl font-bold text-slate-900">{totalDeals}</p>
-          <p className="text-xs text-slate-500">Deals ativos</p>
+          <p className="text-xs text-slate-500">Negociações ativas</p>
         </div>
       </div>
 

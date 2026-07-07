@@ -833,8 +833,8 @@ export const useCreateTask = () => {
       if ((['call', 'meeting'].includes(input.task_type) || hasMeetLink) && input.lead_id) {
         const transferred = await autoTransferDealToCloser(input.lead_id);
         if (transferred) {
-          toast.success('Deal movido automaticamente para Closer → Call Agendada', {
-            description: transferred.title || 'Deal transferido do Pré-Vendas',
+          toast.success('Negociação movida automaticamente para Closer → Call Agendada', {
+            description: transferred.title || 'Negociação transferida do Pré-Vendas',
           });
           queryClient.invalidateQueries({ queryKey: ['sales-deals'] });
           queryClient.invalidateQueries({ queryKey: ['pipeline-deals'] });

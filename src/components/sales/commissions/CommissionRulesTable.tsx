@@ -466,18 +466,18 @@ export function CommissionRulesTable() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="on_deal_won">Ao Ganhar Deal</SelectItem>
+                  <SelectItem value="on_deal_won">Ao Ganhar Negociação</SelectItem>
                   <SelectItem value="on_payment">A Cada Pagamento</SelectItem>
                   <SelectItem value="on_full_payment">Ao Quitar Total</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {formData.payment_trigger === "on_deal_won" &&
-                  "Comissao gerada quando o deal e marcado como ganho"}
+                  "Comissao gerada quando a negociação e marcada como ganha"}
                 {formData.payment_trigger === "on_payment" &&
                   "Comissao gerada a cada pagamento recebido"}
                 {formData.payment_trigger === "on_full_payment" &&
-                  "Comissao gerada quando o deal for totalmente quitado"}
+                  "Comissao gerada quando a negociação for totalmente quitada"}
               </p>
             </div>
 

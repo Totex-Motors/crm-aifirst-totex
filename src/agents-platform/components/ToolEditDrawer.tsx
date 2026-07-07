@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 // "Variáveis do sistema" em linguagem natural
 const SYSTEM_HELPERS = [
   { key: 'lead_id', label: 'Contato da conversa', desc: 'Quem está conversando com o agente agora', icon: '👤' },
-  { key: 'deal_id', label: 'Oportunidade do contato', desc: 'Negócio ativo desse contato no funil', icon: '💼' },
+  { key: 'deal_id', label: 'Negociação do contato', desc: 'Negócio ativo desse contato no funil', icon: '💼' },
   { key: 'activity_id', label: 'Reunião em foco', desc: 'Quando falando de reunião específica', icon: '📅' },
   { key: 'agent_id', label: 'Identidade do agente', desc: 'Pra registrar quem fez o quê', icon: '🤖' },
   { key: 'session_id', label: 'Sessão atual', desc: 'Conversa em andamento', icon: '💬' },
@@ -41,7 +41,7 @@ const SYSTEM_HELPERS = [
 ];
 
 const ACTION_TYPE_LABELS: Record<AgentTool['action_type'], { label: string; desc: string; icon: any }> = {
-  sql: { label: 'Ação no banco', desc: 'Cria/atualiza dados do CRM (lead, deal, reunião…)', icon: Database },
+  sql: { label: 'Ação no banco', desc: 'Cria/atualiza dados do CRM (lead, negociação, reunião…)', icon: Database },
   http: { label: 'Chamar API externa', desc: 'Faz request HTTP pra outro sistema', icon: Globe },
   webhook: { label: 'Disparar webhook', desc: 'Avisa sistema externo (Zapier, n8n…)', icon: Webhook },
   edge_function: { label: 'Função customizada', desc: 'Chama outra função do Supabase', icon: Wrench },

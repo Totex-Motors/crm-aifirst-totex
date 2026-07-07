@@ -237,7 +237,7 @@ const navigationSections: NavSection[] = [
         id: "regras-notificacao",
         label: "Regras de Alerta",
         icon: Bell,
-        description: "Crie regras como: 'Se um deal ficar 3 dias sem atualização, notifique o vendedor'. Personalize por etapa, time e canal.",
+        description: "Crie regras como: 'Se uma negociação ficar 3 dias sem atualização, notifique o vendedor'. Personalize por etapa, time e canal.",
       },
       {
         id: "bot-tarefas",

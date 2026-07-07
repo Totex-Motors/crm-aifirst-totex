@@ -13,7 +13,7 @@ export type SalesStage =
   | 'fechado'
   | 'perdido';
 
-export type DealStatus =
+export type NegociacaoStatus =
   | 'negotiation'
   | 'proposal_sent'
   | 'won'
@@ -276,12 +276,13 @@ export interface SalesLead {
 // DEALS / OPPORTUNITIES
 // =====================================================
 
-export interface Deal {
+export interface Negociacao {
   id: string;
   lead_id: string;
   contact_id?: string; // Alias para lead_id (compatibilidade)
   organization_id?: string;
   product_id: string;
+  vehicle_id?: string | null;
   pipeline_id?: string;
   pipeline_stage_id?: string;
   sales_rep_id?: string;
@@ -306,7 +307,7 @@ export interface Deal {
   commitment_date?: string;
 
   // Status
-  status: DealStatus;
+  status: NegociacaoStatus;
   expected_close_date?: string;
   won_at?: string;
   lost_at?: string;
@@ -344,6 +345,14 @@ export interface Deal {
     name: string;
     price?: number;
   };
+  vehicle?: {
+    id: string;
+    title?: string | null;
+    make?: string | null;
+    model?: string | null;
+    year?: number | null;
+    price?: number | null;
+  } | null;
   pipeline_stage?: PipelineStage;
   sales_rep?: {
     id: string;
@@ -415,7 +424,7 @@ export interface SalesActivity {
   deal?: {
     id: string;
     negotiated_price: number;
-    status: DealStatus;
+    status: NegociacaoStatus;
   };
   sales_rep?: {
     id: string;
@@ -457,7 +466,7 @@ export interface SalesAlert {
 
   // Related
   contact?: SalesLead;
-  deal?: Deal;
+  deal?: Negociacao;
 }
 
 // =====================================================
@@ -523,7 +532,7 @@ export interface SalesDashboardStats {
   total_leads: number;
   leads_by_stage: Record<SalesStage, number>;
 
-  // Deals
+  // Negociacoes
   total_deals: number;
   deals_value: number;
   won_deals: number;
@@ -560,7 +569,7 @@ export interface SalesForecast {
 
 export interface PipelineColumn {
   stage: PipelineStage;
-  deals: Deal[];
+  deals: Negociacao[];
   total_value: number;
   count: number;
 }
@@ -569,11 +578,12 @@ export interface PipelineColumn {
 // INPUT TYPES
 // =====================================================
 
-export interface CreateDealInput {
+export interface CreateNegociacaoInput {
   lead_id: string;
   contact_id?: string; // Alias para lead_id (compatibilidade)
   organization_id?: string;
-  product_id: string;
+  product_id?: string;
+  vehicle_id?: string | null;
   pipeline_id?: string;
   pipeline_stage_id?: string;
   sales_rep_id?: string;
@@ -588,9 +598,9 @@ export interface CreateDealInput {
   notes?: string;
 }
 
-export interface UpdateDealInput extends Partial<CreateDealInput> {
+export interface UpdateNegociacaoInput extends Partial<CreateNegociacaoInput> {
   id: string;
-  status?: DealStatus;
+  status?: NegociacaoStatus;
   won_at?: string;
   lost_at?: string;
   lost_reason?: string;
@@ -650,9 +660,9 @@ export interface SalesLeadFilters {
   search?: string;
 }
 
-export interface DealFilters {
+export interface NegociacaoFilters {
   pipeline_stage_id?: string;
-  status?: DealStatus;
+  status?: NegociacaoStatus;
   sales_rep_id?: string;
   product_id?: string;
   min_value?: number;

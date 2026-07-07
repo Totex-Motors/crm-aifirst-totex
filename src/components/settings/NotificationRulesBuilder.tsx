@@ -67,12 +67,12 @@ const TRIGGER_EVENTS = [
   // Onboarding
   { value: "onboarding_scheduled", label: "Onboarding agendado", category: "onboarding" },
   { value: "onboarding_completed", label: "Onboarding concluído", category: "onboarding" },
-  // Comercial - Deals
-  { value: "deal_created", label: "Deal criado", category: "comercial" },
-  { value: "deal_won", label: "Deal ganho (fechado)", category: "comercial" },
-  { value: "deal_lost", label: "Deal perdido", category: "comercial" },
+  // Comercial - Negociações
+  { value: "deal_created", label: "Negociação criada", category: "comercial" },
+  { value: "deal_won", label: "Negociação ganha", category: "comercial" },
+  { value: "deal_lost", label: "Negociação perdida", category: "comercial" },
   { value: "deal_proposal_sent", label: "Proposta enviada", category: "comercial" },
-  { value: "deal_stage_changed", label: "Deal mudou de etapa", category: "comercial" },
+  { value: "deal_stage_changed", label: "Negociação mudou de etapa", category: "comercial" },
   // Comercial - Leads
   { value: "lead_created", label: "Lead criado", category: "comercial" },
   { value: "lead_qualified", label: "Lead qualificado", category: "comercial" },
@@ -117,7 +117,7 @@ const TEMPLATE_VARIABLES = [
   { var: "{{lead_campanha}}", desc: "Campanha do lead (UTM campaign)", category: "lead" },
   { var: "{{lead_conteudo}}", desc: "Conteúdo/tipo do lead (UTM content)", category: "lead" },
   { var: "{{lead_context}}", desc: "Contexto/conversa do lead", category: "lead" },
-  // Deals
+  // Negociacoes
   { var: "{{deal_titulo}}", desc: "Título do deal", category: "deal" },
   { var: "{{deal_produto}}", desc: "Produto do deal", category: "deal" },
   { var: "{{deal_valor}}", desc: "Valor negociado (R$)", category: "deal" },
@@ -559,12 +559,12 @@ export function NotificationRulesBuilder() {
                         <SelectItem value="task_completed">Tarefa concluída</SelectItem>
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">Onboarding</div>
                         <SelectItem value="onboarding_completed">Onboarding concluído</SelectItem>
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">Comercial - Deals</div>
-                        <SelectItem value="deal_created">Deal criado</SelectItem>
-                        <SelectItem value="deal_won">Deal ganho (fechado)</SelectItem>
-                        <SelectItem value="deal_lost">Deal perdido</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">Comercial - Negociações</div>
+                        <SelectItem value="deal_created">Negociação criada</SelectItem>
+                        <SelectItem value="deal_won">Negociação ganha</SelectItem>
+                        <SelectItem value="deal_lost">Negociação perdida</SelectItem>
                         <SelectItem value="deal_proposal_sent">Proposta enviada</SelectItem>
-                        <SelectItem value="deal_stage_changed">Deal mudou de etapa</SelectItem>
+                        <SelectItem value="deal_stage_changed">Negociação mudou de etapa</SelectItem>
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">Comercial - Leads</div>
                         <SelectItem value="lead_created">Lead criado</SelectItem>
                         <SelectItem value="lead_qualified">Lead qualificado</SelectItem>
@@ -592,7 +592,7 @@ export function NotificationRulesBuilder() {
                           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">Onboarding</div>
                           <SelectItem value="onboarding_scheduled">Onboarding agendado</SelectItem>
                           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">Comercial</div>
-                          <SelectItem value="deal_expected_close">Deal previsão de fechamento</SelectItem>
+                          <SelectItem value="deal_expected_close">Negociação previsão de fechamento</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
