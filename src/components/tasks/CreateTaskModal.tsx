@@ -621,7 +621,7 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
 
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 min-h-0 pr-1">
           {/* Layout em 2 colunas */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* COLUNA ESQUERDA - Configurações */}
             <div className="space-y-3">
               {/* Tipo e Respons\u00e1vel */}
@@ -1045,7 +1045,7 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
                   <RadioGroup
                     value={meetingType}
                     onValueChange={(v) => setMeetingType(v as 'auto' | 'external' | 'none')}
-                    className="flex gap-3"
+                    className="flex flex-wrap gap-2"
                   >
                     <Label
                       htmlFor="meeting-auto"

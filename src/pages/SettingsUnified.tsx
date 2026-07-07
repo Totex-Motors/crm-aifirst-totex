@@ -351,9 +351,9 @@ export default function SettingsUnified() {
         </aside>
 
         {/* ===== CONTENT AREA ===== */}
-        <main className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="max-w-4xl p-6 lg:p-8">
+        <main className="flex-1 min-w-0 overflow-hidden">
+          <div className="h-full overflow-y-auto overflow-x-hidden">
+            <div className="max-w-4xl min-w-0 p-6 lg:p-8">
               {/* Section header with description */}
               {activeItem && (
                 <div className="mb-6 pb-4 border-b border-border/30">
@@ -367,7 +367,7 @@ export default function SettingsUnified() {
               {/* Dynamic content */}
               <SettingsContent section={activeSection} />
             </div>
-          </ScrollArea>
+          </div>
         </main>
       </div>
     </AppLayout>
