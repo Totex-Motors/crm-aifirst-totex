@@ -1040,7 +1040,7 @@ REGRAS:
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Deals/Oportunidades</Label>
+                  <Label>Negociações</Label>
                   <Input
                     type="number"
                     value={settings?.context_deals_limit || 5}

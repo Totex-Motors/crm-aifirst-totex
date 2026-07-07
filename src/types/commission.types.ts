@@ -163,7 +163,7 @@ export const COMMISSION_TYPE_LABELS: Record<CommissionType, string> = {
 };
 
 export const PAYMENT_TRIGGER_LABELS: Record<PaymentTrigger, string> = {
-  on_deal_won: 'Ao Ganhar Deal',
+  on_deal_won: 'Ao Ganhar Negociação',
   on_payment: 'A Cada Pagamento',
   on_full_payment: 'Ao Quitar',
 };

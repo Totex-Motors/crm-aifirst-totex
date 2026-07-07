@@ -56,7 +56,7 @@ const SOURCE_LABELS: Record<string, { label: string; icon: React.ElementType; co
   direct: { label: 'Direto', icon: Globe, color: 'bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300' },
 };
 
-export function DealOriginCard({ dealId, leadId }: DealOriginCardProps) {
+export function NegociacaoOriginCard({ dealId, leadId }: DealOriginCardProps) {
   const { data: origin, isLoading } = useQuery({
     queryKey: ['deal-origin', dealId, leadId],
     queryFn: async (): Promise<OriginData | null> => {
@@ -165,7 +165,7 @@ export function DealOriginCard({ dealId, leadId }: DealOriginCardProps) {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Tag className="h-4 w-4 text-violet-500" />
-          Origem da Oportunidade
+          Origem da Negociação
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

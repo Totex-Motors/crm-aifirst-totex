@@ -128,7 +128,7 @@ export function AlertsCockpit({ alerts, isLoading, onMarkActioned, onDismiss }: 
                         const dealId = alert.deal_id || (alert.metadata?.deal_id as string);
                         const repName = (alert.metadata?.sales_rep_name as string) || '';
                         const targetUrl = dealId
-                          ? `/comercial/deals/${dealId}`
+                          ? `/comercial/negociacoes/${dealId}`
                           : leadId
                           ? `/comercial/leads/${leadId}`
                           : null;

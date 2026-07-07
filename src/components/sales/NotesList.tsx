@@ -266,7 +266,7 @@ export function NotesList({
                               </Badge>
                               {note.deal_id && !note.lead_id && (
                                 <Badge variant="secondary" className="text-xs">
-                                  Deal
+                                  Negociação
                                 </Badge>
                               )}
                             </div>

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { SalesLead } from "@/types/sales.types";
 import { SalesStageBadge } from "./SalesStageBadge";
 import { LeadScoreBadge, LeadScoreBar } from "./LeadScoreBadge";
-import { BANTIndicator } from "./BANTIndicator";
+import { QualificationBadge } from "./BANTIndicator";
 import { LeadTagsBadges } from "./LeadTagsInput";
 import {
   MoreHorizontal,
@@ -306,18 +306,10 @@ export function LeadCard({
           </div>
         )}
 
-        {/* BANT */}
+        {/* Qualificação automotiva */}
         {showBANT && (
           <div className="mb-3 p-2 rounded-lg bg-muted/50">
-            <BANTIndicator
-              bant={{
-                budget: lead.bant_budget ?? null,
-                authority: lead.bant_authority ?? null,
-                need: lead.bant_need ?? null,
-                timeline: lead.bant_timeline ?? null,
-              }}
-              showLabels
-            />
+            <QualificationBadge lead={lead as never} showLabels />
           </div>
         )}
 
@@ -505,15 +497,7 @@ export function LeadKanbanCard({
 
         <div className="flex items-center justify-between">
           <LeadScoreBadge score={lead.sales_score} size="sm" showLabel={false} />
-          <BANTIndicator
-            bant={{
-              budget: lead.bant_budget ?? null,
-              authority: lead.bant_authority ?? null,
-              need: lead.bant_need ?? null,
-              timeline: lead.bant_timeline ?? null,
-            }}
-            size="sm"
-          />
+          <QualificationBadge lead={lead as never} size="sm" />
         </div>
       </CardContent>
     </Card>

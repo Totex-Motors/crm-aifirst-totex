@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { useDealPayments } from "@/hooks/useDealPayments";
+import { useNegociacaoPayments } from "@/hooks/useNegociacaoPayments";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 interface CancelRefundModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Deal específico (modo refund do comercial) */
+  /** Negociacao específico (modo refund do comercial) */
   deal?: any;
   /** Organização (modo churn do CS) */
   organizationId?: string;
@@ -75,9 +75,9 @@ export function CancelRefundModal({
   const queryClient = useQueryClient();
 
   // Pagamentos do deal específico (modo refund)
-  const { data: dealPayments } = useDealPayments(deal?.id);
+  const { data: dealPayments } = useNegociacaoPayments(deal?.id);
 
-  // Deals + pagamentos do lead (modo churn sem deal específico)
+  // Negociacoes + pagamentos do lead (modo churn sem deal específico)
   const [allDeals, setAllDeals] = useState<any[]>([]);
   const [allPayments, setAllPayments] = useState<any[]>([]);
 
@@ -294,7 +294,7 @@ export function CancelRefundModal({
         const title = mode === "churn"
           ? `${icon} Churn processado por ${processedBy}`
           : `${icon} Reembolso processado por ${processedBy}`;
-        const descParts = [`${deal?.title || organizationName || "Deal"} — ${reasonLabel}`];
+        const descParts = [`${deal?.title || organizationName || "Negociação"} — ${reasonLabel}`];
         if (effectiveRefundAmount > 0) descParts.push(`Valor estornado: ${formatCurrency(effectiveRefundAmount)}`);
         if (cancelPending && totalPending > 0) descParts.push(`${formatCurrency(totalPending)} em parcelas canceladas`);
         if (feedback) descParts.push(`Feedback: ${feedback}`);
@@ -360,11 +360,11 @@ export function CancelRefundModal({
         </DialogHeader>
 
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-          {/* Deals afetados (modo churn sem deal específico) */}
+          {/* Negociações afetadas (modo churn sem deal específico) */}
           {!deal && allDeals.length > 0 && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Deals afetados ({allDeals.length})
+                Negociações afetadas ({allDeals.length})
               </Label>
               <div className="space-y-1">
                 {allDeals.map((d: any) => (
@@ -495,7 +495,7 @@ export function CancelRefundModal({
             <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800 text-[11px] space-y-0.5">
               <p className="font-semibold">Esta ação vai:</p>
-              <p>• Mover deal(s) pra estágio "Reembolso"</p>
+              <p>• Mover negociação(ões) pra estágio "Reembolso"</p>
               {cancelPending && totalPending > 0 && <p>• Cancelar {formatCurrency(totalPending)} em parcelas</p>}
               {refundReceived && totalReceived > 0 && <p>• Estornar {formatCurrency(totalReceived)}</p>}
               {blockMemberArea && <p>• Bloquear acesso à área de membros</p>}

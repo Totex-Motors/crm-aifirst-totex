@@ -15,7 +15,9 @@ import {
   Bot,
   DollarSign,
   UserCheck,
+  Car,
 } from "lucide-react";
+import { getVehicleLabel } from "@/lib/vehicleLabel";
 import type { InboxConversation } from "@/hooks/useCSInbox";
 import { getConversationFunnelStage, type FunnelStage } from "@/hooks/useCSInbox";
 
@@ -68,6 +70,7 @@ export function SalesConversationRow({
   const jobTitle = (conv as any).lead_job_title || (conv as any).job_title;
   const monthlyRevenue = conv.lead_monthly_revenue || (conv as any).monthly_revenue;
   const employeeCount = conv.lead_employee_count || (conv as any).employee_count;
+  const vehicleLabel = getVehicleLabel((conv as any).lead_vehicle_of_interest || (conv as any).vehicle_of_interest);
 
   // Responsável (vendedor atribuído ao lead)
   const responsavelName = conv.assigned_agent_name;
@@ -304,19 +307,11 @@ export function SalesConversationRow({
               {timeDisplay}
             </span>
 
-            {/* Revenue / Employees */}
-            {monthlyRevenue && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center gap-0.5 truncate max-w-[120px]" title={`Faturamento: ${monthlyRevenue}`}>
-                <DollarSign className="h-3 w-3 shrink-0" />
-                {isNaN(Number(monthlyRevenue))
-                  ? (monthlyRevenue.length > 12 ? monthlyRevenue.slice(0, 12) + "…" : monthlyRevenue)
-                  : Number(monthlyRevenue).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}
-              </span>
-            )}
-            {!monthlyRevenue && employeeCount && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center gap-0.5" title={`${employeeCount} funcionários`}>
-                <Users className="h-3 w-3 shrink-0" />
-                {employeeCount}
+            {/* Veículo de interesse */}
+            {vehicleLabel && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 flex items-center gap-0.5 truncate max-w-[140px]" title={`Veículo de interesse: ${vehicleLabel}`}>
+                <Car className="h-3 w-3 shrink-0" />
+                {vehicleLabel}
               </span>
             )}
 

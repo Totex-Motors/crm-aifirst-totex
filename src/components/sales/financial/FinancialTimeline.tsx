@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useLeadPayments } from "@/hooks/useDealPayments";
+import { useLeadPayments } from "@/hooks/useNegociacaoPayments";
 import { PaymentStatusBadge } from "../payments/PaymentStatusBadge";
 import type { BillingType } from "@/types/payment.types";
 import { BILLING_TYPE_LABELS } from "@/types/payment.types";

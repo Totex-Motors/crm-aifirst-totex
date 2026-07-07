@@ -24,24 +24,24 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Deal } from '@/types/sales.types';
+import type { Negociacao } from '@/types/sales.types';
 
 interface SidebarDealsProps {
-  deals: Deal[];
+  deals: Negociacao[];
   selectedDealId: string | null;
   pipelineStages?: Array<{ id: string; name: string; color: string | null; is_won?: boolean; is_lost?: boolean }>;
   onSelectDeal: (dealId: string) => void;
   onCreateDeal: () => void;
-  onViewDeal: (deal: Deal) => void;
-  onEditDeal: (deal: Deal) => void;
-  onConfigurePayment: (deal: Deal) => void;
-  onWinDeal: (deal: Deal) => void;
-  onLoseDeal: (deal: Deal) => void;
-  onTransferPipeline: (deal: Deal) => void;
+  onViewDeal: (deal: Negociacao) => void;
+  onEditDeal: (deal: Negociacao) => void;
+  onConfigurePayment: (deal: Negociacao) => void;
+  onWinDeal: (deal: Negociacao) => void;
+  onLoseDeal: (deal: Negociacao) => void;
+  onTransferPipeline: (deal: Negociacao) => void;
   onAddContact: (dealId: string) => void;
-  onDeleteDeal: (deal: Deal) => void;
-  onReopenDeal: (deal: Deal, targetStageId: string) => void;
-  onRefundDeal?: (deal: Deal) => void;
+  onDeleteDeal: (deal: Negociacao) => void;
+  onReopenDeal: (deal: Negociacao, targetStageId: string) => void;
+  onRefundDeal?: (deal: Negociacao) => void;
 }
 
 function formatCurrency(value: number) {
@@ -49,7 +49,7 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
 }
 
-export function SidebarDeals({
+export function SidebarNegociacoes({
   deals,
   selectedDealId,
   pipelineStages,
@@ -74,7 +74,7 @@ export function SidebarDeals({
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-blue-500" />
-            Oportunidades ({deals.length})
+            Negociações ({deals.length})
           </CardTitle>
           <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={onCreateDeal}>
             <Plus className="h-3 w-3 mr-1" />
@@ -86,9 +86,9 @@ export function SidebarDeals({
         {deals.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             <Briefcase className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
-            <p className="text-[10px]">Nenhuma oportunidade</p>
+            <p className="text-[10px]">Nenhuma negociação</p>
             <Button variant="outline" size="sm" className="mt-1.5 h-6 text-[10px]" onClick={onCreateDeal}>
-              <Plus className="h-3 w-3 mr-1" /> Criar deal
+              <Plus className="h-3 w-3 mr-1" /> Criar negociação
             </Button>
           </div>
         ) : (

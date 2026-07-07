@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDealPayments } from "@/hooks/useDealPayments";
+import { useNegociacaoPayments } from "@/hooks/useNegociacaoPayments";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,11 +45,11 @@ const REFUND_STAGES: Record<string, string> = {
   "90b09d81-8282-4503-a869-1787baf8f736": "d39d2ff2-ba59-4e8e-bd70-fbfc6e40f0e6", // Webinário
 };
 
-export function RefundDealModal({ open, onOpenChange, deal }: RefundDealModalProps) {
+export function RefundNegociacaoModal({ open, onOpenChange, deal }: RefundDealModalProps) {
   const { toast } = useToast();
   const { teamMember } = useAuth();
   const queryClient = useQueryClient();
-  const { data: payments } = useDealPayments(deal?.id);
+  const { data: payments } = useNegociacaoPayments(deal?.id);
 
   const [isLoading, setIsLoading] = useState(false);
   const [reason, setReason] = useState("");
@@ -132,7 +132,7 @@ export function RefundDealModal({ open, onOpenChange, deal }: RefundDealModalPro
             team: "sales",
             task_type: "refund",
             name: `💸 Reembolso processado por ${teamMember?.name || "vendedor"}`,
-            description: `${deal.title || "Deal"} — ${reasonLabel}. Valor estornado: ${formatCurrency(effectiveRefundAmount)}${cancelPending ? `. ${totalPending > 0 ? `${formatCurrency(totalPending)} em parcelas canceladas` : "Parcelas canceladas"}` : ""}`,
+            description: `${deal.title || "Negociação"} — ${reasonLabel}. Valor estornado: ${formatCurrency(effectiveRefundAmount)}${cancelPending ? `. ${totalPending > 0 ? `${formatCurrency(totalPending)} em parcelas canceladas` : "Parcelas canceladas"}` : ""}`,
             status: "completed",
             completed: true,
             metadata: {
@@ -194,7 +194,7 @@ export function RefundDealModal({ open, onOpenChange, deal }: RefundDealModalPro
             Processar Reembolso
           </DialogTitle>
           <DialogDescription>
-            {deal.title || "Deal"} — {formatCurrency(totalDeal)}
+            {deal.title || "Negociação"} — {formatCurrency(totalDeal)}
           </DialogDescription>
         </DialogHeader>
 
@@ -313,7 +313,7 @@ export function RefundDealModal({ open, onOpenChange, deal }: RefundDealModalPro
             <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800 text-xs space-y-1">
               <p className="font-semibold">Esta ação vai:</p>
-              <p>• Mover deal pra estágio "Reembolso"</p>
+              <p>• Mover negociação pra estágio "Reembolso"</p>
               {cancelPending && totalPending > 0 && <p>• Cancelar {formatCurrency(totalPending)} em parcelas pendentes</p>}
               {refundReceived && totalReceived > 0 && <p>• Marcar {formatCurrency(totalReceived)} como estornado</p>}
               <p>• Registrar na timeline com seu nome</p>

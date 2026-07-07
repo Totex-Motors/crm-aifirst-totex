@@ -19,13 +19,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useUpdateDeal } from "@/hooks/useSalesDeals";
-import { useCreateDealPaymentsBatch, useGeneratePaymentLink } from "@/hooks/useDealPayments";
-import { useDealContacts } from "@/hooks/useDealContacts";
+import { useUpdateDeal } from "@/hooks/useNegociacoes";
+import { useCreateDealPaymentsBatch, useGeneratePaymentLink } from "@/hooks/useNegociacaoPayments";
+import { useNegociacaoContacts } from "@/hooks/useNegociacaoContacts";
 import { useToast } from "@/hooks/use-toast";
 import { FlexiblePaymentForm } from "./payments/FlexiblePaymentForm";
 import type { PaymentPart } from "@/types/payment.types";
-import type { Deal } from "@/types/sales.types";
+import type { Negociacao } from "@/types/sales.types";
 import {
   Loader2,
   FileText,
@@ -43,7 +43,7 @@ import { cn } from "@/lib/utils";
 interface RegisterNegotiationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deal: Deal;
+  deal: Negociacao;
   leadCpfCnpj?: string;
 }
 
@@ -55,7 +55,7 @@ function formatCurrency(value: number) {
 }
 
 // Alias for backwards compatibility
-export const CloseDealModal = RegisterNegotiationModal;
+export const CloseNegociacaoModal = RegisterNegotiationModal;
 
 export function RegisterNegotiationModal({
   open,
@@ -67,7 +67,7 @@ export function RegisterNegotiationModal({
   const updateDeal = useUpdateDeal();
   const createPaymentsBatch = useCreateDealPaymentsBatch();
   const generatePaymentLink = useGeneratePaymentLink();
-  const { data: dealContacts } = useDealContacts(deal?.id);
+  const { data: dealContacts } = useNegociacaoContacts(deal?.id);
 
   const [step, setStep] = useState<"config" | "generating" | "success">("config");
   const [paymentMode, setPaymentMode] = useState<"manual" | "integration">("manual");
@@ -149,7 +149,7 @@ export function RegisterNegotiationModal({
     if (!isPaymentsValid) {
       toast({
         title: "Valores nao conferem",
-        description: "A soma dos pagamentos deve ser igual ao valor do deal",
+        description: "A soma dos pagamentos deve ser igual ao valor da negociação",
         variant: "destructive",
       });
       return;
@@ -216,7 +216,7 @@ export function RegisterNegotiationModal({
       setStep("success");
 
       toast({
-        title: isManual ? "Pagamento registrado!" : "Negociacao registrada!",
+        title: isManual ? "Pagamento registrado!" : "Negociação registrada!",
         description: isIntegration
           ? `${links.length} link(s) de pagamento gerado(s) - Envie para o cliente!`
           : "Pagamento registrado com sucesso",
@@ -306,7 +306,7 @@ export function RegisterNegotiationModal({
               </button>
             </div>
 
-            {/* Deal Summary */}
+            {/* Negociacao Summary */}
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Produto</span>

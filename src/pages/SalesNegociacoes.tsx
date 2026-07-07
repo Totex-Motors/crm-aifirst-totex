@@ -12,9 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DealCard } from "@/components/sales/DealCard";
-import { ViewDealModal } from "@/components/sales/ViewDealModal";
-import { useSalesDeals, useDealsSummary } from "@/hooks/useSalesDeals";
+import { NegociacaoCard } from "@/components/sales/NegociacaoCard";
+import { ViewNegociacaoModal } from "@/components/sales/ViewNegociacaoModal";
+import { useNegociacoes, useNegociacoesSummary } from "@/hooks/useNegociacoes";
 import { usePipelineStages } from "@/hooks/useSalesPipeline";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Deal, DealStatus } from "@/types/sales.types";
+import type { Negociacao, NegociacaoStatus } from "@/types/sales.types";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -42,7 +42,7 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-const STATUS_OPTIONS: { value: DealStatus | "all" | "active"; label: string; icon?: React.ElementType }[] = [
+const STATUS_OPTIONS: { value: NegociacaoStatus | "all" | "active"; label: string; icon?: React.ElementType }[] = [
   { value: "all", label: "Todos" },
   { value: "active", label: "Em Andamento" },
   { value: "negotiation", label: "Negociação" },
@@ -51,20 +51,20 @@ const STATUS_OPTIONS: { value: DealStatus | "all" | "active"; label: string; ico
   { value: "lost", label: "Perdidos", icon: XCircle },
 ];
 
-const SalesDeals = () => {
+const SalesNegociacoes = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<DealStatus | "all" | "active">("active");
+  const [selectedStatus, setSelectedStatus] = useState<NegociacaoStatus | "all" | "active">("active");
   const [selectedStage, setSelectedStage] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"value" | "recent" | "probability">("value");
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<Negociacao | null>(null);
   const [showDealModal, setShowDealModal] = useState(false);
 
   const { data: stages } = usePipelineStages();
-  const { data: summary, isLoading: summaryLoading } = useDealsSummary();
+  const { data: summary, isLoading: summaryLoading } = useNegociacoesSummary();
 
   const filters = useMemo(() => {
     const f: any = {};
@@ -77,7 +77,7 @@ const SalesDeals = () => {
     return f;
   }, [selectedStatus, selectedStage]);
 
-  const { data: deals, isLoading, refetch } = useSalesDeals(filters);
+  const { data: deals, isLoading, refetch } = useNegociacoes(filters);
 
   // Filter and sort deals
   const filteredDeals = useMemo(() => {
@@ -97,7 +97,10 @@ const SalesDeals = () => {
         (d) =>
           d.lead?.name?.toLowerCase().includes(searchLower) ||
           d.contact?.name?.toLowerCase().includes(searchLower) ||
-          d.product?.name?.toLowerCase().includes(searchLower)
+          d.product?.name?.toLowerCase().includes(searchLower) ||
+          d.vehicle?.title?.toLowerCase().includes(searchLower) ||
+          d.vehicle?.make?.toLowerCase().includes(searchLower) ||
+          d.vehicle?.model?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -118,7 +121,7 @@ const SalesDeals = () => {
     return sorted;
   }, [deals, search, sortBy, selectedStatus]);
 
-  const handleDealClick = (deal: Deal) => {
+  const handleDealClick = (deal: Negociacao) => {
     setSelectedDeal(deal);
     setShowDealModal(true);
   };
@@ -131,10 +134,10 @@ const SalesDeals = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
               <Briefcase className="h-7 w-7 text-primary" />
-              Deals / Oportunidades
+              Negociações
             </h1>
             <p className="text-muted-foreground">
-              {filteredDeals.length} deals encontrados
+              {filteredDeals.length} negociações encontradas
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -146,9 +149,9 @@ const SalesDeals = () => {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
-            <Button onClick={() => navigate("/comercial/deals/new")}>
+            <Button onClick={() => navigate("/comercial/negociacoes/new")}>
               <Plus className="h-4 w-4 mr-2" />
-              Novo Deal
+              Nova Negociação
             </Button>
           </div>
         </div>
@@ -266,7 +269,7 @@ const SalesDeals = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por contato ou produto..."
+              placeholder="Buscar por contato ou veículo..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -320,7 +323,7 @@ const SalesDeals = () => {
           </div>
         </div>
 
-        {/* Deals Grid/List */}
+        {/* Negociacoes Grid/List */}
         {isLoading ? (
           <div className={cn(
             "gap-4",
@@ -340,7 +343,7 @@ const SalesDeals = () => {
               : "space-y-3"
           )}>
             {filteredDeals.map((deal) => (
-              <DealCard
+              <NegociacaoCard
                 key={deal.id}
                 deal={deal}
                 compact={viewMode === "list"}
@@ -352,11 +355,11 @@ const SalesDeals = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum deal encontrado</h3>
+              <h3 className="text-lg font-semibold mb-2">Nenhuma negociação encontrada</h3>
               <p className="text-muted-foreground mb-4">
                 {search
                   ? "Tente ajustar sua busca ou filtros"
-                  : "Não há deals com os filtros selecionados"}
+                  : "Não há negociações com os filtros selecionados"}
               </p>
               <div className="flex justify-center gap-2">
                 {(search || selectedStage !== "all" || selectedStatus !== "active") && (
@@ -371,7 +374,7 @@ const SalesDeals = () => {
                     Limpar filtros
                   </Button>
                 )}
-                <Button onClick={() => navigate("/comercial/deals/new")}>
+                <Button onClick={() => navigate("/comercial/negociacoes/new")}>
                   <Plus className="h-4 w-4 mr-2" />
                   Criar deal
                 </Button>
@@ -381,8 +384,8 @@ const SalesDeals = () => {
         )}
       </div>
 
-      {/* Modal de visualização do Deal */}
-      <ViewDealModal
+      {/* Modal de visualização do Negociacao */}
+      <ViewNegociacaoModal
         open={showDealModal}
         onOpenChange={setShowDealModal}
         deal={selectedDeal}
@@ -391,4 +394,4 @@ const SalesDeals = () => {
   );
 };
 
-export default SalesDeals;
+export default SalesNegociacoes;

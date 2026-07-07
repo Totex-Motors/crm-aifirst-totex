@@ -170,7 +170,7 @@ export function CommissionsTable() {
             <TableRow>
               <TableHead>Vendedor</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Deal/Produto</TableHead>
+              <TableHead>Negociação/Produto</TableHead>
               <TableHead className="text-right">Bruto</TableHead>
               <TableHead className="text-right">Taxa GW</TableHead>
               <TableHead className="text-right">Liquido</TableHead>

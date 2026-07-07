@@ -126,7 +126,7 @@ export function LeadWebinarsCard({ leadId }: LeadWebinarsCardProps) {
                 enr.deal_id && 'cursor-pointer'
               )}
               onClick={() => {
-                if (enr.deal_id) navigate(`/comercial/deals/${enr.deal_id}`);
+                if (enr.deal_id) navigate(`/comercial/negociacoes/${enr.deal_id}`);
               }}
             >
               <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">

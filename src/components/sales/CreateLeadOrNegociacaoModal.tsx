@@ -292,7 +292,7 @@ function ReferralField({
   );
 }
 
-export function CreateLeadOrDealModal({
+export function CreateLeadOrNegociacaoModal({
   open,
   onOpenChange,
   mode,
@@ -866,8 +866,8 @@ export function CreateLeadOrDealModal({
       if (mode === "deal") {
         const deal = await createDealMutation.mutateAsync(lead.id);
         toast({
-          title: "Deal criado!",
-          description: `Deal para ${lead.name} foi criado com sucesso.`,
+          title: "Negociação criada!",
+          description: `Negociação para ${lead.name} foi criada com sucesso.`,
         });
         // Disparar notificação de deal criado
         if (deal?.id) {
@@ -919,8 +919,8 @@ export function CreateLeadOrDealModal({
       const deal = await createDealMutation.mutateAsync(selectedLead.id);
 
       toast({
-        title: "Deal criado!",
-        description: `Deal para ${selectedLead.name} foi criado.`,
+        title: "Negociação criada!",
+        description: `Negociação para ${selectedLead.name} foi criada.`,
       });
 
       // Disparar notificação de deal criado
@@ -1372,7 +1372,7 @@ export function CreateLeadOrDealModal({
               <div className="border-t pt-4 space-y-3">
                 <h4 className="font-medium text-sm flex items-center gap-2">
                   <Briefcase className="h-4 w-4" />
-                  Configuração do Deal
+                  Configuração da Negociação
                 </h4>
 
                 <div className="grid grid-cols-3 gap-3">

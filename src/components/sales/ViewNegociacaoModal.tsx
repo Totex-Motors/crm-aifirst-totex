@@ -19,16 +19,16 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { supabase } from "@/lib/supabase";
-import { useDealPayments, useDeleteDealPayment } from "@/hooks/useDealPayments";
+import { useNegociacaoPayments, useDeleteDealPayment } from "@/hooks/useNegociacaoPayments";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { CloseDealModal } from "./CloseDealModal";
+import { CloseNegociacaoModal } from "./CloseNegociacaoModal";
 import { PaymentPartCard } from "./payments/PaymentPartCard";
-import { DealContactsTab } from "./DealContactsTab";
+import { NegociacaoContactsTab } from "./NegociacaoContactsTab";
 import { TransferPipelineModal } from "./TransferPipelineModal";
-import type { Deal } from "@/types/sales.types";
+import type { Negociacao } from "@/types/sales.types";
 import {
   User,
   Users,
@@ -53,7 +53,7 @@ import { cn } from "@/lib/utils";
 interface ViewDealModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deal: Deal | null;
+  deal: Negociacao | null;
 }
 
 function formatCurrency(value: number) {
@@ -88,7 +88,7 @@ function getStatusBadge(status: string) {
 }
 
 
-export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) {
+export function ViewNegociacaoModal({ open, onOpenChange, deal }: ViewDealModalProps) {
   const navigate = useNavigate();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -97,7 +97,7 @@ export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) 
   const [showCommitmentInput, setShowCommitmentInput] = useState(false);
   const [commitmentValue, setCommitmentValue] = useState('');
 
-  const { data: payments, isLoading: loadingPayments } = useDealPayments(deal?.id || "");
+  const { data: payments, isLoading: loadingPayments } = useNegociacaoPayments(deal?.id || "");
   const { data: teamMembers } = useTeamMembers();
   const deletePayment = useDeleteDealPayment();
 
@@ -124,7 +124,7 @@ export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) 
 
       toast({
         title: memberId ? 'Responsável atribuído' : 'Responsável removido',
-        description: memberName ? `${memberName} é agora o responsável` : 'Deal sem responsável',
+        description: memberName ? `${memberName} é agora o responsável` : 'Negociação sem responsável',
       });
       setIsResponsavelOpen(false);
     } catch (err) {
@@ -153,7 +153,7 @@ export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) 
 
       toast({
         title: memberId ? 'SDR atribuído' : 'SDR removido',
-        description: memberName ? `${memberName} é agora o SDR` : 'Deal sem SDR',
+        description: memberName ? `${memberName} é agora o SDR` : 'Negociação sem SDR',
       });
       setIsSdrOpen(false);
     } catch (err) {
@@ -196,7 +196,7 @@ export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) 
 
       toast({
         title: 'Sinal registrado!',
-        description: `Sinal de R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} registrado. Deal movido para Em Fechamento.`,
+        description: `Sinal de R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} registrado. Negociação movida para Em Fechamento.`,
       });
       setShowCommitmentInput(false);
       setCommitmentValue('');
@@ -261,7 +261,7 @@ export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) 
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Detalhes do Deal
+              Detalhes da Negociação
             </DialogTitle>
           </DialogHeader>
 
@@ -646,7 +646,7 @@ export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) 
                 </TabsContent>
 
                 <TabsContent value="contacts" className="mt-4">
-                  <DealContactsTab dealId={deal.id} primaryLeadId={deal.lead_id} />
+                  <NegociacaoContactsTab dealId={deal.id} primaryLeadId={deal.lead_id} />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-4">
@@ -707,7 +707,7 @@ export function ViewDealModal({ open, onOpenChange, deal }: ViewDealModalProps) 
 
       {/* Modal de pagamentos */}
       {showPaymentModal && (
-        <CloseDealModal
+        <CloseNegociacaoModal
           open={showPaymentModal}
           onOpenChange={setShowPaymentModal}
           deal={deal}

@@ -100,7 +100,7 @@ export function PostCallNextSteps({ callId, leadId, leadName = 'Lead', onActionC
           <span className="text-sm font-medium text-emerald-800">{completedAction.label}</span>
           {activeDeal && (
             <Badge variant="outline" className="ml-auto text-xs border-emerald-300 text-emerald-600">
-              Deal atualizado
+              Negociação atualizada
             </Badge>
           )}
         </div>
@@ -115,7 +115,7 @@ export function PostCallNextSteps({ callId, leadId, leadName = 'Lead', onActionC
         <span>Próximo Passo</span>
         {activeDeal && (
           <Badge variant="outline" className="ml-1 text-xs font-normal">
-            Deal: {activeDeal.title}
+            Negociação: {activeDeal.title}
           </Badge>
         )}
       </div>

@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 
 const TRIGGER_OPTIONS: { value: TriggerEvent; label: string; icon: any }[] = [
   { value: 'lead_created', label: 'Lead criado', icon: Users },
-  { value: 'deal_won', label: 'Deal fechado (ganho)', icon: Target },
+  { value: 'deal_won', label: 'Negociação ganha', icon: Target },
   { value: 'organization_created', label: 'Cliente novo', icon: Users },
   { value: 'custom', label: 'Customizado', icon: Zap },
 ];

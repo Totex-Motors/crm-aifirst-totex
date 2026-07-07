@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { PaymentPart, BillingType } from "@/types/payment.types";
 import { BILLING_TYPE_LABELS, isCreditCardType, billingTypeToFeeKey } from "@/types/payment.types";
 import { usePaymentGateways, getGatewayFee, calculateFeeAmount } from "@/hooks/usePaymentGateways";
-import type { DealContact } from "@/hooks/useDealContacts";
+import type { DealContact } from "@/hooks/useNegociacaoContacts";
 import {
   Popover,
   PopoverContent,
@@ -616,7 +616,7 @@ export function FlexiblePaymentForm({
       {/* Summary */}
       <div className="border rounded-lg p-4 space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Valor do Deal</span>
+          <span className="text-muted-foreground">Valor da Negociação</span>
           <span className="font-medium">{formatCurrency(totalAmount)}</span>
         </div>
         <div className="flex justify-between text-sm">

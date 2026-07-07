@@ -86,10 +86,10 @@ const MyWhatsApp = React.lazy(() => import("./pages/MyWhatsApp"));
 import SalesDashboard from "./pages/SalesDashboardV3";
 import SalesLeads from "./pages/SalesLeads";
 import SalesPipeline from "./pages/SalesPipeline";
-import SalesDeals from "./pages/SalesDeals";
+import SalesNegociacoes from "./pages/SalesNegociacoes";
 import SalesWhatsAppInbox from "./pages/SalesWhatsAppInbox";
 import SalesLeadDetail from "./pages/SalesLeadDetail";
-import SalesDealDetail from "./pages/SalesDealDetail";
+import SalesNegociacaoDetail from "./pages/SalesNegociacaoDetail";
 import Products from "./pages/Products";
 import Commissions from "./pages/Commissions";
 import SalesPlaybook from "./pages/SalesPlaybook";
@@ -226,8 +226,8 @@ const AppRoutes = () => {
       <Route path="/comercial/contatos" element={<ProtectedRoute><SalesLeads mode="contacts" /></ProtectedRoute>} />
       <Route path="/comercial/contatos/:id" element={<ProtectedRoute><SalesLeadDetail /></ProtectedRoute>} />
       <Route path="/comercial/pipeline" element={<ProtectedRoute><SalesPipeline /></ProtectedRoute>} />
-      <Route path="/comercial/deals" element={<ProtectedRoute><SalesDeals /></ProtectedRoute>} />
-      <Route path="/comercial/deals/:id" element={<ProtectedRoute><SalesDealDetail /></ProtectedRoute>} />
+      <Route path="/comercial/negociacoes" element={<ProtectedRoute><SalesNegociacoes /></ProtectedRoute>} />
+      <Route path="/comercial/negociacoes/:id" element={<ProtectedRoute><SalesNegociacaoDetail /></ProtectedRoute>} />
       <Route path="/comercial/inbox" element={<ProtectedRoute><SalesWhatsAppInbox /></ProtectedRoute>} />
       <Route path="/comercial/relatorios" element={<Navigate to="/comercial?tab=gestao" replace />} />
       <Route path="/comercial/produtos" element={<ProtectedRoute><Products /></ProtectedRoute>} />

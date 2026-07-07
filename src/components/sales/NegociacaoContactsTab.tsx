@@ -27,13 +27,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import {
-  useDealContacts,
+  useNegociacaoContacts,
   useAddDealContact,
   useUpdateDealContact,
   useRemoveDealContact,
   useSetPrimaryContact,
   CONTACT_ROLES,
-} from "@/hooks/useDealContacts";
+} from "@/hooks/useNegociacaoContacts";
 import { supabase } from "@/lib/supabase";
 import {
   Users,
@@ -64,7 +64,7 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function DealContactsTab({ dealId, primaryLeadId }: DealContactsTabProps) {
+export function NegociacaoContactsTab({ dealId, primaryLeadId }: DealContactsTabProps) {
   const { toast } = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,7 +76,7 @@ export function DealContactsTab({ dealId, primaryLeadId }: DealContactsTabProps)
   const [newLeadForm, setNewLeadForm] = useState({ name: "", phone: "", email: "", instagram: "" });
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
-  const { data: contacts, isLoading } = useDealContacts(dealId);
+  const { data: contacts, isLoading } = useNegociacaoContacts(dealId);
   const addContact = useAddDealContact();
   const updateContact = useUpdateDealContact();
   const removeContact = useRemoveDealContact();
@@ -354,7 +354,7 @@ export function DealContactsTab({ dealId, primaryLeadId }: DealContactsTabProps)
                     onClick={() => handleRemove(contact.id)}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Remover do Deal
+                    Remover da Negociação
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -375,7 +375,7 @@ export function DealContactsTab({ dealId, primaryLeadId }: DealContactsTabProps)
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Contato ao Deal</DialogTitle>
+            <DialogTitle>Adicionar Contato à Negociação</DialogTitle>
             <DialogDescription>
               Selecione um lead existente para adicionar à negociação
             </DialogDescription>

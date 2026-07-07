@@ -193,8 +193,8 @@ export const useToggleAutomationRule = () => {
 export const TRIGGER_TYPE_LABELS: Record<AutomationRule['trigger_type'], string> = {
   task_created: 'Tarefa Criada',
   task_completed: 'Tarefa Completada',
-  deal_created: 'Deal Criado',
-  deal_stage_changed: 'Deal Mudou de Estágio',
+  deal_created: 'Negociação Criada',
+  deal_stage_changed: 'Negociação Mudou de Estágio',
   lead_score_changed: 'Score do Lead Mudou',
   days_in_stage: 'Dias no Estágio',
   lead_replied: 'Lead Respondeu (WhatsApp)',
@@ -204,7 +204,7 @@ export const TRIGGER_TYPE_LABELS: Record<AutomationRule['trigger_type'], string>
 };
 
 export const ACTION_TYPE_LABELS: Record<AutomationRule['action_type'], string> = {
-  move_deal_stage: 'Mover Deal para Estágio',
+  move_deal_stage: 'Mover Negociação para Estágio',
   create_task: 'Criar Tarefa',
   send_notification: 'Enviar Notificação',
   update_lead_field: 'Atualizar Campo do Lead',

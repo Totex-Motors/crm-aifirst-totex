@@ -2,16 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type {
-  Deal,
-  DealFilters,
-  CreateDealInput,
-  UpdateDealInput,
-  DealStatus
+  Negociacao,
+  NegociacaoFilters,
+  CreateNegociacaoInput,
+  UpdateNegociacaoInput,
+  NegociacaoStatus
 } from '@/types/sales.types';
 import { triggerNotificationEvent, getDealNotificationContext, triggerAutomationRules } from './useNotificationEvents';
 
 // Fetch all deals with filters
-export const useSalesDeals = (filters?: DealFilters) => {
+export const useNegociacoes = (filters?: NegociacaoFilters) => {
   return useQuery({
     queryKey: ['sales-deals', filters],
     queryFn: async () => {
@@ -21,6 +21,7 @@ export const useSalesDeals = (filters?: DealFilters) => {
           *,
           lead:leads!deals_lead_id_fkey(id, name, email, phone, sales_score),
           product:products!deals_product_id_fkey(id, name),
+          vehicle:vehicles!deals_vehicle_id_fkey(id, title, make, model, year, price),
           pipeline_stage:sales_pipeline_stages!deals_pipeline_stage_id_fkey(id, name, color, position, is_won, is_lost, pipeline_id, pipeline:sales_pipelines(id, name)),
           sdr:team_members!deals_sdr_id_fkey(id, name)
         `)
@@ -47,7 +48,7 @@ export const useSalesDeals = (filters?: DealFilters) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as Deal[];
+      return (data || []) as Negociacao[];
     },
   });
 };
@@ -65,6 +66,7 @@ export const useSalesDeal = (dealId: string | undefined) => {
           *,
           lead:leads!deals_lead_id_fkey(id, name, email, phone, sales_score, sales_stage),
           product:products!deals_product_id_fkey(id, name),
+          vehicle:vehicles!deals_vehicle_id_fkey(id, title, make, model, year, price),
           pipeline_stage:sales_pipeline_stages!deals_pipeline_stage_id_fkey(id, name, color, position, is_won, is_lost, pipeline_id, pipeline:sales_pipelines(id, name)),
           sdr:team_members!deals_sdr_id_fkey(id, name)
         `)
@@ -72,7 +74,7 @@ export const useSalesDeal = (dealId: string | undefined) => {
         .single();
 
       if (error) throw error;
-      return data as Deal;
+      return data as Negociacao;
     },
     enabled: !!dealId,
   });
@@ -85,7 +87,7 @@ export const useContactDeals = (leadId: string | undefined) => {
     queryFn: async () => {
       if (!leadId) return [];
 
-      // 1. Deals onde lead é primário (lead_id direto)
+      // 1. Negociacoes onde lead é primário (lead_id direto)
       const { data: directDeals, error: directError } = await supabase
         .from('deals')
         .select(`
@@ -101,7 +103,7 @@ export const useContactDeals = (leadId: string | undefined) => {
 
       if (directError) throw directError;
 
-      // 2. Deals onde lead participa via deal_contacts (contato secundário)
+      // 2. Negociacoes onde lead participa via deal_contacts (contato secundário)
       const { data: participations } = await (supabase as any)
         .from('deal_contacts')
         .select('deal_id')
@@ -212,7 +214,7 @@ export const useContactDeals = (leadId: string | undefined) => {
         }
       }
 
-      return allDeals as Deal[];
+      return allDeals as Negociacao[];
     },
     enabled: !!leadId,
   });
@@ -238,7 +240,7 @@ export const useDealsByStage = (stageId: string | undefined) => {
         .order('negotiated_price', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as Deal[];
+      return (data || []) as Negociacao[];
     },
     enabled: !!stageId,
   });
@@ -249,7 +251,7 @@ export const useCreateDeal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateDealInput) => {
+    mutationFn: async (input: CreateNegociacaoInput) => {
       // Resolve pipeline_id from the stage if not provided
       let pipelineId = input.pipeline_id;
       let pipelineStageId = input.pipeline_stage_id;
@@ -300,7 +302,8 @@ export const useCreateDeal = () => {
         .from('deals')
         .insert({
           lead_id: leadId, // support both for compatibility
-          product_id: input.product_id,
+          product_id: input.product_id || null,
+          vehicle_id: input.vehicle_id || null,
           pipeline_id: pipelineId,
           pipeline_stage_id: pipelineStageId,
           sales_rep_id: salesRepId,
@@ -318,7 +321,8 @@ export const useCreateDeal = () => {
         })
         .select(`
           *,
-          product:products!deals_product_id_fkey(id, name, price)
+          product:products!deals_product_id_fkey(id, name, price),
+          vehicle:vehicles!deals_vehicle_id_fkey(id, title, make, model, year, price)
         `)
         .single();
 
@@ -332,7 +336,7 @@ export const useCreateDeal = () => {
           .eq('id', leadId);
       }
 
-      return data as Deal;
+      return data as Negociacao;
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['sales-deals'] });
@@ -366,7 +370,7 @@ export const useUpdateDeal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: UpdateDealInput) => {
+    mutationFn: async (input: UpdateNegociacaoInput) => {
       const { id, ...updates } = input;
 
       const { data, error } = await supabase
@@ -386,7 +390,7 @@ export const useUpdateDeal = () => {
         .single();
 
       if (error) throw error;
-      return data as Deal;
+      return data as Negociacao;
     },
     onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sales-deals'] });
@@ -504,7 +508,7 @@ export const useMoveDealStage = () => {
         }
       }
 
-      return data as Deal;
+      return data as Negociacao;
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['sales-deals'] });
@@ -605,7 +609,7 @@ export const useTransferDealPipeline = () => {
         .eq('id', dealId)
         .single();
 
-      if (dealError || !deal) throw dealError || new Error('Deal not found');
+      if (dealError || !deal) throw dealError || new Error('Negociacao not found');
 
       // 2. Get source pipeline name
       const fromPipelineId = deal.pipeline_stage?.pipeline_id || deal.pipeline_id;
@@ -725,7 +729,7 @@ export const useWinDeal = () => {
         .single();
 
       if (dealError) throw dealError;
-      if (!deal) throw new Error('Deal not found');
+      if (!deal) throw new Error('Negociacao not found');
 
       const lead = deal.lead;
       const productId = deal.product_id;
@@ -766,7 +770,7 @@ export const useWinDeal = () => {
       const { data: updatedDeal, error: updateError } = await supabase
         .from('deals')
         .update({
-          status: 'won' as DealStatus,
+          status: 'won' as NegociacaoStatus,
           won_at: wonAt || new Date().toISOString(),
           pipeline_stage_id: wonStage?.id,
           notes: notes,
@@ -992,7 +996,7 @@ export const useWinDeal = () => {
               // 8c. Build markdown briefing content
               const briefingParts: string[] = [
                 `## 📋 Briefing de Vendas → CS`,
-                `**Deal:** ${deal.title || lead.name} | **Produto:** ${productName}`,
+                `**Negociação:** ${deal.title || lead.name} | **Produto:** ${productName}`,
                 `**Valor:** R$${(deal.negotiated_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
                 `**Data de fechamento:** ${new Date(wonAt || Date.now()).toLocaleDateString('pt-BR')}`,
                 '',
@@ -1137,7 +1141,7 @@ export const useWinDeal = () => {
         }
       }
 
-      return updatedDeal as Deal;
+      return updatedDeal as Negociacao;
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['sales-deals'] });
@@ -1207,7 +1211,7 @@ export const useLoseDeal = () => {
       const { data, error } = await supabase
         .from('deals')
         .update({
-          status: 'lost' as DealStatus,
+          status: 'lost' as NegociacaoStatus,
           lost_at: new Date().toISOString(),
           lost_reason: reason,
           pipeline_stage_id: lostStage?.id,
@@ -1227,7 +1231,7 @@ export const useLoseDeal = () => {
           .eq('id', currentDeal.lead_id);
       }
 
-      return data as Deal;
+      return data as Negociacao;
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['sales-deals'] });
@@ -1293,7 +1297,7 @@ export const useDeleteDeal = () => {
       const { error } = await supabase.from('deals').delete().eq('id', dealId);
       if (error) throw error;
 
-      toast('Deal excluído');
+      toast('Negociação excluída');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-deals'] });
@@ -1310,7 +1314,7 @@ export const useDeleteDeal = () => {
 };
 
 // Get deals summary stats
-export const useDealsSummary = () => {
+export const useNegociacoesSummary = () => {
   return useQuery({
     queryKey: ['deals-summary'],
     queryFn: async () => {

@@ -20,7 +20,7 @@ export type NotificationEventType =
   | "testimonial_received";
 
 export interface NotificationContext {
-  // Deal data
+  // Negociacao data
   deal_id?: string;
   deal_titulo?: string;
   deal_produto?: string;

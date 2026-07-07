@@ -519,7 +519,7 @@ export function MergeLeadsModal({ open, onOpenChange, lead }: MergeLeadsModalPro
                                 <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                                   {(dup.deals_count ?? 0) > 0 && (
                                     <span className="flex items-center gap-1">
-                                      <Briefcase className="h-3 w-3" /> {dup.deals_count} deals
+                                      <Briefcase className="h-3 w-3" /> {dup.deals_count} negociações
                                     </span>
                                   )}
                                   {(dup.messages_count ?? 0) > 0 && (

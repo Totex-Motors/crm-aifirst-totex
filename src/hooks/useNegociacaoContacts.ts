@@ -29,7 +29,7 @@ export const CONTACT_ROLES = [
 ] as const;
 
 // Buscar contatos de um deal
-export const useDealContacts = (dealId: string | undefined) => {
+export const useNegociacaoContacts = (dealId: string | undefined) => {
   return useQuery({
     queryKey: ["deal-contacts", dealId],
     queryFn: async () => {
@@ -67,7 +67,7 @@ export const useDealContacts = (dealId: string | undefined) => {
 };
 
 // Buscar deals de um lead (para saber em quais deals esse lead participa)
-export const useLeadDeals = (leadId: string | undefined) => {
+export const useLeadNegociacoes = (leadId: string | undefined) => {
   return useQuery({
     queryKey: ["lead-deal-contacts", leadId],
     queryFn: async () => {
@@ -272,7 +272,7 @@ export const useLinkedContacts = (leadId: string | undefined) => {
           role: c.role,
           is_primary: c.is_primary,
           deal_id: c.deal_id,
-          deal_title: dealsMap.get(c.deal_id)?.title || "Deal",
+          deal_title: dealsMap.get(c.deal_id)?.title || "Negociação",
           deal_contact_id: c.id,
           source: 'deal' as const,
         }));
@@ -344,7 +344,7 @@ export const useLinkedContacts = (leadId: string | undefined) => {
         role: c.role,
         is_primary: c.is_primary,
         deal_id: c.deal_id,
-        deal_title: dealsMap.get(c.deal_id)?.title || "Deal",
+        deal_title: dealsMap.get(c.deal_id)?.title || "Negociação",
         deal_contact_id: c.id,
         source: 'deal' as const,
       }));

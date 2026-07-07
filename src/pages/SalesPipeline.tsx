@@ -10,9 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PipelineKanban, PipelineKanbanHeader, type PipelineSortBy } from "@/components/sales/PipelineKanban";
-import { CreateLeadOrDealModal } from "@/components/sales/CreateLeadOrDealModal";
-import { LoseDealModal } from "@/components/sales/LoseDealModal";
-import { BatchImportDealsModal } from "@/components/sales/BatchImportDealsModal";
+import { CreateLeadOrNegociacaoModal } from "@/components/sales/CreateLeadOrNegociacaoModal";
+import { LoseNegociacaoModal } from "@/components/sales/LoseNegociacaoModal";
+import { BatchImportNegociacoesModal } from "@/components/sales/BatchImportNegociacoesModal";
 import { BulkWhatsAppModal } from "@/components/sales/BulkWhatsAppModal";
 import { SalesAIChat } from "@/components/sales/ai";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,7 +20,7 @@ import { usePipelineDeals } from "@/hooks/useSalesPipeline";
 import { usePipelines } from "@/hooks/usePipelineConfig";
 // Webinar configs foi removido junto com o m\u00f3dulo de eventos.
 const useWebinarConfigs = () => ({ data: [] as Array<{ id: string; name: string }> });
-import { useMoveDealStage, useTransferDealPipeline, useDeleteDeal } from "@/hooks/useSalesDeals";
+import { useMoveDealStage, useTransferDealPipeline, useDeleteDeal } from "@/hooks/useNegociacoes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +44,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { Deal, PipelineColumn } from "@/types/sales.types";
+import type { Negociacao, PipelineColumn } from "@/types/sales.types";
 import { navigateTo } from "@/lib/utils";
 
 // Função para remover acentos
@@ -195,7 +195,7 @@ export function PipelineBoardContent() {
   const [customDateFrom, setCustomDateFrom] = useSessionState<string>("pipeline_customDateFrom", "");
   const [customDateTo, setCustomDateTo] = useSessionState<string>("pipeline_customDateTo", "");
   const [sortBy, setSortBy] = useSessionState<PipelineSortBy>("pipeline_sortBy", "urgency");
-  const [loseDealTarget, setLoseDealTarget] = useState<{ dealId: string; deal: Deal } | null>(null);
+  const [loseDealTarget, setLoseDealTarget] = useState<{ dealId: string; deal: Negociacao } | null>(null);
   const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
   const [webinarFilter, setWebinarFilter] = useSessionState<string | undefined>("pipeline_webinarFilter", undefined);
@@ -454,7 +454,7 @@ export function PipelineBoardContent() {
     return filters;
   }, [urgencyFilter, activityFilter, periodFilter, revenueFilter, utmSourceFilter, utmCampaignFilter, utmContentFilter]);
 
-  const handleDealClick = (deal: Deal, e?: React.MouseEvent) => {
+  const handleDealClick = (deal: Negociacao, e?: React.MouseEvent) => {
     if (deal.lead_id) {
       const url = `/comercial/leads/${deal.lead_id}?deal=${deal.id}`;
       if (e) {
@@ -497,14 +497,14 @@ export function PipelineBoardContent() {
             transferredByName: teamMember?.name || 'Sistema (auto-transfer)',
           });
           toast({
-            title: "Deal transferido para Closer",
+            title: "Negociação transferida para Closer",
             description: "Movido automaticamente para Closer → Call Agendada",
           });
           return;
         } catch {
           toast({
-            title: "Deal movido, mas erro na transferência",
-            description: "O deal foi movido para Call Agendada mas não foi transferido para o Closer.",
+            title: "Negociação movida, mas erro na transferência",
+            description: "A negociação foi movida para Call Agendada mas não foi transferida para o Closer.",
             variant: "destructive",
           });
           return;
@@ -512,12 +512,12 @@ export function PipelineBoardContent() {
       }
 
       toast({
-        title: "Deal movido",
-        description: "O deal foi movido para o novo estágio.",
+        title: "Negociação movida",
+        description: "A negociação foi movida para o novo estágio.",
       });
     } catch (_e) {
       toast({
-        title: "Erro ao mover deal",
+        title: "Erro ao mover negociação",
         description: "Tente novamente.",
         variant: "destructive",
       });
@@ -530,13 +530,13 @@ export function PipelineBoardContent() {
   };
 
   const handleDeleteDeal = useCallback((dealId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este deal? Esta ação não pode ser desfeita.")) return;
+    if (!confirm("Tem certeza que deseja excluir esta negociação? Esta ação não pode ser desfeita.")) return;
     deleteDealMutation.mutate(dealId, {
       onSuccess: () => {
-        toast({ title: "Deal excluído com sucesso" });
+        toast({ title: "Negociação excluída com sucesso" });
       },
       onError: (err: any) => {
-        toast({ title: "Erro ao excluir deal", description: err?.message, variant: "destructive" });
+        toast({ title: "Erro ao excluir negociação", description: err?.message, variant: "destructive" });
       },
     });
   }, [deleteDealMutation, toast]);
@@ -571,7 +571,7 @@ export function PipelineBoardContent() {
             <div className="flex items-center gap-2">
               <Button onClick={() => handleAddDeal()} className="h-9 px-4 text-sm">
                 <Plus className="h-4 w-4 mr-1.5" />
-                Novo Deal
+                Nova Negociação
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -651,7 +651,7 @@ export function PipelineBoardContent() {
               <SelectContent>
                 <SelectItem value="urgency">Urgencia</SelectItem>
                 <SelectItem value="recent">Mais recentes</SelectItem>
-                <SelectItem value="value">Maior valor deal</SelectItem>
+                <SelectItem value="value">Maior valor</SelectItem>
                 <SelectItem value="revenue">Maior faturamento</SelectItem>
                 <SelectItem value="score">Score do lead</SelectItem>
                 <SelectItem value="time_in_stage">Tempo na etapa</SelectItem>
@@ -1065,8 +1065,8 @@ export function PipelineBoardContent() {
         )}
       </div>
 
-      {/* Create Deal Modal */}
-      <CreateLeadOrDealModal
+      {/* Create Negociacao Modal */}
+      <CreateLeadOrNegociacaoModal
         open={isCreateDealOpen}
         onOpenChange={setIsCreateDealOpen}
         mode="deal"
@@ -1074,8 +1074,8 @@ export function PipelineBoardContent() {
         pipelineId={activePipelineId}
       />
 
-      {/* Lose Deal Modal (disparado pelo drag para etapa perdido) */}
-      <LoseDealModal
+      {/* Lose Negociacao Modal (disparado pelo drag para etapa perdido) */}
+      <LoseNegociacaoModal
         open={!!loseDealTarget}
         onOpenChange={(open) => {
           if (!open) setLoseDealTarget(null);
@@ -1084,7 +1084,7 @@ export function PipelineBoardContent() {
       />
 
       {/* Batch Import Modal */}
-      <BatchImportDealsModal
+      <BatchImportNegociacoesModal
         open={isBatchImportOpen}
         onOpenChange={setIsBatchImportOpen}
         defaultPipelineId={activePipelineId}

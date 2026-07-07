@@ -358,6 +358,64 @@ function InlineEditField({
   );
 }
 
+// Compact automotive qualification badge (substitui o antigo BANTIndicator nos cards)
+export function QualificationBadge({
+  lead,
+  size = "md",
+  showLabels = false,
+}: {
+  lead: Partial<Record<QualificationField, boolean | null>>;
+  size?: "sm" | "md" | "lg";
+  showLabels?: boolean;
+}) {
+  const sizeClass = sizeClasses[size];
+  const active = qualificationFields.filter((f) => lead[f.key] === true);
+
+  if (active.length === 0) {
+    return (
+      <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
+        <Car className={sizeClass.icon} />
+        Sem qualificação
+      </span>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <div className={cn("flex items-center", sizeClass.container)}>
+        {active.map((f) => {
+          const Icon = f.icon;
+          return (
+            <Tooltip key={f.key}>
+              <TooltipTrigger asChild>
+                <span
+                  className={cn(
+                    "rounded-full flex items-center justify-center border",
+                    sizeClass.wrapper,
+                    `bg-${f.color}-100 border-${f.color}-300 text-${f.color}-600`
+                  )}
+                >
+                  <Icon className={sizeClass.icon} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-center">
+                <p className="font-medium">{f.label}</p>
+                <p className="text-xs text-muted-foreground">{f.description}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+        {showLabels && (
+          <span className="ml-1 text-xs text-muted-foreground truncate max-w-[140px]">
+            {active[0].label}
+            {active.length > 1 ? ` +${active.length - 1}` : ""}
+          </span>
+        )}
+      </div>
+    </TooltipProvider>
+  );
+}
+
 export function QualificationCard({
   lead,
   onUpdate,

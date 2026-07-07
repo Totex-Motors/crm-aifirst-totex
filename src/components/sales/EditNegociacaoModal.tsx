@@ -17,11 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUpdateDeal, useMoveDealStage } from "@/hooks/useSalesDeals";
+import { useUpdateDeal, useMoveDealStage } from "@/hooks/useNegociacoes";
 import { useProducts } from "@/hooks/useProducts";
 import { usePipelineStages } from "@/hooks/useSalesPipeline";
 import { useToast } from "@/hooks/use-toast";
-import type { Deal } from "@/types/sales.types";
+import type { Negociacao } from "@/types/sales.types";
 import {
   Loader2,
   Pencil,
@@ -35,10 +35,10 @@ import {
 interface EditDealModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deal: Deal | null;
+  deal: Negociacao | null;
 }
 
-export function EditDealModal({
+export function EditNegociacaoModal({
   open,
   onOpenChange,
   deal,
@@ -147,7 +147,7 @@ export function EditDealModal({
         ...(stageChanged ? {} : { pipeline_stage_id: formData.pipeline_stage_id || null }),
       });
 
-      toast({ title: "Sucesso", description: "Deal atualizado com sucesso!" });
+      toast({ title: "Sucesso", description: "Negociação atualizada com sucesso!" });
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao atualizar deal:", error);
@@ -175,7 +175,7 @@ export function EditDealModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-5 w-5 text-blue-600" />
-            Editar Deal
+            Editar Negociação
           </DialogTitle>
           <p className="text-sm text-muted-foreground">Lead: {leadName}</p>
         </DialogHeader>
@@ -336,7 +336,7 @@ export function EditDealModal({
             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-green-700 dark:text-green-300">
-                  Valor do Deal
+                  Valor da Negociação
                 </span>
                 <span className="text-xl font-bold text-green-600">
                   {formatCurrency(formData.negotiated_price)}

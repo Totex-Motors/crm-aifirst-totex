@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useLoseDeal, useCreateDeal } from "@/hooks/useSalesDeals";
+import { useLoseDeal, useCreateDeal } from "@/hooks/useNegociacoes";
 import { useUpdateLeadPipelineStage } from "@/hooks/useSalesLeads";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,15 +19,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { XCircle, Plus, Loader2, Check, Sparkles, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Deal } from "@/types/sales.types";
+import type { Negociacao } from "@/types/sales.types";
 
 interface LoseDealModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deal: (Deal & { _isLeadOnly?: boolean; _lostStageId?: string }) | null;
+  deal: (Negociacao & { _isLeadOnly?: boolean; _lostStageId?: string }) | null;
 }
 
-export function LoseDealModal({ open, onOpenChange, deal }: LoseDealModalProps) {
+export function LoseNegociacaoModal({ open, onOpenChange, deal }: LoseDealModalProps) {
   const { toast } = useToast();
   const { teamMember } = useAuth();
   const queryClient = useQueryClient();
@@ -188,13 +188,13 @@ export function LoseDealModal({ open, onOpenChange, deal }: LoseDealModalProps) 
             });
 
             toast({
-              title: "Deal perdido + nova oportunidade criada",
+              title: "Negociação perdida + nova oportunidade criada",
               description: `${product.name} — R$ ${(product.price || 0).toLocaleString("pt-BR")}`,
             });
           }
         } else {
           toast({
-            title: "Deal marcado como perdido",
+            title: "Negociação marcada como perdida",
             description: `Motivo: ${reason}`,
           });
         }
@@ -206,8 +206,8 @@ export function LoseDealModal({ open, onOpenChange, deal }: LoseDealModalProps) 
           lead_id: leadId,
           team: 'sales',
           task_type: 'deal_lost',
-          name: `❌ Deal marcado como PERDIDO por ${teamMember?.name || 'vendedor'}`,
-          description: `${deal.title || 'Deal'} — Motivo: ${fullReason}${wantsNewOpportunity ? ' (nova oportunidade criada)' : ''}`,
+          name: `❌ Negociação marcada como PERDIDA por ${teamMember?.name || 'vendedor'}`,
+          description: `${deal.title || 'Negociação'} — Motivo: ${fullReason}${wantsNewOpportunity ? ' (nova oportunidade criada)' : ''}`,
           status: 'completed',
           completed: true,
           metadata: { deal_id: deal.id, deal_title: deal.title, reason: fullReason, lost_by: teamMember?.name, new_opportunity: wantsNewOpportunity },
@@ -220,7 +220,7 @@ export function LoseDealModal({ open, onOpenChange, deal }: LoseDealModalProps) 
     }
   };
 
-  const leadName = deal?.lead?.name || deal?.contact?.name || "Deal";
+  const leadName = deal?.lead?.name || deal?.contact?.name || "Negociação";
   const isLeadOnly = !!(deal as any)?._isLeadOnly;
   const isSubmitting = loseDeal.isPending || createDeal.isPending || updateLeadStage.isPending;
 
