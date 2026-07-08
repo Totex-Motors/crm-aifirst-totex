@@ -338,6 +338,15 @@ interface Lead {
   bant_authority?: boolean;
   bant_need?: boolean;
   bant_timeline?: boolean;
+  // Qualificação automotiva (BANT do nicho de revenda de veículos)
+  intent_buy_only?: boolean;
+  intent_trade_in?: boolean;
+  intent_finance_no_entry?: boolean;
+  intent_cash?: boolean;
+  intent_sell?: boolean;
+  intent_special_search?: boolean;
+  negotiation_type?: string;
+  vehicle_of_interest?: Record<string, unknown> | Record<string, unknown>[] | null;
   context?: string;
   company_name?: string;
   job_title?: string;
@@ -1269,6 +1278,13 @@ function formatToolArgs(actionType: string, args: Record<string, any>): string {
       if (args.challenges) parts.push(`Desafios: ${args.challenges}`);
       if (args.name) parts.push(`Nome: ${args.name}`);
       if (args.email) parts.push(`Email: ${args.email}`);
+      if (args.negotiation_type) parts.push(`Negociação: ${args.negotiation_type}`);
+      if (args.intent_buy_only) parts.push('Quer comprar');
+      if (args.intent_trade_in) parts.push('Tem troca');
+      if (args.intent_finance_no_entry) parts.push('Financia s/ entrada');
+      if (args.intent_cash) parts.push('À vista');
+      if (args.intent_sell) parts.push('Quer vender');
+      if (args.intent_special_search) parts.push('Busca fora do estoque');
       break;
     case 'change_stage':
       if (args.new_stage) parts.push(`Nova etapa: ${args.new_stage}`);
@@ -2142,6 +2158,22 @@ async function buildAgentSystemPrompt(supabase: any, agent: AgentConfig, lead: L
 `;
   }
 
+  // Qualificação automotiva (o que já sabemos sobre a intenção de compra do lead)
+  const activeIntents = AUTOMOTIVE_INTENT_FIELDS.filter((f) => (lead as any)[f] === true);
+  if (activeIntents.length > 0 || hasVehicleInterest(lead) || lead.negotiation_type) {
+    leadContext += `
+## QUALIFICAÇÃO AUTOMOTIVA (já capturada — NÃO pergunte de novo o que já está aqui)`;
+    if (hasVehicleInterest(lead)) {
+      leadContext += `\n- Veículo de interesse: ${JSON.stringify(lead.vehicle_of_interest)}`;
+    }
+    if (lead.negotiation_type) {
+      leadContext += `\n- Tipo de negociação: ${lead.negotiation_type}`;
+    }
+    for (const f of activeIntents) {
+      leadContext += `\n- ✓ ${AUTOMOTIVE_INTENT_LABELS[f]}`;
+    }
+  }
+
   if (lead.context) {
     leadContext += `
 ## CONTEXTO SALVO
@@ -2224,7 +2256,111 @@ ${agent.personality_traits.join(', ')}
    - Se o lead disse "me liga amanhã", "vamos marcar uma call", "pode ser quinta" → use schedule_meeting (com check_availability antes).
    - Se VOCÊ quer retomar contato com o lead que sumiu → use schedule_followup.
 22. COLETA DE EMAIL: Antes de chamar schedule_meeting, VERIFIQUE as "INFORMAÇÕES DO CLIENTE" acima. Se o email já está preenchido (não é "Não informado"), NÃO peça email ao lead — o sistema já tem. Só peça email se estiver "Não informado" E o lead não mencionou email na conversa.
-23. FORMATO DA CALL: Todas as calls são por VÍDEO (Google Meet). NUNCA pergunte se o lead prefere vídeo ou telefone. O link do Meet é enviado automaticamente no invite. Se o lead perguntar, diga que é por vídeo e o link será enviado por email.`;
+23. FORMATO DA CALL: Todas as calls são por VÍDEO (Google Meet). NUNCA pergunte se o lead prefere vídeo ou telefone. O link do Meet é enviado automaticamente no invite. Se o lead perguntar, diga que é por vídeo e o link será enviado por email.
+24. QUALIFICAÇÃO AUTOMOTIVA (salve SEMPRE via update_lead assim que descobrir): quando o lead revelar como pretende negociar, chame update_lead IMEDIATAMENTE com os campos de intenção — sem esperar acumular:
+   - Quer só comprar (sem carro na troca) → intent_buy_only=true
+   - Tem um carro pra dar de entrada/troca → intent_trade_in=true
+   - Precisa financiar SEM entrada → intent_finance_no_entry=true
+   - Vai pagar à vista → intent_cash=true
+   - Só quer VENDER o carro (não comprar) → intent_sell=true
+   - Procura um modelo que talvez não esteja no estoque → intent_special_search=true
+   Também salve o veículo de interesse em vehicle_of_interest (ex: {"make":"Toyota","model":"Corolla","year":2020}) e negotiation_type (ex: "troca", "financiamento", "à vista") quando ficarem claros. Esses dados alimentam o score de qualificação do lead — quanto mais completos, mais quente o lead fica pro vendedor. NÃO pergunte de novo o que já estiver na seção "QUALIFICAÇÃO AUTOMOTIVA".`;
+}
+
+// ==================== SCORING AUTOMOTIVO (BANT do nicho de veículos) ====================
+
+const AUTOMOTIVE_INTENT_FIELDS = [
+  'intent_buy_only',
+  'intent_trade_in',
+  'intent_finance_no_entry',
+  'intent_cash',
+  'intent_sell',
+  'intent_special_search',
+] as const;
+
+const AUTOMOTIVE_INTENT_LABELS: Record<string, string> = {
+  intent_buy_only: 'Quer comprar (sem troca)',
+  intent_trade_in: 'Tem carro pra dar na troca',
+  intent_finance_no_entry: 'Quer financiar sem entrada',
+  intent_cash: 'Compra à vista',
+  intent_sell: 'Quer vender o carro',
+  intent_special_search: 'Busca fora do estoque',
+};
+
+/** true se o lead tem um veículo de interesse preenchido (objeto ou lista não-vazia) */
+function hasVehicleInterest(lead: Lead): boolean {
+  const v = lead.vehicle_of_interest;
+  if (!v) return false;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return false;
+}
+
+/**
+ * Score de qualificação automotiva (0-100), análogo ao BANT mas pro nicho de revenda.
+ * Idempotente: depende só do estado atual do lead — não infla a cada chamada da tool.
+ */
+function computeAutomotiveScore(lead: Lead): number {
+  let score = 40; // baseline pra lead já em conversa
+
+  if (hasVehicleInterest(lead)) score += 25;
+
+  const wantsToBuy = !!(
+    lead.intent_buy_only ||
+    lead.intent_trade_in ||
+    lead.intent_finance_no_entry ||
+    lead.intent_cash
+  );
+  if (wantsToBuy) score += 20;
+
+  if (lead.intent_cash) score += 10; // à vista = mais quente
+  if (lead.intent_trade_in) score += 5; // tem carro na jogada = engajado
+  if (lead.negotiation_type) score += 5;
+  if (lead.bant_timeline) score += 10; // urgência declarada
+
+  // Lead que SÓ quer vender (não compra) vale menos pra revenda que busca comprador
+  if (lead.intent_sell && !wantsToBuy && !hasVehicleInterest(lead)) {
+    return Math.min(score, 45);
+  }
+
+  return Math.min(100, score);
+}
+
+/**
+ * Aplica os campos de qualificação automotiva vindos de uma tool call ao objeto `updates`.
+ * Retorna as chaves que foram tocadas (pra log/contexto).
+ */
+function applyAutomotiveQualification(args: Record<string, any>, updates: any): string[] {
+  const touched: string[] = [];
+  for (const f of AUTOMOTIVE_INTENT_FIELDS) {
+    if (typeof args[f] === 'boolean') {
+      updates[f] = args[f];
+      touched.push(f);
+    }
+  }
+  if (args.negotiation_type) {
+    updates.negotiation_type = String(args.negotiation_type);
+    touched.push('negotiation_type');
+  }
+  if (args.vehicle_of_interest !== undefined && args.vehicle_of_interest !== null) {
+    updates.vehicle_of_interest = args.vehicle_of_interest;
+    touched.push('vehicle_of_interest');
+  }
+  return touched;
+}
+
+/** Anexa as intenções capturadas ao contexto salvo do lead (memória da conversa) */
+function appendAutomotiveContext(baseContext: string, updates: any, touched: string[]): string {
+  let note = baseContext || '';
+  for (const key of touched) {
+    if (key in AUTOMOTIVE_INTENT_LABELS && updates[key] === true) {
+      note += `\n[AUTO] ${AUTOMOTIVE_INTENT_LABELS[key]}`;
+    }
+  }
+  if (touched.includes('negotiation_type') && updates.negotiation_type) {
+    note += `\n[AUTO] Tipo de negociação: ${updates.negotiation_type}`;
+  }
+  return note;
 }
 
 // ==================== TOOL EXECUTION ====================
@@ -2428,13 +2564,23 @@ async function executeTool(
         if (args.challenges) newContext += `\n[QUAL] Desafios: ${args.challenges}`;
         updates.context = newContext;
 
+        // Qualificação automotiva (BANT do nicho de veículos) — caso o agente use qualify_bant
+        const autoTouched = applyAutomotiveQualification(args, updates);
+        if (autoTouched.length > 0) {
+          newContext = appendAutomotiveContext(newContext, updates, autoTouched);
+          updates.context = newContext;
+        }
+
         // Recalcular score
         let bantCount = 0;
         if (updates.bant_budget ?? lead.bant_budget) bantCount++;
         if (updates.bant_authority ?? lead.bant_authority) bantCount++;
         if (updates.bant_need ?? lead.bant_need) bantCount++;
         if (updates.bant_timeline ?? lead.bant_timeline) bantCount++;
-        updates.sales_score = Math.min(100, (lead.sales_score || 50) + bantCount * 10);
+        const bantScore = Math.min(100, (lead.sales_score || 50) + bantCount * 10);
+        // Blenda com o score automotivo quando houver sinais de intenção de compra
+        const projected = { ...lead, ...updates } as Lead;
+        updates.sales_score = Math.max(bantScore, computeAutomotiveScore(projected));
 
         const { error } = await supabase
           .from('leads')
@@ -3453,6 +3599,16 @@ async function executeTool(
           updates.context = (lead.context || '') + '\n' + args.context;
         }
 
+        // Qualificação automotiva (BANT do nicho de veículos)
+        const autoTouched = applyAutomotiveQualification(args, updates);
+        if (autoTouched.length > 0) {
+          // Registrar intenções no contexto (memória da conversa)
+          updates.context = appendAutomotiveContext(updates.context ?? lead.context ?? '', updates, autoTouched);
+          // Recalcular score com base no estado projetado — nunca reduz um score já alto
+          const projected = { ...lead, ...updates } as Lead;
+          updates.sales_score = Math.max(lead.sales_score || 0, computeAutomotiveScore(projected));
+        }
+
         const { error } = await supabase
           .from('leads')
           .update(updates)
@@ -3462,6 +3618,15 @@ async function executeTool(
 
         // Sync in-memory lead so subsequent tools see updated data
         Object.assign(lead, updates);
+
+        // Auto-move pra "Qualificado" quando há veículo de interesse + intenção de compra
+        const wantsBuy = !!(lead.intent_buy_only || lead.intent_trade_in || lead.intent_finance_no_entry || lead.intent_cash);
+        const currentStage = lead.pipeline_stage_name || '';
+        if (autoTouched.length > 0 && hasVehicleInterest(lead) && wantsBuy &&
+            (currentStage === 'Novo Lead' || currentStage === 'Tentando Contato')) {
+          console.log('📍 Lead qualificado (veículo + intenção de compra) → "Qualificado"');
+          await moveLeadAndDealToStage(supabase, lead.id, lead.pipeline_stage_id, 'Qualificado');
+        }
 
         return { success: true, result: { updated: Object.keys(updates) } };
       }
