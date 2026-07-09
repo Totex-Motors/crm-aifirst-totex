@@ -10,9 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PipelineKanban, PipelineKanbanHeader, type PipelineSortBy } from "@/components/sales/PipelineKanban";
-import { CreateLeadOrDealModal } from "@/components/sales/CreateLeadOrDealModal";
-import { LoseDealModal } from "@/components/sales/LoseDealModal";
-import { BatchImportDealsModal } from "@/components/sales/BatchImportDealsModal";
+import { CreateLeadOrNegociacaoModal } from "@/components/sales/CreateLeadOrNegociacaoModal";
+import { LoseNegociacaoModal } from "@/components/sales/LoseNegociacaoModal";
+import { BatchImportNegociacoesModal } from "@/components/sales/BatchImportNegociacoesModal";
 import { BulkWhatsAppModal } from "@/components/sales/BulkWhatsAppModal";
 import { SalesAIChat } from "@/components/sales/ai";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,7 +20,7 @@ import { usePipelineDeals } from "@/hooks/useSalesPipeline";
 import { usePipelines } from "@/hooks/usePipelineConfig";
 // Webinar configs foi removido junto com o m\u00f3dulo de eventos.
 const useWebinarConfigs = () => ({ data: [] as Array<{ id: string; name: string }> });
-import { useMoveDealStage, useTransferDealPipeline, useDeleteDeal } from "@/hooks/useSalesDeals";
+import { useMoveDealStage, useTransferDealPipeline, useDeleteDeal } from "@/hooks/useNegociacoes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +45,7 @@ import {
   Store,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { Deal, PipelineColumn } from "@/types/sales.types";
+import type { Negociacao, PipelineColumn } from "@/types/sales.types";
 import { navigateTo } from "@/lib/utils";
 
 // Função para remover acentos
@@ -196,7 +196,7 @@ export function PipelineBoardContent() {
   const [customDateFrom, setCustomDateFrom] = useSessionState<string>("pipeline_customDateFrom", "");
   const [customDateTo, setCustomDateTo] = useSessionState<string>("pipeline_customDateTo", "");
   const [sortBy, setSortBy] = useSessionState<PipelineSortBy>("pipeline_sortBy", "urgency");
-  const [loseDealTarget, setLoseDealTarget] = useState<{ dealId: string; deal: Deal } | null>(null);
+  const [loseDealTarget, setLoseDealTarget] = useState<{ dealId: string; deal: Negociacao } | null>(null);
   const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
   const [webinarFilter, setWebinarFilter] = useSessionState<string | undefined>("pipeline_webinarFilter", undefined);
@@ -475,7 +475,7 @@ export function PipelineBoardContent() {
     return filters;
   }, [portalFilter, urgencyFilter, activityFilter, periodFilter, revenueFilter, utmSourceFilter, utmCampaignFilter, utmContentFilter]);
 
-  const handleDealClick = (deal: Deal, e?: React.MouseEvent) => {
+  const handleDealClick = (deal: Negociacao, e?: React.MouseEvent) => {
     if (deal.lead_id) {
       const url = `/comercial/leads/${deal.lead_id}?deal=${deal.id}`;
       if (e) {
@@ -1133,8 +1133,8 @@ export function PipelineBoardContent() {
         )}
       </div>
 
-      {/* Create Deal Modal */}
-      <CreateLeadOrDealModal
+      {/* Create Negociacao Modal */}
+      <CreateLeadOrNegociacaoModal
         open={isCreateDealOpen}
         onOpenChange={setIsCreateDealOpen}
         mode="deal"
@@ -1142,8 +1142,8 @@ export function PipelineBoardContent() {
         pipelineId={activePipelineId}
       />
 
-      {/* Lose Deal Modal (disparado pelo drag para etapa perdido) */}
-      <LoseDealModal
+      {/* Lose Negociacao Modal (disparado pelo drag para etapa perdido) */}
+      <LoseNegociacaoModal
         open={!!loseDealTarget}
         onOpenChange={(open) => {
           if (!open) setLoseDealTarget(null);
@@ -1152,7 +1152,7 @@ export function PipelineBoardContent() {
       />
 
       {/* Batch Import Modal */}
-      <BatchImportDealsModal
+      <BatchImportNegociacoesModal
         open={isBatchImportOpen}
         onOpenChange={setIsBatchImportOpen}
         defaultPipelineId={activePipelineId}

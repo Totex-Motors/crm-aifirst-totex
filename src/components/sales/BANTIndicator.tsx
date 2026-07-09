@@ -11,6 +11,11 @@ import {
   Building2,
   Users,
   Pencil,
+  ShoppingCart,
+  Repeat,
+  CreditCard,
+  Car,
+  Search,
 } from "lucide-react";
 import {
   Tooltip,
@@ -275,20 +280,28 @@ export function BANTCard({
 // QUALIFICATION CARD — Real qualification fields
 // =====================================================
 
-type QualificationField = 'company_name' | 'employee_count' | 'monthly_revenue' | 'challenges';
+type QualificationField =
+  | 'intent_buy_only'
+  | 'intent_trade_in'
+  | 'intent_finance_no_entry'
+  | 'intent_cash'
+  | 'intent_sell'
+  | 'intent_special_search';
 
 const qualificationFields: Array<{
   key: QualificationField;
   label: string;
   icon: typeof Building2;
   color: string;
-  type: 'text' | 'number' | 'textarea';
-  placeholder: string;
+  type: 'boolean';
+  description: string;
 }> = [
-  { key: 'company_name', label: 'Empresa', icon: Building2, color: 'blue', type: 'text', placeholder: 'Nome da empresa' },
-  { key: 'employee_count', label: 'Funcionários', icon: Users, color: 'purple', type: 'number', placeholder: 'Ex: 50' },
-  { key: 'monthly_revenue', label: 'Faturamento', icon: DollarSign, color: 'emerald', type: 'text', placeholder: 'Ex: 200k/mês' },
-  { key: 'challenges', label: 'Desafios', icon: Target, color: 'amber', type: 'textarea', placeholder: 'Dores e desafios identificados' },
+  { key: 'intent_buy_only',         label: 'Quer comprar (sem troca)',  icon: ShoppingCart, color: 'blue',    type: 'boolean', description: 'Cliente quer apenas comprar, não tem carro pra dar de entrada' },
+  { key: 'intent_trade_in',         label: 'Tem carro pra trocar',      icon: Repeat,       color: 'purple',  type: 'boolean', description: 'Vai dar carro de entrada na negociação' },
+  { key: 'intent_finance_no_entry', label: 'Financiar sem entrada',     icon: CreditCard,   color: 'orange',  type: 'boolean', description: 'Cliente precisa de financiamento sem dar valor de entrada' },
+  { key: 'intent_cash',             label: 'Compra à vista',            icon: DollarSign,   color: 'emerald', type: 'boolean', description: 'Pagamento à vista' },
+  { key: 'intent_sell',             label: 'Quer vender carro',         icon: Car,          color: 'rose',    type: 'boolean', description: 'Cliente quer apenas vender, não comprar' },
+  { key: 'intent_special_search',   label: 'Busca fora do estoque',     icon: Search,       color: 'amber',   type: 'boolean', description: 'Car hunter — quer um carro que não temos disponível' },
 ];
 
 function InlineEditField({
@@ -296,113 +309,110 @@ function InlineEditField({
   fieldConfig,
   onSave,
 }: {
-  value: string | number | null | undefined;
+  value: boolean | null | undefined;
   fieldConfig: typeof qualificationFields[number];
-  onSave: (value: string | number | null) => void;
+  onSave: (value: boolean) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value ?? ''));
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editing]);
-
-  // Sync draft with external value changes (e.g. AI updates)
-  useEffect(() => {
-    if (!editing) {
-      setDraft(String(value ?? ''));
-    }
-  }, [value, editing]);
-
-  const handleSave = () => {
-    setEditing(false);
-    const trimmed = draft.trim();
-    if (trimmed === String(value ?? '')) return;
-
-    if (trimmed === '') {
-      onSave(null);
-    } else if (fieldConfig.type === 'number') {
-      const num = parseInt(trimmed, 10);
-      onSave(isNaN(num) ? null : num);
-    } else {
-      onSave(trimmed);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && fieldConfig.type !== 'textarea') {
-      handleSave();
-    }
-    if (e.key === 'Escape') {
-      setDraft(String(value ?? ''));
-      setEditing(false);
-    }
-  };
-
   const Icon = fieldConfig.icon;
-  const displayValue = value != null && value !== '' ? String(value) : null;
+  const isOn = value === true;
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={() => onSave(!isOn)}
+      title={fieldConfig.description}
       className={cn(
-        "flex items-start gap-2.5 p-2.5 rounded-lg border transition-all group",
-        displayValue
-          ? `bg-${fieldConfig.color}-50/50 border-${fieldConfig.color}-200/60`
-          : "bg-muted/30 border-muted-foreground/10"
+        "w-full flex items-start gap-2.5 p-2.5 rounded-lg border transition-all group text-left hover:shadow-sm",
+        isOn
+          ? `bg-${fieldConfig.color}-50/70 border-${fieldConfig.color}-200`
+          : "bg-muted/30 border-muted-foreground/10 hover:bg-muted/50"
       )}
     >
       <div className={cn(
-        "w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-        displayValue ? `bg-${fieldConfig.color}-100 text-${fieldConfig.color}-600` : "bg-muted text-muted-foreground/50"
+        "w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+        isOn ? `bg-${fieldConfig.color}-100 text-${fieldConfig.color}-600` : "bg-muted text-muted-foreground/50"
       )}>
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-medium text-muted-foreground mb-0.5">{fieldConfig.label}</p>
-        {editing ? (
-          fieldConfig.type === 'textarea' ? (
-            <textarea
-              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={handleKeyDown}
-              placeholder={fieldConfig.placeholder}
-              rows={2}
-              className="w-full text-sm bg-background border rounded px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          ) : (
-            <input
-              ref={inputRef as React.RefObject<HTMLInputElement>}
-              type={fieldConfig.type === 'number' ? 'number' : 'text'}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={handleKeyDown}
-              placeholder={fieldConfig.placeholder}
-              className="w-full text-sm bg-background border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          )
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="w-full text-left group/btn flex items-center gap-1"
-          >
-            <span className={cn(
-              "text-sm truncate",
-              displayValue ? "text-foreground" : "text-muted-foreground/50 italic"
-            )}>
-              {displayValue || "Não informado"}
-            </span>
-            <Pencil className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-          </button>
+        <p className={cn(
+          "text-[12px] font-medium leading-tight",
+          isOn ? "text-foreground" : "text-muted-foreground"
+        )}>
+          {fieldConfig.label}
+        </p>
+        <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5 truncate">
+          {fieldConfig.description}
+        </p>
+      </div>
+      <div className={cn(
+        "w-9 h-5 rounded-full flex items-center transition-colors shrink-0 mt-1",
+        isOn ? `bg-${fieldConfig.color}-500` : "bg-muted-foreground/20"
+      )}>
+        <div className={cn(
+          "w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+          isOn ? "translate-x-[18px]" : "translate-x-0.5"
+        )} />
+      </div>
+    </button>
+  );
+}
+
+// Compact automotive qualification badge (substitui o antigo BANTIndicator nos cards)
+export function QualificationBadge({
+  lead,
+  size = "md",
+  showLabels = false,
+}: {
+  lead: Partial<Record<QualificationField, boolean | null>>;
+  size?: "sm" | "md" | "lg";
+  showLabels?: boolean;
+}) {
+  const sizeClass = sizeClasses[size];
+  const active = qualificationFields.filter((f) => lead[f.key] === true);
+
+  if (active.length === 0) {
+    return (
+      <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
+        <Car className={sizeClass.icon} />
+        Sem qualificação
+      </span>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <div className={cn("flex items-center", sizeClass.container)}>
+        {active.map((f) => {
+          const Icon = f.icon;
+          return (
+            <Tooltip key={f.key}>
+              <TooltipTrigger asChild>
+                <span
+                  className={cn(
+                    "rounded-full flex items-center justify-center border",
+                    sizeClass.wrapper,
+                    `bg-${f.color}-100 border-${f.color}-300 text-${f.color}-600`
+                  )}
+                >
+                  <Icon className={sizeClass.icon} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-center">
+                <p className="font-medium">{f.label}</p>
+                <p className="text-xs text-muted-foreground">{f.description}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+        {showLabels && (
+          <span className="ml-1 text-xs text-muted-foreground truncate max-w-[140px]">
+            {active[0].label}
+            {active.length > 1 ? ` +${active.length - 1}` : ""}
+          </span>
         )}
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -411,34 +421,34 @@ export function QualificationCard({
   onUpdate,
   className,
 }: {
-  lead: Pick<SalesLead, 'company_name' | 'employee_count' | 'monthly_revenue' | 'challenges'>;
-  onUpdate: (field: QualificationField, value: string | number | null) => void;
+  lead: Partial<Record<QualificationField, boolean | null>>;
+  onUpdate: (field: QualificationField, value: boolean) => void;
   className?: string;
 }) {
-  const filledCount = qualificationFields.filter(
-    (f) => lead[f.key] != null && lead[f.key] !== ''
-  ).length;
-  const progressPercent = (filledCount / 4) * 100;
+  const filledCount = qualificationFields.filter((f) => lead[f.key] === true).length;
+  const progressPercent = (filledCount / qualificationFields.length) * 100;
 
   return (
     <div className={cn("rounded-lg border p-4 space-y-3", className)}>
       <div className="flex items-center justify-between">
-        <h4 className="font-medium text-sm">Qualificação</h4>
+        <h4 className="font-medium text-sm">Perfil do Lead</h4>
         <span className={cn(
           "text-sm font-bold",
-          progressPercent >= 75 ? "text-emerald-600" :
-          progressPercent >= 50 ? "text-amber-600" :
-          "text-muted-foreground"
+          filledCount > 0 ? "text-emerald-600" : "text-muted-foreground"
         )}>
-          {filledCount}/4
+          {filledCount}/{qualificationFields.length}
         </span>
       </div>
 
-      <div className="space-y-2">
+      <p className="text-[11px] text-muted-foreground -mt-1">
+        Marque os perfis identificados na conversa
+      </p>
+
+      <div className="space-y-1.5">
         {qualificationFields.map((field) => (
           <InlineEditField
             key={field.key}
-            value={lead[field.key]}
+            value={lead[field.key] as boolean | null | undefined}
             fieldConfig={field}
             onSave={(val) => onUpdate(field.key, val)}
           />

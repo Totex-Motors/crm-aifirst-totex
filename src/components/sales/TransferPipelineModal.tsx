@@ -10,17 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePipelines } from "@/hooks/usePipelineConfig";
 import { usePipelineStages } from "@/hooks/useSalesPipeline";
-import { useTransferDealPipeline } from "@/hooks/useSalesDeals";
+import { useTransferDealPipeline } from "@/hooks/useNegociacoes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, GitBranch, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Deal } from "@/types/sales.types";
+import type { Negociacao } from "@/types/sales.types";
 
 interface TransferPipelineModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deal: Deal | null;
+  deal: Negociacao | null;
 }
 
 export function TransferPipelineModal({
@@ -89,7 +89,7 @@ export function TransferPipelineModal({
       const targetName = pipelines?.find((p) => p.id === selectedPipelineId)?.name;
       const stageName = selectedStage?.name;
       toast({
-        title: "Deal transferido",
+        title: "Negociação transferida",
         description: `Movido para ${targetName} - ${stageName}`,
       });
       onOpenChange(false);

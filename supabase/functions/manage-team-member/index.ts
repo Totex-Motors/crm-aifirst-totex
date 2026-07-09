@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
     // Verifica se o caller é admin ATIVO no team_members
     const { data: callerMember, error: callerErr } = await supabase
       .from("team_members")
-      .select("id, role, is_active")
+      .select("id, role, is_active, tenant_id")
       .eq("auth_user_id", callerAuthId)
       .maybeSingle();
 
@@ -74,28 +74,34 @@ Deno.serve(async (req: Request) => {
     // ========================================
     // CALLER VALIDADO COMO ADMIN — PROCESSA AÇÃO
     // ========================================
-    const { action, data } = await req.json();
+    // Frontend envia o corpo achatado: { action, ...campos }
+    const body = await req.json();
+    const { action } = body;
 
     if (action === "create") {
-      const { email, password, name, role, team, phone } = data;
+      const { email, password, name, role, team, phone } = body;
 
       if (!email || !password || !name || !role) {
         return jsonResponse({ error: "Missing required fields: email, password, name, role" }, 400);
       }
 
-      // 1. Create auth user
+      // Herda o tenant do admin que está criando (single-tenant cai no padrão)
+      const tenantId = callerMember.tenant_id;
+
+      // 1. Create auth user — carimba tenant_id no app_metadata pro JWT/RLS
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
         user_metadata: { name },
+        app_metadata: tenantId ? { tenant_id: tenantId } : undefined,
       });
 
       if (authError) {
         return jsonResponse({ error: `Auth error: ${authError.message}` }, 400);
       }
 
-      // 2. Insert team_member
+      // 2. Insert team_member (mesmo tenant do admin)
       const { data: teamMember, error: tmError } = await supabase
         .from("team_members")
         .insert({
@@ -105,6 +111,7 @@ Deno.serve(async (req: Request) => {
           team: team || "comercial",
           phone: phone || null,
           auth_user_id: authData.user.id,
+          tenant_id: tenantId,
           is_active: true,
         })
         .select()
@@ -119,14 +126,73 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: true, team_member: teamMember });
     }
 
-    if (action === "reset_password") {
-      const { auth_user_id, password } = data;
+    if (action === "update") {
+      const { member_id, name, phone, role, team } = body;
 
-      if (!auth_user_id || !password) {
-        return jsonResponse({ error: "Missing required fields: auth_user_id, password" }, 400);
+      if (!member_id) {
+        return jsonResponse({ error: "Missing required field: member_id" }, 400);
       }
 
-      const { error } = await supabase.auth.admin.updateUserById(auth_user_id, { password });
+      const updates: Record<string, unknown> = {};
+      if (name !== undefined) updates.name = name;
+      if (phone !== undefined) updates.phone = phone;
+      if (role !== undefined) updates.role = role;
+      if (team !== undefined) updates.team = team;
+
+      const { data: updated, error } = await supabase
+        .from("team_members")
+        .update(updates)
+        .eq("id", member_id)
+        .select()
+        .single();
+
+      if (error) {
+        return jsonResponse({ error: `Update error: ${error.message}` }, 400);
+      }
+
+      return jsonResponse({ success: true, team_member: updated });
+    }
+
+    if (action === "toggle_active") {
+      const { member_id, is_active } = body;
+
+      if (!member_id || typeof is_active !== "boolean") {
+        return jsonResponse({ error: "Missing required fields: member_id, is_active" }, 400);
+      }
+
+      const { error } = await supabase
+        .from("team_members")
+        .update({ is_active })
+        .eq("id", member_id);
+
+      if (error) {
+        return jsonResponse({ error: `Toggle active error: ${error.message}` }, 400);
+      }
+
+      return jsonResponse({ success: true });
+    }
+
+    if (action === "reset_password") {
+      const { member_id, new_password } = body;
+
+      if (!member_id || !new_password) {
+        return jsonResponse({ error: "Missing required fields: member_id, new_password" }, 400);
+      }
+
+      // Descobre o auth_user_id a partir do team_member
+      const { data: member, error: memberErr } = await supabase
+        .from("team_members")
+        .select("auth_user_id")
+        .eq("id", member_id)
+        .maybeSingle();
+
+      if (memberErr || !member?.auth_user_id) {
+        return jsonResponse({ error: "Team member not found or has no auth user" }, 404);
+      }
+
+      const { error } = await supabase.auth.admin.updateUserById(member.auth_user_id, {
+        password: new_password,
+      });
 
       if (error) {
         return jsonResponse({ error: `Reset password error: ${error.message}` }, 400);
@@ -135,27 +201,8 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: true });
     }
 
-    if (action === "deactivate") {
-      const { team_member_id } = data;
-
-      if (!team_member_id) {
-        return jsonResponse({ error: "Missing required field: team_member_id" }, 400);
-      }
-
-      const { error } = await supabase
-        .from("team_members")
-        .update({ is_active: false })
-        .eq("id", team_member_id);
-
-      if (error) {
-        return jsonResponse({ error: `Deactivate error: ${error.message}` }, 400);
-      }
-
-      return jsonResponse({ success: true });
-    }
-
     return jsonResponse(
-      { error: `Unknown action: ${action}. Valid: create, reset_password, deactivate` },
+      { error: `Unknown action: ${action}. Valid: create, update, toggle_active, reset_password` },
       400
     );
   } catch (err) {

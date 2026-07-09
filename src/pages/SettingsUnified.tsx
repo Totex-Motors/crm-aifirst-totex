@@ -241,7 +241,7 @@ const navigationSections: NavSection[] = [
         id: "regras-notificacao",
         label: "Regras de Alerta",
         icon: Bell,
-        description: "Crie regras como: 'Se um deal ficar 3 dias sem atualização, notifique o vendedor'. Personalize por etapa, time e canal.",
+        description: "Crie regras como: 'Se uma negociação ficar 3 dias sem atualização, notifique o vendedor'. Personalize por etapa, time e canal.",
       },
       {
         id: "bot-tarefas",
@@ -374,8 +374,8 @@ export default function SettingsUnified() {
 
         {/* ===== CONTENT AREA ===== */}
         <main className="flex-1 min-w-0 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="max-w-4xl p-4 sm:p-6 lg:p-8">
+          <div className="h-full overflow-y-auto overflow-x-hidden">
+            <div className="max-w-4xl min-w-0 p-6 lg:p-8">
               {/* Section header with description */}
               {activeItem && (
                 <div className="mb-6 pb-4 border-b border-border/30">
@@ -402,7 +402,7 @@ export default function SettingsUnified() {
               {/* Dynamic content */}
               <SettingsContent section={activeSection} />
             </div>
-          </ScrollArea>
+          </div>
         </main>
       </div>
     </AppLayout>

@@ -158,7 +158,7 @@ export function WavoipAdminPanel() {
             </AlertDescription>
           </Alert>
 
-          <div className="grid grid-cols-3 gap-3 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
             <div className="p-3 rounded-lg border bg-muted/40">
               <div className="text-2xl font-bold">{activeMembers.length}</div>
               <div className="text-xs text-muted-foreground flex items-center gap-1">
@@ -195,9 +195,9 @@ export function WavoipAdminPanel() {
             <TableHeader>
               <TableRow>
                 <TableHead>Vendedor</TableHead>
-                <TableHead>Nome do dispositivo</TableHead>
+                <TableHead className="hidden sm:table-cell">Nome do dispositivo</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Número detectado</TableHead>
+                <TableHead className="hidden md:table-cell">Número detectado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -208,7 +208,7 @@ export function WavoipAdminPanel() {
                 return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                       {device?.name || "—"}
                     </TableCell>
                     <TableCell>
@@ -229,7 +229,7 @@ export function WavoipAdminPanel() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm font-mono">
+                    <TableCell className="hidden md:table-cell text-sm font-mono">
                       {device?.phone_number || "—"}
                     </TableCell>
                     <TableCell className="text-right">

@@ -116,12 +116,20 @@ INSERT INTO ai_agent_tools (agent_id, name, description, parameters, action_type
    'time', jsonb_build_object('type','string','description','Horario HH:MM'),
    'notes', jsonb_build_object('type','string')
  )), 'native', 2, true),
-(v_agent_veiculos, 'update_lead', 'Salva info do lead que descobriu na conversa.',
+(v_agent_veiculos, 'update_lead', 'Salva info e qualificacao automotiva do lead descoberta na conversa. Chame assim que descobrir como o lead quer negociar.',
  jsonb_build_object('type','object','properties', jsonb_build_object(
    'name', jsonb_build_object('type','string'),
    'email', jsonb_build_object('type','string'),
    'monthly_revenue', jsonb_build_object('type','string','description','Faixa de renda informada (texto)'),
-   'context', jsonb_build_object('type','string','description','Resumo do interesse do lead')
+   'context', jsonb_build_object('type','string','description','Resumo do interesse do lead'),
+   'intent_buy_only', jsonb_build_object('type','boolean','description','Lead quer so comprar, sem carro na troca'),
+   'intent_trade_in', jsonb_build_object('type','boolean','description','Lead tem um carro pra dar de entrada/troca'),
+   'intent_finance_no_entry', jsonb_build_object('type','boolean','description','Lead precisa financiar sem entrada'),
+   'intent_cash', jsonb_build_object('type','boolean','description','Lead vai pagar a vista'),
+   'intent_sell', jsonb_build_object('type','boolean','description','Lead so quer vender o carro, nao comprar'),
+   'intent_special_search', jsonb_build_object('type','boolean','description','Lead busca um modelo fora do estoque'),
+   'negotiation_type', jsonb_build_object('type','string','description','Como pretende negociar: troca, financiamento, a vista, consorcio'),
+   'vehicle_of_interest', jsonb_build_object('type','object','description','Veiculo que o lead quer, ex: {"make":"Toyota","model":"Corolla","year":2020}')
  )), 'native', 3, true),
 (v_agent_veiculos, 'change_stage', 'Move o lead pra outro estagio do pipeline. Use quando qualificou ou precisa transferir pra humano.',
  jsonb_build_object('type','object','properties', jsonb_build_object(
@@ -227,11 +235,19 @@ INSERT INTO ai_agent_tools (agent_id, name, description, parameters, action_type
    'time', jsonb_build_object('type','string'),
    'notes', jsonb_build_object('type','string')
  )), 'native', 2, true),
-(v_agent_prime, 'update_lead', 'Salva contexto detalhado do lead premium.',
+(v_agent_prime, 'update_lead', 'Salva contexto e qualificacao automotiva do lead premium. Chame assim que descobrir como o lead quer negociar.',
  jsonb_build_object('type','object','properties', jsonb_build_object(
    'name', jsonb_build_object('type','string'),
    'email', jsonb_build_object('type','string'),
-   'context', jsonb_build_object('type','string')
+   'context', jsonb_build_object('type','string'),
+   'intent_buy_only', jsonb_build_object('type','boolean','description','Lead quer so comprar, sem carro na troca'),
+   'intent_trade_in', jsonb_build_object('type','boolean','description','Lead tem um carro pra dar de entrada/troca'),
+   'intent_finance_no_entry', jsonb_build_object('type','boolean','description','Lead precisa financiar sem entrada'),
+   'intent_cash', jsonb_build_object('type','boolean','description','Lead vai pagar a vista'),
+   'intent_sell', jsonb_build_object('type','boolean','description','Lead so quer vender o carro, nao comprar'),
+   'intent_special_search', jsonb_build_object('type','boolean','description','Lead busca um modelo fora do estoque'),
+   'negotiation_type', jsonb_build_object('type','string','description','Como pretende negociar: troca, financiamento, a vista, consorcio'),
+   'vehicle_of_interest', jsonb_build_object('type','object','description','Veiculo que o lead quer, ex: {"make":"Porsche","model":"911","year":2022}')
  )), 'native', 3, true),
 (v_agent_prime, 'change_stage', 'Avanca o lead ou transfere pra humano.',
  jsonb_build_object('type','object','properties', jsonb_build_object(

@@ -457,7 +457,7 @@ export const useDeleteLead = () => {
   });
 };
 
-// Update lead qualification fields (company_name, employee_count, monthly_revenue, challenges)
+// Update lead intent fields (perfil automotivo: comprar/trocar/financiar/à vista/vender/buscar fora estoque)
 export const useUpdateLeadQualification = () => {
   const queryClient = useQueryClient();
 
@@ -468,11 +468,17 @@ export const useUpdateLeadQualification = () => {
       value,
     }: {
       leadId: string;
-      field: 'company_name' | 'employee_count' | 'monthly_revenue' | 'challenges';
-      value: string | number | null;
+      field:
+        | 'intent_buy_only'
+        | 'intent_trade_in'
+        | 'intent_finance_no_entry'
+        | 'intent_cash'
+        | 'intent_sell'
+        | 'intent_special_search';
+      value: boolean;
     }) => {
       const updateData: Record<string, any> = {
-        [field]: value === '' ? null : value,
+        [field]: value,
         updated_at: new Date().toISOString(),
       };
 

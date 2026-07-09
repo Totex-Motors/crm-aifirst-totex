@@ -30,7 +30,10 @@ import {
   Loader2,
   CheckCheck,
   ChevronDown,
+  Car,
+  Globe,
 } from "lucide-react";
+import { getVehicleLabel } from "@/lib/vehicleLabel";
 import { format, formatDistanceToNow, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -43,8 +46,8 @@ import { useClientLTV } from "@/hooks/useTransactions";
 import { useLeadTasks, useCreateTask } from "@/hooks/useTasks";
 import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useLeadDeals, useLinkedContacts, useAddDealContact, CONTACT_ROLES } from "@/hooks/useDealContacts";
-import { useContactDeals, useMoveDealStage } from "@/hooks/useSalesDeals";
+import { useLeadNegociacoes, useLinkedContacts, useAddDealContact, CONTACT_ROLES } from "@/hooks/useNegociacaoContacts";
+import { useContactDeals, useMoveDealStage } from "@/hooks/useNegociacoes";
 import { useContactPhoto } from "@/hooks/useContactPhoto";
 import { ConversationNotes } from "./ConversationNotes";
 import { TaskList } from "@/components/tasks/TaskList";
@@ -83,7 +86,7 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
   const { data: lead } = useLeadById(conversation?.lead_id || undefined);
   const { data: ltvData } = useClientLTV(conversation?.lead_id || undefined);
   const { data: tasks = [] } = useLeadTasks(conversation?.lead_id || undefined);
-  const { data: dealParticipations } = useLeadDeals(conversation?.lead_id || undefined);
+  const { data: dealParticipations } = useLeadNegociacoes(conversation?.lead_id || undefined);
   const { data: linkedData } = useLinkedContacts(conversation?.lead_id || undefined);
   const addDealContact = useAddDealContact();
   const createTask = useCreateTask();
@@ -109,7 +112,7 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
   // Pipeline stages — usa deals para mostrar etapa por pipeline (não global do lead)
   const { data: contactDeals = [] } = useContactDeals(conversation?.lead_id || undefined);
   const moveDealStage = useMoveDealStage();
-  // Deals ativos (não won/lost) com stage info
+  // Negociações ativas (não won/lost) com stage info
   const activeDeals = contactDeals.filter((d: any) => d.status !== 'won' && d.status !== 'lost' && d.pipeline_stage);
   // Fallback: usa lead global se não tem deals
   const leadPipelineId = activeDeals.length > 0 ? activeDeals[0]?.pipeline_stage?.pipeline_id : lead?.pipeline_stage?.pipeline_id;
@@ -155,7 +158,7 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
     }
   };
 
-  // Deal ID para vincular novos contatos
+  // Negociacao ID para vincular novos contatos
   const currentDealId = dealParticipations?.[0]?.deal_id || linkedData?.deals?.[0]?.id || null;
 
   // Buscar lead por telefone
@@ -381,40 +384,26 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
           </div>
         </div>
 
-        {/* Faturamento / Funcionários destaque — herda do lead principal se necessário */}
+        {/* Veículo de interesse destaque — herda do lead principal se necessário */}
         {(() => {
           const pl = linkedData?.primaryLead;
-          const hasVal = (v: any) => v != null && String(v).trim() !== "" && !/^n[aã]o\s*informad/i.test(String(v));
-          const revenue = hasVal(lead?.monthly_revenue) ? lead?.monthly_revenue : hasVal(pl?.monthly_revenue) ? pl?.monthly_revenue : null;
-          const employees = lead?.employee_count || pl?.employee_count || null;
-          if (!revenue && !employees) return null;
+          const vehicleLabel =
+            getVehicleLabel((lead as any)?.vehicle_of_interest) ||
+            getVehicleLabel((pl as any)?.vehicle_of_interest);
+          if (!vehicleLabel) return null;
           return (
-            <div className="mt-3 flex items-center gap-2 p-2.5 rounded-xl border bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-200/60">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                {revenue ? (
-                  <DollarSign className="h-4 w-4 text-emerald-600" />
-                ) : (
-                  <Users className="h-4 w-4 text-emerald-600" />
-                )}
+            <div className="mt-3 flex items-center gap-2 p-2.5 rounded-xl border bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200/60">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                <Car className="h-4 w-4 text-blue-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] text-emerald-600 font-medium leading-none">
-                  {revenue ? "Faturamento" : "Funcionários"}
+                <p className="text-[10px] text-blue-600 font-medium leading-none">
+                  Veículo de interesse
                 </p>
-                <p className="text-sm font-bold text-emerald-800 mt-0.5 line-clamp-2">
-                  {revenue
-                    ? (isNaN(Number(revenue))
-                      ? String(revenue)
-                      : formatCurrency(Number(revenue)))
-                    : `${employees} funcionários`}
+                <p className="text-sm font-bold text-blue-800 mt-0.5 line-clamp-2">
+                  {vehicleLabel}
                 </p>
               </div>
-              {revenue && employees ? (
-                <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 shrink-0">
-                  <Users className="h-3 w-3 mr-1" />
-                  {employees}
-                </Badge>
-              ) : null}
             </div>
           );
         })()}
@@ -925,10 +914,10 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
                 </h4>
                 <div className="space-y-1.5">
                   {[
-                    { icon: Building2, label: 'Empresa', value: effectiveLead.company_name, color: 'blue' },
-                    { icon: Users, label: 'Funcionários', value: effectiveLead.employee_count ? `${effectiveLead.employee_count} funcionários` : null, color: 'purple' },
-                    { icon: DollarSign, label: 'Faturamento', value: effectiveLead.monthly_revenue, color: 'emerald' },
-                    { icon: Target, label: 'Desafios', value: effectiveLead.challenges, color: 'amber' },
+                    { icon: Car, label: 'Veículo de interesse', value: getVehicleLabel((effectiveLead as any).vehicle_of_interest), color: 'blue' },
+                    { icon: Target, label: 'Tipo de negociação', value: (effectiveLead as any).negotiation_type, color: 'purple' },
+                    { icon: Globe, label: 'Origem', value: (effectiveLead as any).source, color: 'emerald' },
+                    { icon: Target, label: 'Observações', value: effectiveLead.challenges, color: 'amber' },
                   ].map(({ icon: Icon, label, value, color }) => (
                     <div
                       key={label}
@@ -959,7 +948,7 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
                 </div>
                 {/* Mini progress */}
                 {(() => {
-                  const filled = [effectiveLead.company_name, effectiveLead.employee_count, effectiveLead.monthly_revenue, effectiveLead.challenges].filter(Boolean).length;
+                  const filled = [getVehicleLabel((effectiveLead as any).vehicle_of_interest), (effectiveLead as any).negotiation_type, (effectiveLead as any).source, effectiveLead.challenges].filter(Boolean).length;
                   return (
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -1090,7 +1079,7 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
               )}
             </div>
 
-            {/* Deals / Participações */}
+            {/* Negociacoes / Participações */}
             {dealParticipations && dealParticipations.length > 0 && (
               <>
                 <Separator />
@@ -1103,12 +1092,12 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
                     {dealParticipations.map((p: any) => (
                       <Link
                         key={p.id}
-                        to={`/comercial/deals/${p.deal_id}`}
+                        to={`/comercial/negociacoes/${p.deal_id}`}
                         className="flex items-center justify-between p-2 rounded-lg border bg-blue-50/50 hover:bg-blue-100/50 transition-colors"
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">
-                            {p.deal?.title || "Deal"}
+                            {p.deal?.title || "Negociação"}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {p.role && (

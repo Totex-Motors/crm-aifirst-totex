@@ -315,7 +315,7 @@ export function LeadInsightsCard({
                       {source === "whatsapp_messages" && "WhatsApp"}
                       {source === "activities" && "Atividades"}
                       {source === "transactions" && "Transações"}
-                      {source === "deals" && "Deals"}
+                      {source === "deals" && "Negociações"}
                       {source === "checkouts" && "Checkouts"}
                       {source === "instagram_profile" && "Instagram"}
                     </Badge>

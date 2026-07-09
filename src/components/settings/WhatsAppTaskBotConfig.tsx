@@ -274,9 +274,9 @@ export function WhatsAppTaskBotConfig() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shrink-0">
             <Bot className="h-6 w-6 text-white" />
           </div>
           <div>
@@ -291,6 +291,7 @@ export function WhatsAppTaskBotConfig() {
             variant={config.is_active ? "destructive" : "default"}
             onClick={handleToggle}
             disabled={toggleBot.isPending}
+            className="w-full sm:w-auto shrink-0"
           >
             {config.is_active ? (
               <>

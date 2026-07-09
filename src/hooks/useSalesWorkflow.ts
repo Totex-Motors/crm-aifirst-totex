@@ -205,7 +205,7 @@ export const useMetricasVendas = () => {
         .from('deals')
         .select('*', { count: 'exact', head: true });
 
-      // Deals ganhos (status = 'won')
+      // Negociacoes ganhos (status = 'won')
       const { data: dealsGanhos, count: ganhosCount } = await supabase
         .from('deals')
         .select('negotiated_price', { count: 'exact' })

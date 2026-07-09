@@ -169,7 +169,7 @@ export function PipelineConfigTab() {
           <div>
             <CardTitle>Transições entre Pipelines</CardTitle>
             <CardDescription>
-              Configure como deals se movem entre pipelines diferentes
+              Configure como negociações se movem entre pipelines diferentes
             </CardDescription>
           </div>
           <Button onClick={() => setIsTransitionModalOpen(true)}>
@@ -190,7 +190,7 @@ export function PipelineConfigTab() {
             </div>
           ) : (
             <div className="text-center py-6 text-muted-foreground text-sm">
-              Nenhuma transição configurada. Transições permitem mover deals automaticamente entre pipelines.
+              Nenhuma transição configurada. Transições permitem mover negociações automaticamente entre pipelines.
             </div>
           )}
         </CardContent>
@@ -448,7 +448,7 @@ function SalesRepSelector({ pipeline }: { pipeline: SalesPipeline }) {
       <div className="flex-1">
         <Label className="text-sm font-medium text-blue-800">Responsável automático</Label>
         <p className="text-xs text-blue-600">
-          Novos deals neste pipeline serão atribuídos automaticamente
+          Novas negociações neste pipeline serão atribuídas automaticamente
         </p>
       </div>
       <Select
@@ -723,7 +723,7 @@ function StageModal({
           <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
             <div>
               <Label className="text-green-800">Etapa de Vitória (Won)</Label>
-              <p className="text-xs text-green-600">Deal marcado como ganho nesta etapa</p>
+              <p className="text-xs text-green-600">Negociação marcada como ganha nesta etapa</p>
             </div>
             <Switch
               checked={isWon}
@@ -737,7 +737,7 @@ function StageModal({
           <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
             <div>
               <Label className="text-red-800">Etapa de Perda (Lost)</Label>
-              <p className="text-xs text-red-600">Deal marcado como perdido nesta etapa</p>
+              <p className="text-xs text-red-600">Negociação marcada como perdida nesta etapa</p>
             </div>
             <Switch
               checked={isLost}
@@ -821,7 +821,7 @@ function CreateTransitionModal({
         <DialogHeader>
           <DialogTitle>Nova Transição</DialogTitle>
           <DialogDescription>
-            Configure como deals se movem entre pipelines ao chegar em uma etapa específica
+            Configure como negociações se movem entre pipelines ao chegar em uma etapa específica
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -903,8 +903,8 @@ function CreateTransitionModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="move">Mover deal (remove do pipeline original)</SelectItem>
-                <SelectItem value="duplicate">Duplicar deal (mantém no original)</SelectItem>
+                <SelectItem value="move">Mover negociação (remove do pipeline original)</SelectItem>
+                <SelectItem value="duplicate">Duplicar negociação (mantém no original)</SelectItem>
               </SelectContent>
             </Select>
           </div>

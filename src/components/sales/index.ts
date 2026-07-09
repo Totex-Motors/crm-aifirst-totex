@@ -6,20 +6,20 @@ export { LeadScoreBadge, LeadScoreBar, LeadScoreCircle } from './LeadScoreBadge'
 export { BANTIndicator, BANTCard, QualificationCard } from './BANTIndicator';
 
 // Cards
-export { DealCard, DealKanbanCard } from './DealCard';
+export { NegociacaoCard, NegociacaoKanbanCard } from './NegociacaoCard';
 export { LeadCard, LeadKanbanCard } from './LeadCard';
 export { SalesStatCard, SalesStatInline, SalesStatBadge, SalesStatsGrid } from './SalesStatCard';
 export { LeadWebinarsCard } from './LeadWebinarsCard';
-export { DealOriginCard } from './DealOriginCard';
-export { SidebarDeals } from './SidebarDeals';
+export { NegociacaoOriginCard } from './NegociacaoOriginCard';
+export { SidebarNegociacoes } from './SidebarNegociacoes';
 
 // Modals
-export { CreateDealModal } from './CreateDealModal';
-export { EditDealModal } from './EditDealModal';
-export { CloseDealModal, RegisterNegotiationModal } from './CloseDealModal';
-export { WinDealModal } from './WinDealModal';
+export { CreateNegociacaoModal } from './CreateNegociacaoModal';
+export { EditNegociacaoModal } from './EditNegociacaoModal';
+export { CloseNegociacaoModal, RegisterNegotiationModal } from './CloseNegociacaoModal';
+export { WinNegociacaoModal } from './WinNegociacaoModal';
 export { CreateSalesLeadModal } from './CreateSalesLeadModal';
-export { CreateLeadOrDealModal } from './CreateLeadOrDealModal';
+export { CreateLeadOrNegociacaoModal } from './CreateLeadOrNegociacaoModal';
 
 // Alerts
 export { HotLeadAlert, HotLeadAlertList } from './HotLeadAlert';

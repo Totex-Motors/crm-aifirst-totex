@@ -137,7 +137,7 @@ export function DashboardTabVendas({ filters, teamMemberId, dateRange }: Props) 
           <TrendingUp className="h-5 w-5 text-emerald-500 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium">{dv(kpis.dealCount, dm)} deals ganhos</span>
+              <span className="text-sm font-medium">{dv(kpis.dealCount, dm)} negociações ganhas</span>
               <span className="text-sm font-bold">
                 {kpis.goal > 0 ? `${formatPercent(kpis.goalPercent)} da meta` : formatCurrency(dv(kpis.revenue, dm))}
               </span>
@@ -353,7 +353,7 @@ export function DashboardTabVendas({ filters, teamMemberId, dateRange }: Props) 
         </Card>
       </div>
 
-      {/* Row 3: Formas de Pagamento + Oportunidades em Aberto */}
+      {/* Row 3: Formas de Pagamento + Negociações em Aberto */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Breakdown de Pagamento */}
         <Card className="border shadow-sm">
@@ -409,12 +409,12 @@ export function DashboardTabVendas({ filters, teamMemberId, dateRange }: Props) 
           </CardContent>
         </Card>
 
-        {/* Oportunidades em Aberto */}
+        {/* Negociações em Aberto */}
         <Card className="border shadow-sm">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <ListTodo className="h-4 w-4 text-blue-500" />
-              Oportunidades em Aberto
+              Negociações em Aberto
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">

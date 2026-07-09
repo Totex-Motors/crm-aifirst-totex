@@ -5,7 +5,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useGeneratePaymentLink } from "@/hooks/useDealPayments";
+import { useGeneratePaymentLink } from "@/hooks/useNegociacaoPayments";
 import { useToast } from "@/hooks/use-toast";
 import { Link, Copy, Check, Loader2, ExternalLink } from "lucide-react";
 import type { DealPayment } from "@/types/payment.types";

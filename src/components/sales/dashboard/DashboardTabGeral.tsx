@@ -251,7 +251,7 @@ export function DashboardTabGeral({ filters, dateRange }: Props) {
                       <span className="text-[10px] text-muted-foreground font-medium">Pipeline Ponderado</span>
                     </div>
                     <p className="text-sm font-bold">{formatCurrency(dv(forecast.weightedPipeline, dm))}</p>
-                    <p className="text-[10px] text-muted-foreground">{dv(forecast.openDealsCount, dm)} deals · {Math.round(forecast.avgWinProbability)}% prob</p>
+                    <p className="text-[10px] text-muted-foreground">{dv(forecast.openDealsCount, dm)} negociações · {Math.round(forecast.avgWinProbability)}% prob</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-3">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -537,7 +537,7 @@ export function DashboardTabGeral({ filters, dateRange }: Props) {
         </Card>
       </div>
 
-      {/* Won Deals Drill-Down Sheet (shared by Faturado and Ticket Medio) */}
+      {/* Won Negociacoes Drill-Down Sheet (shared by Faturado and Ticket Medio) */}
       <Sheet open={showRevenueDrillDown} onOpenChange={setShowRevenueDrillDown}>
         <SheetContent className="w-[440px] sm:w-[520px]">
           <SheetHeader>

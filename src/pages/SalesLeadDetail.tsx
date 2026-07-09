@@ -18,11 +18,11 @@ import {
   LeadScoreBadge,
   QualificationCard,
   LeadWebinarsCard,
-  DealCard,
-  CreateDealModal,
-  EditDealModal,
+  NegociacaoCard,
+  CreateNegociacaoModal,
+  EditNegociacaoModal,
   RegisterNegotiationModal,
-  WinDealModal,
+  WinNegociacaoModal,
 } from "@/components/sales";
 
 // Sales AI components
@@ -36,7 +36,7 @@ import {
 // Financial components
 import {
   FinancialSummaryCards,
-  DealPaymentsList,
+  NegociacaoPaymentsList,
   FinancialTimeline,
 } from "@/components/sales/financial";
 
@@ -45,18 +45,18 @@ import { WhatsAppChat } from "@/components/inbox/WhatsAppChat";
 import { TaskList } from "@/components/tasks/TaskList";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
-import { ViewDealModal } from "@/components/sales/ViewDealModal";
+import { ViewNegociacaoModal } from "@/components/sales/ViewNegociacaoModal";
 import { TransferPipelineModal } from "@/components/sales/TransferPipelineModal";
-import { LoseDealModal } from "@/components/sales/LoseDealModal";
+import { LoseNegociacaoModal } from "@/components/sales/LoseNegociacaoModal";
 import { FarmingReasonModal } from "@/components/sales/FarmingReasonModal";
 import { CallButton, CallHistory, CallDetailModal } from "@/components/calls";
 import { MeetingHistory } from "@/components/meeting/MeetingHistory";
 import { NotesList } from "@/components/sales/NotesList";
 import { AddNoteModal } from "@/components/sales/AddNoteModal";
-import { DealContactsTab } from "@/components/sales/DealContactsTab";
+import { NegociacaoContactsTab } from "@/components/sales/NegociacaoContactsTab";
 import { MergeLeadsModal } from "@/components/sales/MergeLeadsModal";
 import { AIAgentBadge } from "@/components/inbox/AIAgentBadge";
-import { SidebarDeals } from "@/components/sales/SidebarDeals";
+import { SidebarNegociacoes } from "@/components/sales/SidebarNegociacoes";
 import { TimelineView } from "@/components/timeline/TimelineView";
 import { CancelRefundModal } from "@/components/sales/CancelRefundModal";
 import { ScheduleMessageModal } from "@/components/sales/ScheduleMessageModal";
@@ -69,8 +69,8 @@ import { useLeadDuplicates, useLeadConversions, useLinkedOrganizations } from "@
 import { usePipelineStages } from "@/hooks/useSalesPipeline";
 import { usePipelines } from "@/hooks/usePipelineConfig";
 import { useCalculateLeadScore } from "@/hooks/useSalesAI";
-import { useContactDeals, useDeleteDeal } from "@/hooks/useSalesDeals";
-import { useLeadDeals, useLinkedContacts, useUnlinkContact, type LinkedContact } from "@/hooks/useDealContacts";
+import { useContactDeals, useDeleteDeal } from "@/hooks/useNegociacoes";
+import { useLeadNegociacoes, useLinkedContacts, useUnlinkContact, type LinkedContact } from "@/hooks/useNegociacaoContacts";
 import { useLeadTransactions, useClientLTV, convertTransactionAmount } from "@/hooks/useTransactions";
 import { useClientTimeline } from "@/hooks/useClientTimeline";
 import { useInstagramProfile, useInstagramPosts, useInstagramStories } from "@/hooks/useInstagramProfile";
@@ -224,7 +224,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
 
   // Sales data
   const { data: contactDeals } = useContactDeals(id);
-  const { data: dealParticipations } = useLeadDeals(id); // Deals onde este lead participa como contato secundário
+  const { data: dealParticipations } = useLeadNegociacoes(id); // Negociacoes onde este lead participa como contato secundário
   const { data: linkedData } = useLinkedContacts(id);
   // Determinar pipeline e stage real: prioriza deal selecionado via URL > deal aberto > lead
   const dealIdFromUrl = searchParams.get('deal');
@@ -455,14 +455,14 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           queryClient.invalidateQueries({ queryKey: ['client-timeline'] });
         }
         await updatePipelineStage.mutateAsync({ leadId: id, stageId });
-        toast({ title: "Oportunidade reaberta", description: `Movido para ${stageName}` });
+        toast({ title: "Negociação reaberta", description: `Movido para ${stageName}` });
       } catch (error) {
         toast({ title: "Erro ao reabrir", variant: "destructive" });
       }
       return;
     }
 
-    // Ganho → abrir WinDealModal
+    // Ganho → abrir WinNegociacaoModal
     if (targetStage?.is_won) {
       if (activeDeal) {
         setSelectedDeal(activeDeal);
@@ -471,7 +471,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
       return;
     }
 
-    // Perdido → abrir LoseDealModal
+    // Perdido → abrir LoseNegociacaoModal
     if (targetStage?.is_lost) {
       if (activeDeal) {
         setSelectedDeal(activeDeal);
@@ -678,7 +678,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           } else if (from === 'cockpit') {
             navigate('/comercial/cockpit?tab=agenda');
           } else if (from === 'deals') {
-            navigate('/comercial/deals');
+            navigate('/comercial/negociacoes');
           } else if (from === 'leads') {
             navigate(basePath);
           } else if (from === 'marketing-pipeline') {
@@ -1105,7 +1105,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
               </div>
               <div className="text-center p-2 rounded-lg bg-muted/50">
                 <p className="text-lg font-bold">{contactDeals?.length || 0}</p>
-                <p className="text-[10px] text-muted-foreground">Deals</p>
+                <p className="text-[10px] text-muted-foreground">Negociações</p>
               </div>
               <div className="text-center p-2 rounded-lg bg-muted/50">
                 <p className="text-lg font-bold">{daysAsLead}d</p>
@@ -1209,7 +1209,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       </div>
                     ))}
-                    {/* Deal em comum */}
+                    {/* Negociacao em comum */}
                     {linkedData.deals.length > 0 && (
                       <div className="pt-2 border-t">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">Negociação</p>
@@ -1217,7 +1217,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                           <div
                             key={deal.id}
                             className="flex items-center justify-between text-xs py-1 cursor-pointer hover:text-blue-600"
-                            onClick={(e) => navigateTo(e, `/comercial/deals/${deal.id}`, navigate)}
+                            onClick={(e) => navigateTo(e, `/comercial/negociacoes/${deal.id}`, navigate)}
                           >
                             <span className="truncate">{deal.title}</span>
                             <span className="text-muted-foreground shrink-0 ml-2">
@@ -1346,9 +1346,9 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
               </CardContent>
             </Card>
 
-            {/* Oportunidades (Deals) — sempre visível na sidebar */}
+            {/* Oportunidades (Negociacoes) — sempre visível na sidebar */}
             {contactDeals && (
-              <SidebarDeals
+              <SidebarNegociacoes
                 deals={contactDeals}
                 selectedDealId={activeDeal?.id || null}
                 pipelineStages={pipelineStages}
@@ -1387,7 +1387,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                     queryClient.invalidateQueries({ queryKey: ['pipeline-deals'] });
                     queryClient.invalidateQueries({ queryKey: ['client-timeline'] });
                     if (id) await updatePipelineStage.mutateAsync({ leadId: id, stageId: targetStageId });
-                    toast({ title: "Oportunidade reaberta", description: `Movido para ${targetStageName}` });
+                    toast({ title: "Negociação reaberta", description: `Movido para ${targetStageName}` });
                   } catch {
                     toast({ title: "Erro ao reabrir", variant: "destructive" });
                   }
@@ -1516,10 +1516,10 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                               <div
                                 key={participation.id}
                                 className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                                onClick={(e) => navigateTo(e, `/comercial/deals/${participation.deal?.id}`, navigate)}
+                                onClick={(e) => navigateTo(e, `/comercial/negociacoes/${participation.deal?.id}`, navigate)}
                               >
                                 <div>
-                                  <p className="font-medium text-sm">{participation.deal?.title || "Deal"}</p>
+                                  <p className="font-medium text-sm">{participation.deal?.title || "Negociação"}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {participation.role && (
                                       <Badge variant="secondary" className="text-xs mr-2">
@@ -1864,7 +1864,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                   {/* Financial Summary Cards */}
                   <FinancialSummaryCards leadId={id!} />
 
-                  {/* Deal Payments */}
+                  {/* Negociacao Payments */}
                   <Card>
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center gap-2">
@@ -1873,7 +1873,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <DealPaymentsList leadId={id} />
+                      <NegociacaoPaymentsList leadId={id} />
                     </CardContent>
                   </Card>
 
@@ -1977,8 +1977,8 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         clientEmail={lead.email}
       />
 
-      {/* Deal Detail Modal (from Timeline) */}
-      <ViewDealModal
+      {/* Negociacao Detail Modal (from Timeline) */}
+      <ViewNegociacaoModal
         open={isDealDetailOpen}
         onOpenChange={(open) => {
           setIsDealDetailOpen(open);
@@ -2064,8 +2064,8 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         instanceId={teamMember?.whatsapp_instance_id}
       />
 
-      {/* Create Deal Modal */}
-      <CreateDealModal
+      {/* Create Negociacao Modal */}
+      <CreateNegociacaoModal
         open={isCreateDealOpen}
         onOpenChange={setIsCreateDealOpen}
         leadId={id || ""}
@@ -2083,8 +2083,8 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         leadCpfCnpj={lead.cpf_cnpj}
       />
 
-      {/* Win Deal Modal */}
-      <WinDealModal
+      {/* Win Negociacao Modal */}
+      <WinNegociacaoModal
         open={isWinDealOpen}
         onOpenChange={(open) => {
           setIsWinDealOpen(open);
@@ -2093,8 +2093,8 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         deal={selectedDeal || {}}
       />
 
-      {/* Edit Deal Modal */}
-      <EditDealModal
+      {/* Edit Negociacao Modal */}
+      <EditNegociacaoModal
         open={isEditDealOpen}
         onOpenChange={(open) => {
           setIsEditDealOpen(open);
@@ -2113,8 +2113,8 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         deal={selectedDeal || {}}
       />
 
-      {/* Lose Deal Modal */}
-      <LoseDealModal
+      {/* Lose Negociacao Modal */}
+      <LoseNegociacaoModal
         open={isLoseDealOpen}
         onOpenChange={(open) => {
           setIsLoseDealOpen(open);
@@ -2624,19 +2624,19 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Deal Confirmation */}
+      {/* Delete Negociacao Confirmation */}
       <AlertDialog
         open={!!deleteDealConfirm}
         onOpenChange={(open) => { if (!open) { setDeleteDealConfirm(null); document.body.style.pointerEvents = ''; setTimeout(() => { document.body.style.pointerEvents = ''; }, 100); } }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Deal</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Negociação</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este deal? Esta acao nao pode ser desfeita.
               {deleteDealConfirm && (
                 <div className="mt-2 p-3 bg-muted rounded-lg">
-                  <p className="font-medium">{deleteDealConfirm.product?.name || "Deal"}</p>
+                  <p className="font-medium">{deleteDealConfirm.product?.name || "Negociação"}</p>
                   <p className="text-sm">
                     Valor: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(deleteDealConfirm.negotiated_price || 0)}
                   </p>
@@ -2652,7 +2652,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                 if (!deleteDealConfirm) return;
                 try {
                   await deleteDeal.mutateAsync(deleteDealConfirm.id);
-                  toast({ title: "Deal excluido com sucesso" });
+                  toast({ title: "Negociação excluída com sucesso" });
                   setDeleteDealConfirm(null);
                 } catch {
                   toast({ title: "Erro ao excluir deal", variant: "destructive" });
@@ -2731,7 +2731,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Manage Deal Contacts Modal */}
+      {/* Manage Negociacao Contacts Modal */}
       <Dialog open={!!managingContactsDealId} onOpenChange={(open) => { if (!open) { setManagingContactsDealId(null); document.body.style.pointerEvents = ''; setTimeout(() => { document.body.style.pointerEvents = ''; }, 100); } }}>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto" onCloseAutoFocus={(e) => { e.preventDefault(); document.body.style.pointerEvents = ''; }}>
           <DialogHeader>
@@ -2744,7 +2744,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
             </DialogDescription>
           </DialogHeader>
           {managingContactsDealId && (
-            <DealContactsTab dealId={managingContactsDealId} primaryLeadId={id} />
+            <NegociacaoContactsTab dealId={managingContactsDealId} primaryLeadId={id} />
           )}
         </DialogContent>
       </Dialog>

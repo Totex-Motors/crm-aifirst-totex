@@ -41,7 +41,7 @@ export interface AsaasCustomer {
   updated_at: string;
 }
 
-// Deal Payment (a single payment method/part of a deal)
+// Negociacao Payment (a single payment method/part of a deal)
 export interface DealPayment {
   id: string;
   deal_id: string;

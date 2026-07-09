@@ -14,7 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { LeadCard, SalesStageBadge } from "@/components/sales";
 import { SalesAIChat } from "@/components/sales/ai";
-import { CreateLeadOrDealModal } from "@/components/sales/CreateLeadOrDealModal";
+import { CreateLeadOrNegociacaoModal } from "@/components/sales/CreateLeadOrNegociacaoModal";
 import { useSalesLeads, useLeadsCountByStage } from "@/hooks/useSalesLeads";
 import { useAtivarLeadsEmMassa } from "@/hooks/useSalesWorkflow";
 import { useToast } from "@/hooks/use-toast";
@@ -391,7 +391,7 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
       <SalesAIChat />
 
       {/* Create Lead Modal */}
-      <CreateLeadOrDealModal
+      <CreateLeadOrNegociacaoModal
         open={isCreateLeadOpen}
         onOpenChange={setIsCreateLeadOpen}
         mode="lead"

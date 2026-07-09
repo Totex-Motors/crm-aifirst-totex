@@ -86,10 +86,10 @@ const MyWhatsApp = React.lazy(() => import("./pages/MyWhatsApp"));
 import SalesDashboard from "./pages/SalesDashboardV3";
 import SalesLeads from "./pages/SalesLeads";
 import SalesPipeline from "./pages/SalesPipeline";
-import SalesDeals from "./pages/SalesDeals";
+import SalesNegociacoes from "./pages/SalesNegociacoes";
 import SalesWhatsAppInbox from "./pages/SalesWhatsAppInbox";
 import SalesLeadDetail from "./pages/SalesLeadDetail";
-import SalesDealDetail from "./pages/SalesDealDetail";
+import SalesNegociacaoDetail from "./pages/SalesNegociacaoDetail";
 import Products from "./pages/Products";
 import Commissions from "./pages/Commissions";
 import SalesPlaybook from "./pages/SalesPlaybook";
@@ -122,6 +122,17 @@ import SalesCampaignDetail from "./pages/SalesCampaignDetail";
 // Public booking
 const BookMeeting = React.lazy(() => import("./pages/BookMeeting"));
 const Unsubscribe = React.lazy(() => import("./pages/public/Unsubscribe"));
+
+// Plataforma de Agentes IA
+const AgentList = React.lazy(() => import("./agents-platform/pages/AgentList"));
+const AgentConfigPage = React.lazy(() => import("./agents-platform/pages/AgentConfigPage"));
+const AgentChatPage = React.lazy(() => import("./agents-platform/pages/AgentChatPage"));
+const AgentPlaygroundPage = React.lazy(() => import("./agents-platform/pages/AgentPlaygroundPage"));
+const AgentSkillsLibraryPage = React.lazy(() => import("./agents-platform/pages/AgentSkillsLibraryPage"));
+const AgentCredentialsPage = React.lazy(() => import("./agents-platform/pages/AgentCredentialsPage"));
+const AgentSessionsPage = React.lazy(() => import("./agents-platform/pages/AgentSessionsPage"));
+const AgentMetricsPage = React.lazy(() => import("./agents-platform/pages/AgentMetricsPage"));
+const AgentOrgChartPage = React.lazy(() => import("./agents-platform/pages/AgentOrgChartPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -215,8 +226,8 @@ const AppRoutes = () => {
       <Route path="/comercial/contatos" element={<ProtectedRoute><SalesLeads mode="contacts" /></ProtectedRoute>} />
       <Route path="/comercial/contatos/:id" element={<ProtectedRoute><SalesLeadDetail /></ProtectedRoute>} />
       <Route path="/comercial/pipeline" element={<ProtectedRoute><SalesPipeline /></ProtectedRoute>} />
-      <Route path="/comercial/deals" element={<ProtectedRoute><SalesDeals /></ProtectedRoute>} />
-      <Route path="/comercial/deals/:id" element={<ProtectedRoute><SalesDealDetail /></ProtectedRoute>} />
+      <Route path="/comercial/negociacoes" element={<ProtectedRoute><SalesNegociacoes /></ProtectedRoute>} />
+      <Route path="/comercial/negociacoes/:id" element={<ProtectedRoute><SalesNegociacaoDetail /></ProtectedRoute>} />
       <Route path="/comercial/inbox" element={<ProtectedRoute><SalesWhatsAppInbox /></ProtectedRoute>} />
       <Route path="/comercial/relatorios" element={<Navigate to="/comercial?tab=gestao" replace />} />
       <Route path="/comercial/produtos" element={<ProtectedRoute><Products /></ProtectedRoute>} />
@@ -247,6 +258,21 @@ const AppRoutes = () => {
       <Route path="/comercial/campanhas" element={<ProtectedRoute><SalesCampaigns /></ProtectedRoute>} />
       <Route path="/comercial/campanhas/nova" element={<ProtectedRoute><SalesCampaignNew /></ProtectedRoute>} />
       <Route path="/comercial/campanhas/:id" element={<ProtectedRoute><SalesCampaignDetail /></ProtectedRoute>} />
+
+      {/* Plataforma de Agentes IA — rotas fixas ANTES das rotas com :slug */}
+      <Route path="/agentes" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentList /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/habilidades" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentSkillsLibraryPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/credenciais" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentCredentialsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/organograma" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentOrgChartPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/sessoes" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentSessionsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/metricas" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentMetricsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/playground" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentPlaygroundPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentChatPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/config" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentConfigPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/chat" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentChatPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/playground" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentPlaygroundPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/sessoes" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentSessionsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/metricas" element={<ProtectedRoute><React.Suspense fallback={<div />}><AgentMetricsPage /></React.Suspense></ProtectedRoute>} />
 
       {/* Unsubscribe público (LGPD) — sem auth */}
       <Route path="/unsubscribe" element={<React.Suspense fallback={null}><Unsubscribe /></React.Suspense>} />

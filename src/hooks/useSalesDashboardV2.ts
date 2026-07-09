@@ -732,7 +732,7 @@ export function useRecentSales(limit = 10) {
         return {
           id: deal.id,
           leadId: deal.lead_id || null,
-          dealTitle: deal.title || 'Deal',
+          dealTitle: deal.title || 'Negociação',
           leadName: lead?.name || 'Lead',
           leadCompany: lead?.company_name || null,
           leadAvatar: lead?.photo_url || null,

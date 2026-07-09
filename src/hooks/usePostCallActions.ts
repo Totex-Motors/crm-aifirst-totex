@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useCreateTask } from './useTasks';
-import { useLoseDeal, useMoveDealStage } from './useSalesDeals';
+import { useLoseDeal, useMoveDealStage } from './useNegociacoes';
 import { toast } from 'sonner';
 
 // Busca deal ativo mais recente para um lead

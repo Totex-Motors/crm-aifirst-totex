@@ -22,6 +22,10 @@ import {
   TrendingUp,
   User2,
   Users,
+  Bot,
+  Library,
+  KeyRound,
+  Network,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useNotificationContext } from "@/hooks/useNotifications";
@@ -100,6 +104,16 @@ const sections: NavSection[] = [
       { title: "Tarefas", url: "/gestao/tarefas", icon: CheckSquare },
       { title: "Calendário", url: "/gestao/calendario", icon: Calendar },
       { title: "Reuniões", url: "/gestao/reunioes", icon: Video },
+    ],
+  },
+  {
+    id: "agentes",
+    label: "Agentes IA",
+    items: [
+      { title: "Meus agentes", url: "/agentes", icon: Bot },
+      { title: "Habilidades", url: "/agentes/habilidades", icon: Library },
+      { title: "Credenciais", url: "/agentes/credenciais", icon: KeyRound },
+      { title: "Organograma", url: "/agentes/organograma", icon: Network },
     ],
   },
   {

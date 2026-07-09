@@ -11,7 +11,7 @@ type RankingTab = 'streak' | 'noshow' | 'deals' | 'followups';
 const TABS: { key: RankingTab; label: string; icon: typeof Flame; color: string }[] = [
   { key: 'streak', label: 'Streak', icon: Flame, color: 'text-orange-500' },
   { key: 'noshow', label: 'No-show', icon: UserCheck, color: 'text-emerald-500' },
-  { key: 'deals', label: 'Deals', icon: TrendingUp, color: 'text-indigo-500' },
+  { key: 'deals', label: 'Negociações', icon: TrendingUp, color: 'text-indigo-500' },
   { key: 'followups', label: 'Follow-ups', icon: MessageSquare, color: 'text-blue-500' },
 ];
 
