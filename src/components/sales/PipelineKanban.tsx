@@ -20,9 +20,8 @@ import {
   Plus, TrendingUp, DollarSign, Target, Phone, Video,
   Clock, MessageSquare, AlertTriangle, Flame, Snowflake,
   Calendar, User, Users, Crown, ExternalLink, Send, PhoneCall, CheckCircle,
-  UserX, Pause, XCircle, Building2, Star, Trash2, Sparkles
+  UserX, Pause, XCircle, Building2, Trash2, Sparkles, ChevronRight
 } from "lucide-react";
-import { useUpdateLeadSales } from "@/hooks/useSalesLeads";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { AlertBadge } from "@/components/sales/AlertBadge";
 import { useUpcomingCallsForLeads } from "@/hooks/useTasks";
@@ -164,6 +163,11 @@ export function PipelineKanban({
     };
   }, []);
 
+  const activeStages = useMemo(
+    () => columns.filter(c => !c.stage.is_won && !c.stage.is_lost).map(c => ({ id: c.stage.id, name: c.stage.name })),
+    [columns]
+  );
+
   // Extract all lead IDs from deals to fetch scheduled calls
   const leadIds = useMemo(() => {
     const ids = new Set<string>();
@@ -260,6 +264,8 @@ export function PipelineKanban({
           sortBy={sortBy}
           width={getColumnWidth(column.stage.id)}
           onResizeStart={(e) => handleResizeStart(e, column.stage.id)}
+          allStages={activeStages}
+          onMoveToStage={(dealId, fromStageId, toStageId) => onDealMove?.(dealId, fromStageId, toStageId)}
         />
       ))}
     </div>
@@ -294,6 +300,8 @@ interface KanbanColumnProps {
   sortBy: PipelineSortBy;
   width: number;
   onResizeStart: (e: React.MouseEvent) => void;
+  allStages: { id: string; name: string }[];
+  onMoveToStage: (dealId: string, fromStageId: string, toStageId: string) => void;
 }
 
 // Wrapper to persist vertical scroll per column
@@ -340,6 +348,8 @@ function KanbanColumn({
   sortBy,
   width,
   onResizeStart,
+  allStages,
+  onMoveToStage,
 }: KanbanColumnProps) {
   const { dv } = useDemoMode();
   const { stage, deals, total_value, count } = column;
@@ -413,11 +423,6 @@ function KanbanColumn({
       <ColumnScrollArea stageId={stage.id}>
         <div className="p-2 space-y-2">
           {[...deals].sort((a, b) => {
-            // Orange star always goes to top
-            const starA = (a.lead as any)?.star_type === 'orange' ? 0 : 1;
-            const starB = (b.lead as any)?.star_type === 'orange' ? 0 : 1;
-            if (starA !== starB) return starA - starB;
-
             // Call Agendada: always sort by scheduled date (overdue first → soonest upcoming)
             if (stage.id === STAGE_IDS.CALL_AGENDADA) {
               const callA = a.lead_id ? callsByLead?.[a.lead_id] : undefined;
@@ -474,6 +479,8 @@ function KanbanColumn({
               onDragEnd={onDragEnd}
               scheduledCall={deal.lead_id ? callsByLead?.[deal.lead_id] : undefined}
               isFinalized={stage.is_won || stage.is_lost}
+              allStages={allStages}
+              onMoveToStage={(dealId, toStageId) => onMoveToStage(dealId, stage.id, toStageId)}
             />
           ))}
 
@@ -482,7 +489,7 @@ function KanbanColumn({
               <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
                 <Target className="h-5 w-5 text-slate-400" />
               </div>
-              <p className="text-xs text-slate-500">Nenhum deal neste estágio</p>
+              <p className="text-xs text-slate-500">Nenhuma negociação neste estágio</p>
               {onAddDeal && !stage.is_won && !stage.is_lost && (
                 <Button
                   variant="link"
@@ -490,7 +497,7 @@ function KanbanColumn({
                   className="mt-2 text-xs h-auto p-0"
                   onClick={() => onAddDeal(stage.id)}
                 >
-                  + Adicionar deal
+                  + Adicionar negociação
                 </Button>
               )}
             </div>
@@ -674,6 +681,8 @@ function DealCard({
   onDragEnd,
   scheduledCall,
   isFinalized = false,
+  allStages,
+  onMoveToStage,
 }: {
   deal: Deal;
   stageId: string;
@@ -684,22 +693,12 @@ function DealCard({
   onDragEnd: () => void;
   scheduledCall?: ScheduledCall;
   isFinalized?: boolean;
+  allStages?: { id: string; name: string }[];
+  onMoveToStage?: (dealId: string, toStageId: string) => void;
 }) {
   const { dv } = useDemoMode();
   const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
-  const updateLead = useUpdateLeadSales();
-  const starType = (deal.lead as any)?.star_type as 'yellow' | 'orange' | null;
-  const isOrangeStar = starType === 'orange';
-  const hasAnyStar = starType === 'yellow' || starType === 'orange';
-
-  const handleStarToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!deal.lead_id) return;
-    const next: 'yellow' | 'orange' | null =
-      starType === null ? 'yellow' :
-      starType === 'yellow' ? 'orange' : null;
-    updateLead.mutate({ id: deal.lead_id, star_type: next });
-  };
+  const [movePopoverOpen, setMovePopoverOpen] = useState(false);
   const CallIcon = scheduledCall?.task_type === 'meeting' ? Video : Phone;
   const callDate = scheduledCall?.scheduled_at;
   const isCallToday = callDate ? isToday(new Date(callDate)) : false;
@@ -770,18 +769,16 @@ function DealCard({
           "border shadow-sm hover:shadow-md",
           "transition-all duration-200",
           "active:scale-[0.98]",
-          // Orange star neon border (highest priority)
-          isOrangeStar && "border-2 border-[#FF6B00] shadow-[0_0_8px_#FF6B00] bg-orange-50/30",
-          // New deal (≤30min) orange contour
-          !isOrangeStar && isNewDeal && "border-2 border-orange-500 ring-2 ring-orange-500/30 bg-orange-50/20",
+          // New deal (≤30min) teal contour
+          isNewDeal && "border-2 border-teal-500 ring-2 ring-teal-500/30 bg-teal-50/20",
           // Urgência visual forte
-          !isOrangeStar && !isNewDeal && isCritical && "bg-red-50 border-red-300 border-l-4 border-l-red-500 hover:bg-red-100",
-          !isOrangeStar && !isNewDeal && isWarning && !isCritical && "bg-amber-50 border-amber-300 border-l-4 border-l-amber-500 hover:bg-amber-100",
+          !isNewDeal && isCritical && "bg-red-50 border-red-300 border-l-4 border-l-red-500 hover:bg-red-100",
+          !isNewDeal && isWarning && !isCritical && "bg-amber-50 border-amber-300 border-l-4 border-l-amber-500 hover:bg-amber-100",
           // Verde claro para estágios de ação (call realizada, em fechamento, no-show) quando OK
-          !isOrangeStar && !isNewDeal && !isCritical && !isWarning && [STAGE_IDS.CALL_REALIZADA, STAGE_IDS.EM_FECHAMENTO, STAGE_IDS.NO_SHOW].includes(stageId) && "bg-green-50 border-green-300 hover:border-green-400",
-          !isOrangeStar && !isNewDeal && !isCritical && !isWarning && ![STAGE_IDS.CALL_REALIZADA, STAGE_IDS.EM_FECHAMENTO, STAGE_IDS.NO_SHOW].includes(stageId) && "bg-white border-slate-200 hover:border-slate-300",
+          !isNewDeal && !isCritical && !isWarning && [STAGE_IDS.CALL_REALIZADA, STAGE_IDS.EM_FECHAMENTO, STAGE_IDS.NO_SHOW].includes(stageId) && "bg-green-50 border-green-300 hover:border-green-400",
+          !isNewDeal && !isCritical && !isWarning && ![STAGE_IDS.CALL_REALIZADA, STAGE_IDS.EM_FECHAMENTO, STAGE_IDS.NO_SHOW].includes(stageId) && "bg-white border-slate-200 hover:border-slate-300",
           // Call hoje tem destaque azul
-          !isOrangeStar && !isNewDeal && isCallToday && !isCritical && !isWarning && "ring-2 ring-blue-400 border-blue-400"
+          !isNewDeal && isCallToday && !isCritical && !isWarning && "ring-2 ring-blue-400 border-blue-400"
         )}
       >
         {/* Delete button (hover only) */}
@@ -796,37 +793,40 @@ function DealCard({
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Excluir deal</p>
+              <p>Excluir negociação</p>
             </TooltipContent>
           </Tooltip>
         )}
 
-        {/* Star indicator + toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={handleStarToggle}
-              className={cn(
-                "absolute top-1.5 right-1.5 z-10 p-0.5 rounded transition-all",
-                hasAnyStar || isOrangeStar
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
-              )}
-            >
-              <Star
-                className={cn(
-                  "h-4 w-4 transition-colors",
-                  isOrangeStar && "fill-[#FF6B00] text-[#FF6B00] drop-shadow-[0_0_4px_#FF6B00]",
-                  starType === 'yellow' && !isOrangeStar && "fill-[#FFD700] text-[#FFD700]",
-                  !hasAnyStar && !isOrangeStar && "text-slate-300"
-                )}
-              />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left">
-            <p>{isOrangeStar ? 'Lead QUENTE (clique para remover)' : starType === 'yellow' ? 'Favorito (clique: laranja)' : 'Marcar estrela'}</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* Botão de mover para outra etapa */}
+        {!isFinalized && allStages && allStages.length > 1 && onMoveToStage && (
+          <Popover open={movePopoverOpen} onOpenChange={setMovePopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMovePopoverOpen(true); }}
+                className="absolute top-1.5 right-1.5 z-10 p-0.5 rounded opacity-100 sm:opacity-0 sm:group-hover:opacity-60 hover:!opacity-100 hover:bg-slate-100 transition-all"
+              >
+                <ChevronRight className="h-4 w-4 text-slate-400" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-1" align="end" side="right" onClick={(e) => e.stopPropagation()}>
+              <p className="text-xs font-medium text-slate-500 px-2 py-1">Mover para</p>
+              {allStages.filter(s => s.id !== stageId).map(s => (
+                <button
+                  key={s.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveToStage(deal.id, s.id);
+                    setMovePopoverOpen(false);
+                  }}
+                  className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-slate-100 truncate"
+                >
+                  {s.name}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        )}
 
         {/* Header: Avatar(s) + Name + Temperature */}
         <div className="flex items-start gap-2 mb-2">
@@ -946,11 +946,18 @@ function DealCard({
           </Tooltip>
         </div>
 
-        {/* Webinario badges + atendencia + fonte */}
+        {/* Webinario badges + atendencia + fonte + portal */}
         {(() => {
           const enrollment = (deal as any).webinar_enrollment;
           const utmSource = (deal.lead as any)?.utm_source;
-          if (!enrollment?.webinar_title && !utmSource) return null;
+          const leadSource = ((deal.lead as any)?.source || "").toLowerCase();
+          const PORTAL_MAP: Record<string, { label: string; cls: string }> = {
+            credere: { label: "Credere", cls: "bg-indigo-100 text-indigo-700" },
+            marketplace: { label: "Marketplace Digital", cls: "bg-orange-100 text-orange-700" },
+            stand: { label: "IA de Qualificação", cls: "bg-teal-100 text-teal-700" },
+          };
+          const portal = PORTAL_MAP[leadSource];
+          if (!enrollment?.webinar_title && !utmSource && !portal) return null;
 
           let attendanceBadge: React.ReactNode = null;
           if (enrollment?.webinar_title) {
@@ -987,6 +994,11 @@ function DealCard({
 
           return (
             <div className="flex items-center gap-1 mb-2 flex-wrap">
+              {portal && (
+                <span className={cn("inline-flex items-center text-[9px] px-1.5 py-0.5 rounded font-semibold", portal.cls)} title={`Portal: ${portal.label}`}>
+                  {portal.label}
+                </span>
+              )}
               {enrollment?.webinar_title && (
                 <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-semibold max-w-[120px] truncate">
                   <Sparkles className="h-2.5 w-2.5 shrink-0" />
@@ -1006,7 +1018,9 @@ function DealCard({
         {/* Value + Probability */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-bold text-slate-900">
-            {formatCurrency(dv(deal.negotiated_price || deal.expected_value || 0))}
+            {(deal.negotiated_price || (deal as any).original_price)
+              ? formatCurrency(dv(deal.negotiated_price || (deal as any).original_price || 0))
+              : <span className="text-slate-400 font-normal text-xs">Sem valor</span>}
           </span>
           {deal.probability && deal.probability > 0 && (
             <Badge
@@ -1233,7 +1247,7 @@ function DealCard({
             </PopoverTrigger>
             <PopoverContent className="w-64 p-0" align="start" side="right">
               <div className="p-3 border-b">
-                <p className="text-sm font-semibold text-slate-800">{companyName || deal.title || "Deal"}</p>
+                <p className="text-sm font-semibold text-slate-800">{companyName || deal.title || "Negociação"}</p>
                 <p className="text-xs text-muted-foreground">{deal.contacts!.length} contatos vinculados</p>
               </div>
               <div className="p-1">
@@ -1307,7 +1321,7 @@ export function PipelineKanbanHeader({
         </div>
         <div>
           <p className="text-2xl font-bold text-slate-900">{totalDeals}</p>
-          <p className="text-xs text-slate-500">Deals ativos</p>
+          <p className="text-xs text-slate-500">Negociações ativas</p>
         </div>
       </div>
 

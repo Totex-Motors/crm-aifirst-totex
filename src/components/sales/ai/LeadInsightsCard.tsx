@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -98,6 +98,16 @@ export function LeadInsightsCard({
   };
 
   const displayInsights = localInsights || insights;
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+
+  const cleanSummary = useMemo(() => {
+    const raw = displayInsights?.summary || "";
+    return raw
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }, [displayInsights?.summary]);
 
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
@@ -202,9 +212,22 @@ export function LeadInsightsCard({
             </div>
 
             {/* Summary */}
-            {displayInsights.summary && (
-              <div className="p-3 bg-white/60 rounded-lg border border-purple-100">
-                <p className="text-sm text-muted-foreground">{displayInsights.summary}</p>
+            {cleanSummary && (
+              <div className="p-3 bg-white/60 rounded-lg border border-purple-100 overflow-hidden">
+                <p className={cn(
+                  "text-sm text-muted-foreground break-words",
+                  !summaryExpanded && "line-clamp-4"
+                )}>
+                  {cleanSummary}
+                </p>
+                {cleanSummary.length > 200 && (
+                  <button
+                    onClick={() => setSummaryExpanded(!summaryExpanded)}
+                    className="mt-1 text-xs text-purple-600 hover:text-purple-800 font-medium block"
+                  >
+                    {summaryExpanded ? "Ver menos" : "Ver mais"}
+                  </button>
+                )}
               </div>
             )}
 

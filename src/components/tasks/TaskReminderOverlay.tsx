@@ -136,6 +136,7 @@ export function TaskReminderOverlay() {
     }
 
     const teamMemberId = teamMember?.id;
+    if (!teamMemberId) return;
     const now = new Date();
     const windowEnd = new Date(now.getTime() + (REMINDER_MINUTES + 1) * 60 * 1000);
 

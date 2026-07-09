@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +109,16 @@ export function LeadIntelligencePanel({
   );
   const [dataSources, setDataSources] = useState<string[]>([]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [resumoExpanded, setResumoExpanded] = useState(false);
+
+  const cleanResumo = useMemo(() => {
+    const raw = intelligence?.perfil?.resumo || "";
+    return raw
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }, [intelligence?.perfil?.resumo]);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -286,22 +296,22 @@ export function LeadIntelligencePanel({
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="perfil" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
-            <TabsTrigger value="perfil" className="text-xs">
-              <User className="h-3 w-3 mr-1" />
-              Perfil
+          <TabsList className="grid w-full grid-cols-4 mb-4 h-auto">
+            <TabsTrigger value="perfil" className="text-xs flex-col sm:flex-row gap-0.5 py-1.5 h-auto">
+              <User className="h-3 w-3" />
+              <span>Perfil</span>
             </TabsTrigger>
-            <TabsTrigger value="estrategia" className="text-xs">
-              <Target className="h-3 w-3 mr-1" />
-              Estrategia
+            <TabsTrigger value="estrategia" className="text-xs flex-col sm:flex-row gap-0.5 py-1.5 h-auto">
+              <Target className="h-3 w-3" />
+              <span>Estratégia</span>
             </TabsTrigger>
-            <TabsTrigger value="mensagens" className="text-xs">
-              <MessageSquare className="h-3 w-3 mr-1" />
-              Mensagens
+            <TabsTrigger value="mensagens" className="text-xs flex-col sm:flex-row gap-0.5 py-1.5 h-auto">
+              <MessageSquare className="h-3 w-3" />
+              <span>Mensagens</span>
             </TabsTrigger>
-            <TabsTrigger value="proposta" className="text-xs">
-              <DollarSign className="h-3 w-3 mr-1" />
-              Proposta
+            <TabsTrigger value="proposta" className="text-xs flex-col sm:flex-row gap-0.5 py-1.5 h-auto">
+              <DollarSign className="h-3 w-3" />
+              <span>Proposta</span>
             </TabsTrigger>
           </TabsList>
 
@@ -333,10 +343,23 @@ export function LeadIntelligencePanel({
             </div>
 
             {/* Resumo */}
-            {intelligence?.perfil?.resumo && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm">{intelligence.perfil.resumo}</p>
-                {intelligence.perfil.persona && (
+            {cleanResumo && (
+              <div className="p-3 bg-muted/50 rounded-lg overflow-hidden">
+                <p className={cn(
+                  "text-sm break-words",
+                  !resumoExpanded && "line-clamp-4"
+                )}>
+                  {cleanResumo}
+                </p>
+                {cleanResumo.length > 200 && (
+                  <button
+                    onClick={() => setResumoExpanded(!resumoExpanded)}
+                    className="mt-1 text-xs text-primary hover:text-primary/80 font-medium block"
+                  >
+                    {resumoExpanded ? "Ver menos" : "Ver mais"}
+                  </button>
+                )}
+                {intelligence?.perfil?.persona && (
                   <p className="text-xs text-muted-foreground mt-2">
                     Persona: {intelligence.perfil.persona}
                   </p>
@@ -345,7 +368,7 @@ export function LeadIntelligencePanel({
             )}
 
             {/* Dores e Motivadores */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {intelligence?.insights?.principais_dores?.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-red-600 mb-1">Dores</p>
@@ -416,7 +439,7 @@ export function LeadIntelligencePanel({
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
               {intelligence?.recomendacoes?.melhor_horario && (
                 <div className="p-2 bg-muted/50 rounded text-center">
                   <Clock className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />

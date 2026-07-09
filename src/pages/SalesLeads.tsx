@@ -131,21 +131,21 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
               {isAutoconf
                 ? <Car className="h-7 w-7 text-primary" />
                 : <Users className="h-7 w-7 text-primary" />}
               {isAutoconf ? "Leads" : "Contatos"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {isAutoconf
                 ? `${totalLeads} leads recebidos`
                 : `${leads?.length || 0} contatos encontrados`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={showHotOnly ? "default" : "outline"}
               size="sm"
@@ -161,13 +161,12 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
               className={cn(showHotOnly && "bg-red-500 hover:bg-red-600")}
             >
               <Flame className="h-4 w-4 mr-1" />
-              Quentes
+              <span className="hidden xs:inline">Quentes</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={async () => {
-                // Pega os primeiros 20 leads em AGUARDAR para ativar
                 const leadsParaAtivar = sortedLeads
                   .filter((l: any) => l.acao_de_hoje === 'AGUARDAR' || !l.acao_de_hoje)
                   .slice(0, 20)
@@ -193,11 +192,11 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
               className="bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
             >
               {ativarEmMassa.isPending ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <RefreshCw className="h-4 w-4 sm:mr-2 animate-spin" />
               ) : (
-                <Zap className="h-4 w-4 mr-2" />
+                <Zap className="h-4 w-4 sm:mr-2" />
               )}
-              Ativar no Playbook
+              <span className="hidden sm:inline">Ativar no Playbook</span>
             </Button>
             <Button
               variant="outline"
@@ -209,15 +208,15 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
             </Button>
             {!isAutoconf && (
               <Button onClick={() => setIsCreateLeadOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Novo Contato
+                <UserPlus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Novo Contato</span>
               </Button>
             )}
           </div>
         </div>
 
         {/* Stage Pills */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted -mx-1 px-1">
           {STAGES.map((stage) => {
             const count = stage.value === "all"
               ? leads?.length || 0
@@ -257,9 +256,9 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as "score" | "recent")}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[130px]">
                 {sortBy === "score" ? (
                   <SortDesc className="h-4 w-4 mr-2" />
                 ) : (

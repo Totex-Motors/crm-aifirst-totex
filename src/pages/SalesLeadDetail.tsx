@@ -1052,7 +1052,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
                 <Button
                   variant="default"
                   size="sm"
@@ -1061,13 +1061,13 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                   className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
                 >
                   {calculateScore.isPending ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 md:mr-2 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4 mr-2" />
+                    <Sparkles className="h-4 w-4 md:mr-2" />
                   )}
-                  Recalcular
+                  <span className="hidden md:inline">Recalcular</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>
                 <Button
@@ -1076,8 +1076,8 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                   onClick={() => setIsMergeLeadOpen(true)}
                   className="relative"
                 >
-                  <GitMerge className="h-4 w-4 mr-2" />
-                  Mesclar
+                  <GitMerge className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Mesclar</span>
                   {(leadDuplicates?.length ?? 0) > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
                       {leadDuplicates!.length}
@@ -1090,9 +1090,9 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         </Card>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* Left Column - Quick Info */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="xl:col-span-4 space-y-6">
             {/* Quick Stats - Compact */}
             <div className="grid grid-cols-4 gap-2">
               <div className="text-center p-2 rounded-lg bg-muted/50">
@@ -1468,34 +1468,36 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           </div>
 
           {/* Right Column - Tabs */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="xl:col-span-8 space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-6 h-12">
-                <TabsTrigger value="timeline" className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span className="hidden sm:inline">Timeline</span>
-                </TabsTrigger>
-                <TabsTrigger value="comercial" className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  <span className="hidden sm:inline">Comercial</span>
-                </TabsTrigger>
-                <TabsTrigger value="mensagens" className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="hidden sm:inline">Mensagens</span>
-                </TabsTrigger>
-                <TabsTrigger value="interacoes" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  <span className="hidden sm:inline">Interações</span>
-                </TabsTrigger>
-                <TabsTrigger value="transactions" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="hidden sm:inline">Financeiro</span>
-                </TabsTrigger>
-                <TabsTrigger value="notas" className="flex items-center gap-2">
-                  <StickyNote className="h-4 w-4" />
-                  <span className="hidden sm:inline">Notas</span>
-                </TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto -mx-1 px-1 pb-1">
+                <TabsList className="flex w-max min-w-full h-10 gap-0.5">
+                  <TabsTrigger value="timeline" className="flex items-center gap-1.5 px-3 text-xs sm:text-sm whitespace-nowrap flex-1 min-w-[56px]">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden xs:inline">Timeline</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="comercial" className="flex items-center gap-1.5 px-3 text-xs sm:text-sm whitespace-nowrap flex-1 min-w-[56px]">
+                    <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden xs:inline">Comercial</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="mensagens" className="flex items-center gap-1.5 px-3 text-xs sm:text-sm whitespace-nowrap flex-1 min-w-[56px]">
+                    <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden xs:inline">Mensagens</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="interacoes" className="flex items-center gap-1.5 px-3 text-xs sm:text-sm whitespace-nowrap flex-1 min-w-[56px]">
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden xs:inline">Interações</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="transactions" className="flex items-center gap-1.5 px-3 text-xs sm:text-sm whitespace-nowrap flex-1 min-w-[56px]">
+                    <DollarSign className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden xs:inline">Financeiro</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="notas" className="flex items-center gap-1.5 px-3 text-xs sm:text-sm whitespace-nowrap flex-1 min-w-[56px]">
+                    <StickyNote className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden xs:inline">Notas</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Comercial Tab */}
               <TabsContent value="comercial">
