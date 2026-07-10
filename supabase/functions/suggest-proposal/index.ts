@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { contact_id, lead_id, product_id, playbook_context } = await req.json();
+    const { contact_id, lead_id, product_id, vehicle_id, playbook_context } = await req.json();
 
     const resolvedLeadId = lead_id || contact_id;
 
@@ -68,22 +68,31 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 2. Buscar produtos disponíveis
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, name, price, description")
-      .eq("active", true);
+    // 2. Buscar veículos disponíveis no estoque
+    const { data: vehiclesRaw } = await supabase
+      .from("vehicles")
+      .select("id, title, make, model, year, price, mileage, condition, color")
+      .eq("is_active", true)
+      .limit(60);
 
-    if (!products || products.length === 0) {
+    const products = (vehiclesRaw || []).map((v: any) => ({
+      id: v.id,
+      name: v.title || [v.make, v.model, v.year].filter(Boolean).join(" "),
+      price: v.price,
+      description: [v.condition, v.color, v.mileage ? `${v.mileage} km` : null].filter(Boolean).join(" · "),
+    }));
+
+    if (products.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Nenhum produto disponível" }),
+        JSON.stringify({ error: "Nenhum veículo disponível no estoque" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Se product_id foi especificado, filtrar
-    const targetProduct = product_id
-      ? products.find((p: any) => p.id === product_id)
+    // Se um veículo específico foi indicado (vehicle_id ou product_id legado), filtrar
+    const targetVehicleId = vehicle_id || product_id;
+    const targetProduct = targetVehicleId
+      ? products.find((p: any) => p.id === targetVehicleId)
       : null;
 
     // 3. Buscar mensagens recentes para contexto
@@ -138,13 +147,13 @@ Deno.serve(async (req: Request) => {
         utm_source: lead.utm_source,
       },
       playbook_context: playbook_context || null,
-      products: products.map((p: any) => ({
+      veiculos_estoque: products.map((p: any) => ({
         id: p.id,
         name: p.name,
         price: p.price,
         description: p.description?.substring(0, 200),
       })),
-      target_product: targetProduct,
+      veiculo_alvo: targetProduct,
       conversation_insights: conversationInsights ? {
         objections: conversationInsights.objections,
         interests: conversationInsights.interests,
@@ -156,7 +165,7 @@ Deno.serve(async (req: Request) => {
       })),
       previous_deals: previousDeals?.map((d: any) => ({
         status: d.status,
-        product: d.product_id,
+        vehicle: d.vehicle_id || d.product_id,
         price_offered: d.negotiated_price,
         lost_reason: d.lost_reason,
       })),

@@ -17,7 +17,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   LeadScoreBadge,
   QualificationCard,
-  LeadWebinarsCard,
   NegociacaoCard,
   CreateNegociacaoModal,
   EditNegociacaoModal,
@@ -1132,9 +1131,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
               </div>
             )}
 
-            {/* Webinarios — historico de inscricoes e atendencia */}
-            {id && <LeadWebinarsCard leadId={id} />}
-
             {/* Contatos Vinculados */}
             {(() => {
               if (!linkedData) return null;
@@ -2173,15 +2169,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
               <div className="space-y-6 py-4">
                 {/* Cards de destaque */}
                 <div className="grid grid-cols-2 gap-3">
-                  {selectedDiagnostic.monthly_revenue && (
-                    <div className="p-3 rounded-lg border bg-card">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <DollarSign className="h-4 w-4" />
-                        <span className="text-xs font-medium uppercase tracking-wide">Faturamento</span>
-                      </div>
-                      <p className="text-sm font-semibold">{selectedDiagnostic.monthly_revenue}</p>
-                    </div>
-                  )}
                   {selectedDiagnostic.ai_knowledge_level && (
                     <div className="p-3 rounded-lg border bg-card">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -2414,50 +2401,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                 </div>
               )}
 
-              {/* Webinar detail card */}
-              {selectedTimelineEvent.type === 'webinar' && selectedTimelineEvent.metadata && (
-                <div className="space-y-3 p-4 bg-cyan-50 rounded-xl border border-cyan-200">
-                  <h4 className="text-sm font-semibold text-cyan-800 flex items-center gap-2"><Video className="h-4 w-4" /> Dados do Webinario</h4>
-                  {selectedTimelineEvent.metadata.quiz_name && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><FileText className="h-3.5 w-3.5" /> Quiz</span>
-                      <span className="font-medium">{selectedTimelineEvent.metadata.quiz_name}</span>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.event_topic && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><Target className="h-3.5 w-3.5" /> Tema</span>
-                      <span className="font-medium">{selectedTimelineEvent.metadata.event_topic}</span>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.event_date && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><Calendar className="h-3.5 w-3.5" /> Data do Evento</span>
-                      <span className="font-medium">{new Date(selectedTimelineEvent.metadata.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.headline && (
-                    <div className="space-y-1.5">
-                      <span className="text-sm text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Headline</span>
-                      <div className="p-3 bg-white rounded-lg border text-sm">{selectedTimelineEvent.metadata.headline}</div>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.landing_page && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Landing Page</span>
-                      <a href={selectedTimelineEvent.metadata.landing_page} target="_blank" rel="noopener" className="font-medium text-cyan-600 hover:underline truncate max-w-[200px]">
-                        {selectedTimelineEvent.metadata.landing_page.replace('https://', '')}
-                      </a>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.utm_source && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><ExternalLink className="h-3.5 w-3.5" /> Origem</span>
-                      <span className="font-medium">{selectedTimelineEvent.metadata.utm_source}{selectedTimelineEvent.metadata.utm_campaign ? ` / ${selectedTimelineEvent.metadata.utm_campaign}` : ''}</span>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {selectedTimelineEvent.amount && (
                 <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">

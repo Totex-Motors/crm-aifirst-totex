@@ -13,14 +13,8 @@ const GOOGLE_CLIENT_ID =
   "36845942377-3gf0kttlo5cp3csg1a0nfo2dhgqia8ig.apps.googleusercontent.com";
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 
-const SAMUEL_ID = "5da87f94-4351-4c5d-b9ab-2976c39fdb09";
-const WEBINAR_PIPELINE_ID = "90b09d81-8282-4503-a869-1787baf8f736";
-const WEBINAR_AGENDOU_STAGE_ID = "8c08612a-6ff8-4505-836e-006ee69fb5c3";
-const CLOSER_PIPELINE_ID = "9c21bd06-a898-44a1-88db-ad3c6ec7140c";
-const CLOSER_CALL_AGENDADA_STAGE_ID = "11111111-0001-0001-0001-000000000004";
-
-const UTM_SOURCE = "webinar_pitch";
-const UTM_CAMPAIGN = "agendamento_0704";
+const UTM_SOURCE = "agendamento";
+const UTM_CAMPAIGN = "agendamento_site";
 
 // ─── Slot rules ──────────────────────────────────────────────────────────────
 const FIRST_SLOT_BRT = 9;  // 09:00 BRT (default)
@@ -161,10 +155,56 @@ function filterAvailableSlots(
   });
 }
 
+// ─── Resolver dinâmico (substitui IDs hardcoded do funil de webinar) ───────────
+// Descobre o pipeline default, a etapa de agendamento e um vendedor responsável,
+// pra o agendamento funcionar em qualquer instalação (não só a original).
+async function resolveBookingDefaults(supabase: any): Promise<{ salesRepId: string | null; pipelineId: string | null; scheduledStageId: string | null }> {
+  const { data: pipelines } = await supabase
+    .from("sales_pipelines")
+    .select("id, is_default, default_sales_rep_id")
+    .eq("is_active", true)
+    .order("is_default", { ascending: false })
+    .limit(1);
+  const pipeline = pipelines?.[0];
+  const pipelineId = pipeline?.id || null;
+
+  let scheduledStageId: string | null = null;
+  if (pipelineId) {
+    const { data: stages } = await supabase
+      .from("sales_pipeline_stages")
+      .select("id, name, position, is_won, is_lost")
+      .eq("pipeline_id", pipelineId)
+      .order("position", { ascending: true });
+    if (stages?.length) {
+      const open = stages.filter((s: any) => !s.is_won && !s.is_lost);
+      const sched = open.find((s: any) => /agend|test\s*drive|visita/i.test(s.name || ""));
+      scheduledStageId = (sched || open[0] || stages[0]).id;
+    }
+  }
+
+  let salesRepId = pipeline?.default_sales_rep_id || null;
+  if (!salesRepId) {
+    const { data: member } = await supabase
+      .from("team_members")
+      .select("id")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    salesRepId = member?.id || null;
+  }
+
+  return { salesRepId, pipelineId, scheduledStageId };
+}
+
 // ─── Action: check_availability ───────────────────────────────────────────────
 
 async function handleCheckAvailability(supabase: any, checkPhone?: string, checkEmail?: string) {
-  const accessToken = await getValidAccessToken(supabase, SAMUEL_ID);
+  const { salesRepId } = await resolveBookingDefaults(supabase);
+  let accessToken: string | null = null;
+  if (salesRepId) {
+    try { accessToken = await getValidAccessToken(supabase, salesRepId); } catch { accessToken = null; }
+  }
 
   // Check if lead already has a meeting booked
   if (checkPhone || checkEmail) {
@@ -223,33 +263,33 @@ async function handleCheckAvailability(supabase: any, checkPhone?: string, check
   const timeMin = `${firstDay.date}T00:00:00Z`;
   const timeMax = `${lastDay.date}T23:59:59Z`;
 
-  // FreeBusy API
-  const freeBusyRes = await fetch(
-    "https://www.googleapis.com/calendar/v3/freeBusy",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        timeMin,
-        timeMax,
-        timeZone: "America/Sao_Paulo",
-        items: [{ id: "primary" }],
-      }),
+  // FreeBusy API — só se o vendedor tiver Google Calendar conectado; senão degrada
+  // pra considerar apenas os compromissos internos (company_activities).
+  let googleBusy: BusyPeriod[] = [];
+  if (accessToken) {
+    const freeBusyRes = await fetch(
+      "https://www.googleapis.com/calendar/v3/freeBusy",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          timeMin,
+          timeMax,
+          timeZone: "America/Sao_Paulo",
+          items: [{ id: "primary" }],
+        }),
+      }
+    );
+    if (freeBusyRes.ok) {
+      const freeBusyData = await freeBusyRes.json();
+      googleBusy = freeBusyData.calendars?.primary?.busy || [];
+    } else {
+      console.error("FreeBusy error:", await freeBusyRes.text());
     }
-  );
-
-  if (!freeBusyRes.ok) {
-    const errText = await freeBusyRes.text();
-    console.error("FreeBusy error:", errText);
-    throw new Error(`Google FreeBusy failed: ${freeBusyRes.status}`);
   }
-
-  const freeBusyData = await freeBusyRes.json();
-  const googleBusy: BusyPeriod[] =
-    freeBusyData.calendars?.primary?.busy || [];
 
   console.log("[book-meeting] Google busy:", JSON.stringify(googleBusy));
 
@@ -257,8 +297,7 @@ async function handleCheckAvailability(supabase: any, checkPhone?: string, check
   const { data: internalMeetings } = await supabase
     .from("company_activities")
     .select("scheduled_at")
-    .eq("responsavel_id", SAMUEL_ID)
-    .in("task_type", ["meeting", "call", "webinar_booking"])
+    .in("task_type", ["meeting", "call", "booking_request"])
     .eq("completed", false)
     .neq("status", "cancelled")
     .gte("scheduled_at", timeMin)
@@ -412,36 +451,37 @@ async function handleBook(supabase: any, payload: BookPayload) {
   if (updateErr) console.error(`[book-meeting] Lead update error:`, updateErr.message);
   else console.log(`[book-meeting] Lead updated: ${lead.id}`);
 
-  // 4. Find or create deal in Webinar pipeline → move to "Agendou"
-  const { data: webinarDeal, error: wdErr } = await supabase
-    .from("deals")
-    .select("id, pipeline_stage_id")
-    .eq("lead_id", lead.id)
-    .eq("pipeline_id", WEBINAR_PIPELINE_ID)
-    .in("status", ["open", "negotiation"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // 4. Resolver pipeline/etapa/vendedor default e mover (ou criar) a negociação
+  const { salesRepId: defaultRepId, pipelineId, scheduledStageId } = await resolveBookingDefaults(supabase);
 
-  if (wdErr) console.error(`[book-meeting] Webinar deal query error:`, wdErr.message);
-
-  if (webinarDeal) {
-    await supabase
+  if (pipelineId) {
+    const { data: existingDeal } = await supabase
       .from("deals")
-      .update({ pipeline_stage_id: WEBINAR_AGENDOU_STAGE_ID })
-      .eq("id", webinarDeal.id);
-    console.log(`[book-meeting] Moved webinar deal to Agendou: ${webinarDeal.id}`);
-  } else {
-    const { error: dealErr } = await supabase.from("deals").insert({
-      lead_id: lead.id,
-      pipeline_id: WEBINAR_PIPELINE_ID,
-      pipeline_stage_id: WEBINAR_AGENDOU_STAGE_ID,
-      sales_rep_id: SAMUEL_ID,
-      title: `Webinar - ${name}`,
-      status: "open",
-    });
-    if (dealErr) console.error(`[book-meeting] Create webinar deal error:`, dealErr.message);
-    else console.log(`[book-meeting] Created webinar deal for lead: ${lead.id}`);
+      .select("id, pipeline_stage_id")
+      .eq("lead_id", lead.id)
+      .eq("pipeline_id", pipelineId)
+      .in("status", ["open", "negotiation"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingDeal) {
+      if (scheduledStageId) {
+        await supabase.from("deals").update({ pipeline_stage_id: scheduledStageId }).eq("id", existingDeal.id);
+      }
+      console.log(`[book-meeting] Negociação movida p/ etapa de agendamento: ${existingDeal.id}`);
+    } else {
+      const { error: dealErr } = await supabase.from("deals").insert({
+        lead_id: lead.id,
+        pipeline_id: pipelineId,
+        pipeline_stage_id: scheduledStageId,
+        sales_rep_id: defaultRepId,
+        title: `Visita / Test drive - ${name}`,
+        status: "open",
+      });
+      if (dealErr) console.error(`[book-meeting] Create deal error:`, dealErr.message);
+      else console.log(`[book-meeting] Negociação criada para lead: ${lead.id}`);
+    }
   }
 
   // 5. Slot escolhido → agenda a visita/test drive (sem gate de faturamento)
@@ -453,9 +493,10 @@ async function handleBook(supabase: any, payload: BookPayload) {
     const slotEnd = new Date(slotStart.getTime() + SLOT_DURATION_MIN * 60_000);
     scheduledAt = slotStart.toISOString();
 
-    // 5a. Create Google Calendar event with Meet
+    // 5a. Create Google Calendar event with Meet (na agenda do vendedor default, se conectada)
     try {
-      const accessToken = await getValidAccessToken(supabase, SAMUEL_ID);
+      const accessToken = defaultRepId ? await getValidAccessToken(supabase, defaultRepId) : null;
+      if (!accessToken) throw new Error("Vendedor sem Google Calendar conectado");
 
       const calendarEvent = {
         summary: `Visita / Test drive - ${name}${vehicle_interest ? ` (${vehicle_interest})` : ""}`,
@@ -515,7 +556,7 @@ async function handleBook(supabase: any, payload: BookPayload) {
       task_type: "meeting",
       name: `Visita / Test drive — ${name}`,
       lead_id: lead.id,
-      responsavel_id: SAMUEL_ID,
+      responsavel_id: defaultRepId,
       scheduled_at: scheduledAt,
       meeting_link: meetingLink,
       status: "scheduled",
@@ -545,7 +586,6 @@ async function handleBook(supabase: any, payload: BookPayload) {
             email_type: "scheduled",
             meeting_date: slotStart.toISOString(),
             meeting_duration_minutes: 60,
-            specialist_name: "Samuel",
             meet_link: meetingLink,
           }),
         });
@@ -553,34 +593,6 @@ async function handleBook(supabase: any, payload: BookPayload) {
       } catch (emailErr) {
         console.error(`[book-meeting] Email error:`, emailErr);
       }
-    }
-
-    // 5c. Find or create deal in Closer pipeline → "Call Agendada"
-    const { data: closerDeal } = await supabase
-      .from("deals")
-      .select("id")
-      .eq("lead_id", lead.id)
-      .eq("pipeline_id", CLOSER_PIPELINE_ID)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (closerDeal) {
-      await supabase
-        .from("deals")
-        .update({ pipeline_stage_id: CLOSER_CALL_AGENDADA_STAGE_ID })
-        .eq("id", closerDeal.id);
-      console.log("Moved closer deal to Call Agendada:", closerDeal.id);
-    } else {
-      await supabase.from("deals").insert({
-        lead_id: lead.id,
-        pipeline_id: CLOSER_PIPELINE_ID,
-        pipeline_stage_id: CLOSER_CALL_AGENDADA_STAGE_ID,
-        sales_rep_id: SAMUEL_ID,
-        title: `Closer - ${name}`,
-        status: "open",
-      });
-      console.log("Created closer deal for lead:", lead.id);
     }
 
     // Timeline já registrada via meeting acima (task_type: meeting)
@@ -591,7 +603,7 @@ async function handleBook(supabase: any, payload: BookPayload) {
       task_type: "booking_request",
       name: `Solicitou agendamento sem escolher horário — entrar em contato`,
       lead_id: lead.id,
-      responsavel_id: SAMUEL_ID,
+      responsavel_id: defaultRepId,
       status: "completed",
       completed: true,
       team: "comercial",
