@@ -84,7 +84,7 @@ import { useCall } from "@/contexts/CallContext";
 
 import {
   MessageSquare, Activity, Target, TrendingUp, ArrowLeft, Mail, Phone,
-  Building2, Users, Clock, ExternalLink, Video, Calendar, CheckCircle2,
+  Building2, Car, Users, Clock, ExternalLink, Video, Calendar, CheckCircle2,
   Copy, DollarSign, FileText, User, Wallet, Globe, Hash, Instagram,
   Sparkles, Briefcase, RefreshCw, Pencil, Save, X, Heart, GraduationCap, AlertTriangle,
   StickyNote, Ticket, Merge, GitMerge, Receipt, Send, Star, GitBranch, ChevronDown, Zap, Loader2, UserX, Mic, Trash2, Sprout, XCircle,
@@ -117,6 +117,7 @@ import {
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn, navigateTo, getLeadsBasePath } from "@/lib/utils";
+import { getVehicleLabel } from "@/lib/vehicleLabel";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { supabase } from "@/lib/supabase";
 import type { SalesStage } from "@/types/sales.types";
@@ -368,6 +369,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
     utm_content: '',
     company_name: '',
     job_title: '',
+    vehicle_interest: '',
   });
   const updateLeadInfo = useUpdateLeadInfo();
 
@@ -573,6 +575,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
       utm_content: lead.utm_content || '',
       company_name: (lead as any).company_name || '',
       job_title: (lead as any).job_title || '',
+      vehicle_interest: getVehicleLabel((lead as any).vehicle_of_interest) || '',
     });
     setIsEditLeadOpen(true);
   };
@@ -581,7 +584,12 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const handleSaveLeadInfo = async () => {
     if (!id) return;
     try {
-      await updateLeadInfo.mutateAsync({ leadId: id, data: editForm });
+      const { vehicle_interest, ...rest } = editForm;
+      const data = {
+        ...rest,
+        vehicle_of_interest: vehicle_interest?.trim() ? { raw: vehicle_interest.trim() } : null,
+      };
+      await updateLeadInfo.mutateAsync({ leadId: id, data });
       toast({ title: "Lead atualizado", description: "Informações salvas com sucesso!" });
       setIsEditLeadOpen(false);
       refetch();
@@ -2765,28 +2773,17 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
             {/* Campos B2B - Empresa */}
             <div className="border-t pt-4 mt-2">
               <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Dados da Empresa (B2B)
+                <Car className="h-4 w-4" />
+                Interesse automotivo
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-company">Empresa</Label>
-                  <Input
-                    id="edit-company"
-                    value={editForm.company_name}
-                    onChange={(e) => setEditForm({ ...editForm, company_name: e.target.value })}
-                    placeholder="Nome da empresa"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-job-title">Cargo</Label>
-                  <Input
-                    id="edit-job-title"
-                    value={editForm.job_title}
-                    onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
-                    placeholder="CEO, Gerente, etc."
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-vehicle-interest">Veículo de interesse</Label>
+                <Input
+                  id="edit-vehicle-interest"
+                  value={editForm.vehicle_interest}
+                  onChange={(e) => setEditForm({ ...editForm, vehicle_interest: e.target.value })}
+                  placeholder="Ex: Corolla 2020, SUV até 100k..."
+                />
               </div>
             </div>
             <div className="border-t pt-4 mt-2">
