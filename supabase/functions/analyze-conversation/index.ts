@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { automotiveExtractionToUpdates } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -290,11 +291,12 @@ Analise TODOS os dados disponíveis deste lead e extraia insights acionáveis.
 3. **Objeções Identificadas**: Liste todas as objeções (preço, tempo, confiança, etc.)
 4. **Interesses Demonstrados**: O que despertou interesse do lead
 5. **Perguntas Não Respondidas**: Dúvidas do lead que ficaram pendentes
-6. **Produtos Mencionados/Relacionados**: Quais produtos foram discutidos ou comprados
+6. **Veículos Mencionados/Relacionados**: Quais carros/modelos foram discutidos
 7. **Urgência Detectada**: O lead demonstrou urgência?
 8. **Insights Chave**: 3-5 observações importantes (baseie-se em TODOS os dados)
 9. **Ação Recomendada**: O que o vendedor deveria fazer AGORA
-10. **Resumo**: Resumo executivo de 2-3 frases
+10. **Qualificação Automotiva**: Que carro o lead quer, como pretende pagar, se tem carro na troca
+11. **Resumo**: Resumo executivo de 2-3 frases
 
 Responda APENAS em JSON válido:
 {
@@ -303,10 +305,13 @@ Responda APENAS em JSON válido:
   "objections": ["lista de objeções"],
   "interests": ["lista de interesses"],
   "questions_unanswered": ["perguntas sem resposta"],
-  "products_mentioned": ["produtos mencionados"],
+  "vehicles_mentioned": ["veículos/modelos mencionados"],
   "urgency_detected": true/false,
   "key_insights": ["insight 1", "insight 2", ...],
   "recommended_action": "ação recomendada detalhada",
+  "veiculo_interesse": "Carro que o lead quer comprar (modelo/ano/faixa) ou null",
+  "forma_pagamento": "a_vista | financiamento | consorcio | desconhecido",
+  "tem_troca": true/false,
   "summary": "resumo completo do lead"
 }`;
 
@@ -379,12 +384,13 @@ Analise todos esses dados e gere insights acionáveis.`;
       );
     }
 
-    // Salvar análise no lead
+    // Salvar análise no lead + qualificação automotiva (vehicle_of_interest, negotiation_type, intent_*)
     const { error: updateError } = await supabase
       .from("leads")
       .update({
         ai_conversation_insights: analysis,
         ai_last_analysis_at: new Date().toISOString(),
+        ...automotiveExtractionToUpdates(analysis),
       })
       .eq("id", resolvedLeadId);
 

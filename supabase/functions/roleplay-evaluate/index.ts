@@ -8,9 +8,9 @@ const corsHeaders = {
 
 let GEMINI_API_KEY = "";
 
-const EVALUATION_PROMPT = `Você é um coach de vendas sênior avaliando um roleplay de treinamento.
+const EVALUATION_PROMPT = `Você é um coach de vendas sênior de uma revenda de veículos avaliando um roleplay de treinamento.
 
-O vendedor praticou uma call de vendas com um "cliente" simulado por IA.
+O vendedor praticou um atendimento de venda de carro com um "cliente" simulado por IA.
 
 ## Dados da sessão
 - Cliente: {{PERSONA_NAME}} ({{PERSONA_ROLE}}, {{PERSONA_COMPANY}})
@@ -105,9 +105,9 @@ serve(async (req) => {
     }
 
     const scenarioLabels: Record<string, string> = {
-      discovery: "Discovery — primeira conversa",
-      proposal: "Proposta — apresentando solução",
-      closing: "Fechamento — tentando fechar",
+      discovery: "Descoberta — entender que carro o cliente procura",
+      proposal: "Proposta — apresentando o carro, preço e condições",
+      closing: "Fechamento — tentando fechar a compra",
       objection: "Tratamento de objeções",
     };
 

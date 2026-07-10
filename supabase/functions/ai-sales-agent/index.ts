@@ -2231,8 +2231,8 @@ ${agent.personality_traits.join(', ')}
 15. CUMPRIMENTOS CURTOS ("Olá", "Oi", "Tudo bem", etc): NUNCA responda com frases genéricas tipo "que bom que respondeu", "fico feliz", "que legal". Vá DIRETO ao ponto — cumprimente brevemente e faça a próxima pergunta da sequência. Exemplo correto: "e aí.. tudo certo? me conta.. vc já tem um negócio próprio?" Exemplo ERRADO: "oi! que bom que respondeu 😄 me conta.."
 16. NUNCA USE EMOJI — sem exceção. Sem 😄, sem 🤙, sem nenhum. Isso é regra absoluta.
 17. NUNCA REPITA PERGUNTA JÁ FEITA — analise o histórico. Se você (ou outro vendedor) já perguntou algo e o lead NÃO respondeu, reformule de outro jeito. Se o lead JÁ respondeu, avance para a próxima etapa. NUNCA copie/cole a mesma pergunta.
-11. QUALIFICAÇÃO COM FATURAMENTO MÍNIMO: Para agendar reunião, o lead precisa faturar pelo menos R$30.000/mês. Pergunte o faturamento de forma natural (ex: "como tá o faturamento da empresa hoje?"). Se o lead faturar MENOS de 30k, NÃO agende reunião — agradeça o interesse, diga que no momento o programa é voltado para empresas a partir de 30k de faturamento, mas que você pode indicar conteúdos gratuitos pra ele. Seja empático e positivo, nunca faça o lead se sentir rejeitado. Se o lead não quiser informar o faturamento, pergunte de forma leve no máximo 2 vezes — se ainda não responder, prossiga com o agendamento. Você também precisa do nome da empresa (obrigatório) + pelo menos UM de: quantidade de funcionários OU faturamento mensal. AGENDAMENTO TEM PRIORIDADE sobre qualificação excessiva: se o lead insistir em agendar ou disser "na call passo", RESPEITE e agende imediatamente. Se check_availability retornar erro pedindo qualificação, chame qualify_lead com o que você sabe (use company_name='Não informado' se preciso) e tente novamente. NUNCA repita a mesma pergunta de qualificação mais de 1 vez se o lead já demonstrou vontade de agendar.
-14. ATUALIZAÇÃO CONTÍNUA DE DADOS: SEMPRE que o lead mencionar dados novos durante a conversa (faturamento, número de funcionários, desafios, empresa, orçamento, quem decide, prazo), chame qualify_lead IMEDIATAMENTE com esses dados — MESMO que você já tenha chamado qualify_lead antes. Cada nova informação deve ser salva no momento em que aparece. Exemplos: se o lead disse "faturo 40k por mês" → chame qualify_lead com monthly_revenue. Se disse "tenho 4 pessoas no time" → chame qualify_lead com employee_count. NÃO espere acumular dados — salve cada informação assim que o lead compartilhar.
+11. AGENDAMENTO SEM BARREIRAS: Numa revenda de veículos, colocar o cliente na loja pra ver/dirigir o carro é o objetivo. NÃO exija renda, empresa ou "porte" pra agendar — se o cliente quer conhecer um carro ou fazer test drive, agende. Colete o veículo de interesse e a forma de pagamento de forma natural durante a conversa (ajuda o vendedor a preparar a negociação), mas isso NUNCA é pré-requisito pra marcar a visita. Se o cliente insistir em agendar, RESPEITE e agende imediatamente.
+14. ATUALIZAÇÃO CONTÍNUA DE DADOS: SEMPRE que o lead revelar algo sobre a compra durante a conversa (carro de interesse, forma de pagamento, se tem carro na troca, urgência, quem decide), chame update_lead IMEDIATAMENTE com esses dados — MESMO que já tenha chamado antes. Cada nova informação deve ser salva no momento em que aparece. Exemplos: "quero um Corolla 2020" → update_lead com vehicle_of_interest. "vou financiar" → forma de pagamento. "tenho um Gol pra dar na troca" → intent_trade_in. NÃO espere acumular dados — salve cada informação assim que o lead compartilhar.
 13. AGENDAMENTO OBRIGATÓRIO: SEMPRE chame check_availability ANTES de schedule_meeting para verificar horários livres. Cada reunião dura 45 minutos. NUNCA agende em horário que não esteja nos free_slots retornados. Se o lead sugerir um horário ocupado, informe que aquele horário não está disponível e ofereça os mais próximos.
 12. CONFIRMAÇÃO DE CALLS: Quando o lead responder a um lembrete de call/reunião:
    - Se confirmar ("sim", "confirmado", "tamo junto", "ok", "pode ser") → Use a tool confirm_meeting
@@ -2613,100 +2613,8 @@ async function executeTool(
           return { success: false, error: 'Data não informada' };
         }
 
-        // GATE: Verificar qualificação mínima antes de permitir agendamento
-        // Regra: nome da empresa obrigatório + faturamento mensal >= 30k
-        // Challenges sozinho NÃO basta — precisamos de dados de porte (faturamento ou funcionários)
-        // Porém se o lead insistir em agendar, priorizar agendamento
-        const hasCompanyName = !!lead.company_name;
-        const hasAnyQualData = !!(lead.employee_count || lead.monthly_revenue || lead.challenges || (lead.context && lead.context.length > 20));
-
-        if (!hasCompanyName && !hasAnyQualData) {
-          // Sem NENHUM dado — pedir empresa uma vez, mas liberar na próxima
-          const gateKey = `_check_avail_gate_rejections`;
-          lead[gateKey] = (lead[gateKey] || 0) + 1;
-          if (lead[gateKey] <= 1) {
-            return {
-              success: false,
-              error: `[INTERNAL - NÃO FALE ISSO PRO LEAD] Sem dados do lead. Chame qualify_lead com company_name e qualquer info que o lead já tenha mencionado (faturamento, desafios, etc). Depois chame check_availability novamente. Se o lead insistir em agendar sem dar dados, AGENDE mesmo assim — use qualify_lead com company_name='Não informado' pra liberar.`
-            };
-          }
-          // 2ª tentativa — liberar sem dados
-          console.log(`⚠️ Gate de qualificação liberado na 2ª tentativa — priorizando agendamento`);
-        }
-
-        // GATE: Faturamento mínimo de 30k para agendar reunião
-        const MIN_REVENUE_FOR_MEETING = 30000;
-        const hasRevenue = !!lead.monthly_revenue;
-        if (hasRevenue) {
-          // Parse revenue — suporta ranges como "20k-24k" (pega o primeiro valor)
-          const rawRevenue = String(lead.monthly_revenue).toLowerCase();
-          // Extrair primeiro número com possível sufixo k/mil (ex: "20k-24k" → "20k", "150mil" → "150mil")
-          const firstMatch = rawRevenue.match(/(\d+[.,]?\d*)\s*(k|mil)?/);
-          let revenueNum = 0;
-          if (firstMatch) {
-            const numPart = parseFloat(firstMatch[1].replace(',', '.')) || 0;
-            const suffix = firstMatch[2];
-            if (suffix === 'k' || suffix === 'mil') {
-              revenueNum = numPart * 1000;
-            } else {
-              revenueNum = numPart;
-            }
-          }
-          if (revenueNum > 0 && revenueNum < MIN_REVENUE_FOR_MEETING) {
-            // Checar se já perguntamos sobre outras frentes de negócio
-            // Busca no context do lead E no histórico de conversa (caso LLM não tenha salvo no context)
-            const contextLower = (lead.context || '').toLowerCase();
-            const challengesLower = (lead.challenges || '').toLowerCase();
-            const alreadyAskedOtherBiz = contextLower.includes('outras frentes') ||
-                                          contextLower.includes('outro negócio') ||
-                                          contextLower.includes('outros negócios') ||
-                                          contextLower.includes('só a ') ||
-                                          contextLower.includes('único negócio') ||
-                                          challengesLower.includes('outras frentes');
-
-            // Também checar no histórico de conversa recente (fallback se LLM não salvou no context)
-            if (!alreadyAskedOtherBiz) {
-              const { data: recentMsgs } = await supabase
-                .from('whatsapp_messages')
-                .select('content, is_from_me')
-                .eq('lead_id', lead.id)
-                .order('sent_at', { ascending: false })
-                .limit(10);
-              const conversationText = (recentMsgs || []).map((m: any) => (m.content || '').toLowerCase()).join(' ');
-              const askedInConvo = conversationText.includes('outras frentes') ||
-                                   conversationText.includes('outro negócio') ||
-                                   conversationText.includes('único negócio') ||
-                                   conversationText.includes('é o único que vc toca');
-
-              if (!askedInConvo) {
-                // Primeira vez: perguntar se tem outros negócios antes de descartar
-                return {
-                  success: false,
-                  error: `[INTERNAL - NÃO FALE ISSO PRO LEAD] O faturamento informado (${lead.monthly_revenue}) está abaixo de R$30k/mês. MAS antes de descartar, PERGUNTE se esse é o único negócio que o lead toca hoje ou se tem outras frentes/serviços. Muita gente tem um negócio menor mas toca outros projetos paralelos que somam um faturamento muito maior. Faça a pergunta de forma natural e consultiva, tipo: "me conta uma coisa.. esse [negócio do lead] é o único que vc toca hoje ou tem outras frentes também?" — Se o lead responder que tem outros negócios, chame qualify_lead pra atualizar o faturamento total e tente check_availability novamente. IMPORTANTE: Antes de chamar check_availability de novo, chame qualify_lead com context contendo "perguntou sobre outras frentes" pra não repetir a pergunta.`
-                };
-              }
-            }
-
-            // Já perguntou e o faturamento total continua baixo
-            // Não agendar, mas dar uma saída elegante pro lead
-            // IMPORTANTE: não usar palavras que ativem o stripInternalThinking
-            // (faturamento abaixo, abaixo do mínimo, desqualificação, etc)
-
-            // Montar mensagem de saída diretamente — sem depender do LLM interpretar
-            const leadFirstName = (lead.name || '').split(' ')[0].toLowerCase();
-            const softDeclineMessage = `${leadFirstName}.. que legal que vc tá buscando isso, de verdade\n\nolha.. nosso programa envolve um investimento a partir de R$2.500/mês em parcelas\n\ncom IA, um funcionário faz o trabalho de vários.. mas pra isso se pagar rápido, faz mais sentido quando a empresa já tá num momento de faturamento mais alto\n\npelo que vc me contou, talvez não seja o timing ideal ainda.. mas quando a ${lead.company_name || 'empresa'} crescer mais, vai fazer MUITO sentido\n\nfico à disposição pra quando for o momento 🤙`;
-
-            // Enviar direto sem passar pelo LLM — evita filtros e garante a mensagem
-            return {
-              success: true,
-              result: {
-                available: false,
-                reason: 'low_revenue',
-                direct_message: softDeclineMessage,
-              }
-            };
-          }
-        }
+        // Sem gate de faturamento: numa revenda de veículos, agendar visita/test drive
+        // é o objetivo — não barramos por porte/renda. Basta ter data válida.
 
         // Find sales rep: from args, from lead's deals, or fallback
         let salesRepId = args.sales_rep_id;

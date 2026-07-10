@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Calendar, Clock, Building2, User, Mail, Phone, Check, ArrowLeft, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, Car, User, Mail, Phone, Check, ArrowLeft, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
@@ -16,12 +16,11 @@ function maskPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-const REVENUE_OPTIONS = [
-  { label: "Até 30k", value: 25000 },
-  { label: "30k - 50k", value: 40000 },
-  { label: "50k - 100k", value: 75000 },
-  { label: "100k - 300k", value: 200000 },
-  { label: "300k+", value: 500000 },
+const NEGOTIATION_OPTIONS = [
+  { label: "À vista", value: "a_vista" },
+  { label: "Financiamento", value: "financiamento" },
+  { label: "Tenho carro na troca", value: "troca" },
+  { label: "Ainda não sei", value: "indefinido" },
 ];
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -30,7 +29,7 @@ const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Se
 type SlotDay = { date: string; slots: string[] };
 
 // Form fields in order
-const FIELDS = ["name", "email", "phone", "company", "revenue"] as const;
+const FIELDS = ["name", "email", "phone", "vehicle_interest", "negotiation"] as const;
 type FieldKey = typeof FIELDS[number];
 
 export default function BookMeeting() {
@@ -40,15 +39,15 @@ export default function BookMeeting() {
   const utmContent = searchParams.get("utm_content") || null;
   const evento = searchParams.get("evento") || null;
 
-  const [step, setStep] = useState<"form" | "calendar" | "waiting" | "done" | "already">("form");
+  const [step, setStep] = useState<"form" | "calendar" | "done" | "already">("form");
   const [fieldIndex, setFieldIndex] = useState(0);
 
   // Form
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [company, setCompany] = useState("");
-  const [revenue, setRevenue] = useState<number | null>(null);
+  const [vehicleInterest, setVehicleInterest] = useState("");
+  const [negotiation, setNegotiation] = useState<string | null>(null);
 
   // Calendar
   const [days, setDays] = useState<SlotDay[]>([]);
@@ -58,7 +57,6 @@ export default function BookMeeting() {
   const [booking, setBooking] = useState(false);
   const [bookingResult, setBookingResult] = useState<{ meeting_link?: string; scheduled_at?: string } | null>(null);
 
-  const qualifies = revenue !== null && revenue > 50000;
   const currentField = FIELDS[fieldIndex];
 
   const isFieldValid = (field: FieldKey) => {
@@ -66,8 +64,8 @@ export default function BookMeeting() {
       case "name": return name.trim().length >= 2;
       case "email": return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       case "phone": return phone.replace(/\D/g, "").length >= 10;
-      case "company": return company.trim().length >= 2;
-      case "revenue": return revenue !== null;
+      case "vehicle_interest": return vehicleInterest.trim().length >= 2;
+      case "negotiation": return negotiation !== null;
     }
   };
 
@@ -96,13 +94,8 @@ export default function BookMeeting() {
     if (fieldIndex < FIELDS.length - 1) {
       setFieldIndex(fieldIndex + 1);
     } else if (allValid) {
-      if (qualifies) setStep("calendar");
-      else {
-        setBooking(true);
-        supabase.functions.invoke("book-meeting", {
-          body: { action: "book", name, email, phone, company, revenue, utm_source: utmSource, utm_campaign: utmCampaign, utm_content: utmContent, evento },
-        }).finally(() => { setBooking(false); setStep("waiting"); });
-      }
+      // Sem gate de qualificação — todo lead pode escolher horário pra visita/test drive
+      setStep("calendar");
     }
   };
 
@@ -117,7 +110,7 @@ export default function BookMeeting() {
     const dt = new Date(`${selectedDate}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00-03:00`);
     try {
       const { data } = await supabase.functions.invoke("book-meeting", {
-        body: { action: "book", name, email, phone, company, revenue, slot_datetime: dt.toISOString(), utm_source: utmSource, utm_campaign: utmCampaign, utm_content: utmContent, evento },
+        body: { action: "book", name, email, phone, vehicle_interest: vehicleInterest, negotiation, slot_datetime: dt.toISOString(), utm_source: utmSource, utm_campaign: utmCampaign, utm_content: utmContent, evento },
       });
       setBookingResult({ meeting_link: data?.meeting_link, scheduled_at: dt.toISOString() });
     } catch {}
@@ -133,13 +126,13 @@ export default function BookMeeting() {
     name: { label: "Qual o seu nome?", icon: User, placeholder: "Nome completo", type: "text" },
     email: { label: "Qual o seu email?", icon: Mail, placeholder: "seu@email.com", type: "email" },
     phone: { label: "Qual o seu WhatsApp?", icon: Phone, placeholder: "(11) 99999-9999", type: "tel" },
-    company: { label: "Qual a sua empresa?", icon: Building2, placeholder: "Nome da empresa", type: "text" },
-    revenue: { label: "Qual o faturamento mensal?", icon: Calendar, placeholder: "", type: "select" },
+    vehicle_interest: { label: "Qual carro você está procurando?", icon: Car, placeholder: "Ex: Corolla, HB20, SUV até 100k...", type: "text" },
+    negotiation: { label: "Como você pretende negociar?", icon: Car, placeholder: "", type: "select" },
   };
 
-  const getFieldValue = (f: FieldKey) => ({ name, email, phone, company, revenue: "" }[f]);
+  const getFieldValue = (f: FieldKey) => ({ name, email, phone, vehicle_interest: vehicleInterest, negotiation: "" }[f]);
   const setFieldValue = (f: FieldKey, v: string) => {
-    switch (f) { case "name": setName(v); break; case "email": setEmail(v); break; case "phone": setPhone(maskPhone(v)); break; case "company": setCompany(v); break; }
+    switch (f) { case "name": setName(v); break; case "email": setEmail(v); break; case "phone": setPhone(maskPhone(v)); break; case "vehicle_interest": setVehicleInterest(v); break; }
   };
 
   return (
@@ -153,8 +146,8 @@ export default function BookMeeting() {
           </div>
           {step === "form" && fieldIndex === 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-              <h1 className="text-xl font-bold text-gray-900 mb-1">Agende sua reunião com nosso especialista</h1>
-              <p className="text-sm text-gray-500">Vamos entender seu negócio e mostrar como IA pode te ajudar</p>
+              <h1 className="text-xl font-bold text-gray-900 mb-1">Agende sua visita ou test drive</h1>
+              <p className="text-sm text-gray-500">Conte o que você procura e escolha o melhor horário pra conhecer seu próximo carro</p>
             </motion.div>
           )}
         </motion.div>
@@ -172,12 +165,12 @@ export default function BookMeeting() {
                 <p className="text-xs text-gray-400 mb-1">{fieldIndex + 1} de {FIELDS.length}</p>
                 <h2 className="text-lg font-bold text-gray-900 mb-4">{fieldConfig[currentField].label}</h2>
 
-                {currentField === "revenue" ? (
+                {currentField === "negotiation" ? (
                   <div className="grid grid-cols-2 gap-2">
-                    {REVENUE_OPTIONS.map(opt => (
-                      <button key={opt.value} onClick={() => setRevenue(opt.value)}
+                    {NEGOTIATION_OPTIONS.map(opt => (
+                      <button key={opt.value} onClick={() => setNegotiation(opt.value)}
                         className={cn("py-3 px-3 rounded-xl text-sm font-medium border-2 transition-all duration-200",
-                          revenue === opt.value ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm" : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
+                          negotiation === opt.value ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm" : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200"
                         )}>{opt.label}</button>
                     ))}
                   </div>
@@ -316,21 +309,6 @@ export default function BookMeeting() {
             </motion.div>
           )}
 
-          {/* ── WAITING (< 50k) ── */}
-          {step === "waiting" && (
-            <motion.div key="waiting" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, type: "spring" }}>
-              <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 p-8 text-center space-y-4">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
-                </motion.div>
-                <h2 className="text-xl font-bold text-gray-900">Recebemos seu interesse!</h2>
-                <p className="text-sm text-gray-500 leading-relaxed">Nossa equipe vai entrar em contato para confirmar o melhor horário pra você.</p>
-                <div className="bg-orange-50 rounded-xl p-4"><p className="text-sm text-orange-700 font-medium">Fique atento ao seu WhatsApp!</p></div>
-              </div>
-            </motion.div>
-          )}
-
           {/* ── ALREADY BOOKED ── */}
           {step === "already" && (
             <motion.div key="already" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, type: "spring" }}>
@@ -339,7 +317,7 @@ export default function BookMeeting() {
                   className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
                   <Calendar className="w-8 h-8 text-blue-600" />
                 </motion.div>
-                <h2 className="text-xl font-bold text-gray-900">Você já tem reunião agendada!</h2>
+                <h2 className="text-xl font-bold text-gray-900">Você já tem uma visita agendada!</h2>
                 {bookingResult?.scheduled_at && (
                   <div className="bg-blue-50 rounded-xl p-4 space-y-2">
                     <div className="flex items-center justify-center gap-2 text-gray-700">
@@ -365,7 +343,7 @@ export default function BookMeeting() {
                   className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8 text-green-600" />
                 </motion.div>
-                <h2 className="text-xl font-bold text-gray-900">Reunião confirmada!</h2>
+                <h2 className="text-xl font-bold text-gray-900">Agendamento confirmado!</h2>
                 {bookingResult?.scheduled_at && (
                   <div className="bg-gray-50 rounded-xl p-4 space-y-2">
                     <div className="flex items-center justify-center gap-2 text-gray-700">
@@ -378,13 +356,13 @@ export default function BookMeeting() {
                     </div>
                   </div>
                 )}
-                <p className="text-sm text-gray-500">Você receberá o link por <strong>WhatsApp</strong> e <strong>email</strong>.</p>
+                <p className="text-sm text-gray-500">Você receberá a confirmação por <strong>WhatsApp</strong> e <strong>email</strong>.</p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <p className="text-center text-[10px] text-gray-300 mt-6">IA na Prática — Equipe do Frank Costa</p>
+        <p className="text-center text-[10px] text-gray-300 mt-6">Agende sua visita — resposta rápida pelo WhatsApp</p>
       </div>
     </div>
   );

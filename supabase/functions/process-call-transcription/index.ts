@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.3.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { automotiveExtractionToUpdates } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,9 +13,9 @@ let OPENAI_API_KEY = "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const systemPrompt = `Você é um especialista em análise de calls comerciais B2B.
+const systemPrompt = `Você é um especialista em análise de calls de uma revenda de veículos.
 
-Analise a transcrição desta call e extraia informações estruturadas para ajudar o time de vendas.
+Analise a transcrição desta call e extraia informações estruturadas para ajudar o time de vendas a fechar a compra do carro.
 
 IMPORTANTE:
 - Extraia APENAS informações que foram explicitamente mencionadas na transcrição
@@ -32,12 +33,16 @@ Retorne um JSON válido com a seguinte estrutura:
   "objecoes": ["Objeção identificada 1", "Objeção identificada 2"],
   "proximos_passos": ["Próximo passo sugerido 1", "Próximo passo sugerido 2"],
   "compromissos": ["Compromisso assumido pelo lead ou vendedor"],
-  "produtos_discutidos": ["Produto 1", "Produto 2"],
+  "veiculos_discutidos": ["Veículo/modelo 1", "Veículo/modelo 2"],
+  "veiculo_interesse": "Carro que o cliente quer comprar (modelo/ano/faixa de preço) ou null",
+  "forma_pagamento": "a_vista | financiamento | consorcio | desconhecido",
+  "tem_troca": true/false,
+  "veiculo_troca": "Carro que o cliente quer dar na troca, se houver, ou null",
   "bant_updates": {
-    "budget": "Orçamento mencionado ou null",
-    "authority": "Quem decide ou null",
-    "need": "Necessidade identificada ou null",
-    "timeline": "Prazo mencionado ou null"
+    "budget": "Forma de pagamento / capacidade financeira (à vista, financiamento, entrada) ou null",
+    "authority": "Quem decide a compra (o próprio, cônjuge, sócio) ou null",
+    "need": "Veículo/uso que o cliente precisa (família, trabalho, primeiro carro) ou null",
+    "timeline": "Urgência/prazo pra comprar ou null"
   },
   "score_adjustment": número de -20 a +20 baseado no tom da call
 }
@@ -174,13 +179,16 @@ Analise a transcrição acima e gere o JSON estruturado.`,
       leadUpdates.sales_score = newScore;
     }
 
-    // Atualizar BANT se houver novas informações
+    // Atualizar BANT (texto legível) se houver novas informações
     if (analysis.bant_updates) {
       if (analysis.bant_updates.budget) leadUpdates.bant_budget = analysis.bant_updates.budget;
       if (analysis.bant_updates.authority) leadUpdates.bant_authority = analysis.bant_updates.authority;
       if (analysis.bant_updates.need) leadUpdates.bant_need = analysis.bant_updates.need;
       if (analysis.bant_updates.timeline) leadUpdates.bant_timeline = analysis.bant_updates.timeline;
     }
+
+    // Qualificação automotiva → campos canônicos (vehicle_of_interest, negotiation_type, intent_*)
+    Object.assign(leadUpdates, automotiveExtractionToUpdates(analysis));
 
     // Mesclar análise com insights existentes
     const existingInsights = lead.ai_conversation_insights || {};

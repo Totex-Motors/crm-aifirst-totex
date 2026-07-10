@@ -48,9 +48,15 @@ export interface InboxConversation {
   handled_reason: string | null;
   // Tarefas pendentes
   pending_tasks_count: number;
-  // Campos B2B (empresa)
+  // Campos B2B (empresa) — legado
   lead_company_name: string | null;
   lead_job_title: string | null;
+  // Qualificação automotiva (intenção de compra)
+  lead_vehicle_of_interest: Record<string, unknown> | null;
+  lead_negotiation_type: string | null;
+  lead_intent_trade_in: boolean | null;
+  lead_intent_cash: boolean | null;
+  lead_intent_finance_no_entry: boolean | null;
   // Follow-up pendente (última msg nossa em dia anterior, sem resposta)
   needs_follow_up: boolean;
   // Status do agente IA (da tabela ai_agent_conversations)
