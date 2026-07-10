@@ -40,6 +40,7 @@ import {
   AlertTriangle,
   Check,
   Building2,
+  Car,
   UserPlus,
   User,
   Unlink,
@@ -151,7 +152,7 @@ export function MergeLeadsModal({ open, onOpenChange, lead }: MergeLeadsModalPro
     name: "",
     phone: "",
     email: "",
-    company_name: "",
+    vehicle_interest: "",
     job_title: "",
     relationship: "responsavel",
     notes: "",
@@ -196,7 +197,9 @@ export function MergeLeadsModal({ open, onOpenChange, lead }: MergeLeadsModalPro
           name: newLeadForm.name,
           phone: newLeadForm.phone || null,
           email: newLeadForm.email || null,
-          company_name: newLeadForm.company_name || lead.company_name || null,
+          vehicle_of_interest: newLeadForm.vehicle_interest?.trim()
+            ? { raw: newLeadForm.vehicle_interest.trim() }
+            : null,
           job_title: newLeadForm.job_title || null,
           utm_source: newLeadForm.relationship === "indicacao" ? "indicacao" : undefined,
           sales_stage: lead.sales_stage || "new",
@@ -289,7 +292,7 @@ export function MergeLeadsModal({ open, onOpenChange, lead }: MergeLeadsModalPro
     setMode("merge");
     setSearchQuery("");
     setSelectedLead(null);
-    setNewLeadForm({ name: "", phone: "", email: "", company_name: "", job_title: "", relationship: "responsavel", notes: "" });
+    setNewLeadForm({ name: "", phone: "", email: "", vehicle_interest: "", job_title: "", relationship: "responsavel", notes: "" });
   };
 
   const displayLeads = searchQuery.length >= 2 ? searchResults : duplicates;
@@ -634,13 +637,13 @@ export function MergeLeadsModal({ open, onOpenChange, lead }: MergeLeadsModalPro
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Empresa</Label>
+                      <Label className="text-xs">Veículo de interesse</Label>
                       <div className="relative">
-                        <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Car className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                         <Input
-                          placeholder="Nome da empresa"
-                          value={newLeadForm.company_name}
-                          onChange={(e) => setNewLeadForm({ ...newLeadForm, company_name: e.target.value })}
+                          placeholder="Ex: Corolla 2020"
+                          value={newLeadForm.vehicle_interest}
+                          onChange={(e) => setNewLeadForm({ ...newLeadForm, vehicle_interest: e.target.value })}
                           className="h-9 pl-8"
                         />
                       </div>

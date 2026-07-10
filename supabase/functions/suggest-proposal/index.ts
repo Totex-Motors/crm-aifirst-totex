@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { leadAutomotiveContext } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,6 +134,7 @@ Deno.serve(async (req: Request) => {
           need: lead.bant_need,
           timeline: lead.bant_timeline,
         },
+        qualificacao_automotiva: leadAutomotiveContext(lead),
         utm_source: lead.utm_source,
       },
       playbook_context: playbook_context || null,
@@ -167,32 +169,33 @@ Deno.serve(async (req: Request) => {
 
     // Construir contexto do playbook
     const playbookSection = playbook_context
-      ? `\n\n**PLAYBOOK DE VENDAS:**\n${playbook_context}\n\nUse este contexto para escolher o produto mais adequado e argumentos de venda alinhados à estratégia da empresa.`
+      ? `\n\n**PLAYBOOK DE VENDAS:**\n${playbook_context}\n\nUse este contexto para escolher o veículo mais adequado e argumentos de venda alinhados à estratégia da loja.`
       : "";
 
-    const systemPrompt = `Você é um especialista em vendas consultivas e precificação inteligente.${playbookSection}
+    const systemPrompt = `Você é um especialista em vendas de veículos e precificação inteligente.${playbookSection}
 
-Analise o perfil do lead e sugira a MELHOR PROPOSTA COMERCIAL para maximizar a chance de conversão.
+Analise o perfil do lead e sugira a MELHOR PROPOSTA COMERCIAL (veículo + preço + condições) para maximizar a chance de fechar a compra.
 
 **FATORES A CONSIDERAR:**
-1. Score e qualificação BANT do lead
+1. Score e qualificação do lead (veículo de interesse, forma de pagamento, se tem carro na troca) — ver qualificacao_automotiva
 2. Objeções identificadas nas conversas
-3. Interesse demonstrado em produtos específicos
+3. Interesse demonstrado em veículos/modelos específicos
 4. Benchmark de negociações similares que converteram
 5. Margem de negociação segura
 
 **REGRAS:**
 - Desconto máximo permitido: 20%
-- Se lead tem budget=false, sugira parcelamento maior
-- Se tem authority=false, sugira material para apresentar ao decisor
-- Se tem urgency, use isso como argumento
+- Se o lead vai financiar, foque na parcela que cabe no bolso dele
+- Se tem carro na troca, use o valor da troca como argumento de negociação
+- Se decide junto com outra pessoa (cônjuge/sócio), sugira trazê-la pra ver o carro
+- Se tem urgência, use isso como argumento
 - Baseie-se nos benchmarks de conversão
 
 **FORMATO DE RESPOSTA (JSON):**
 {
   "recommended_product": {
-    "id": "id do produto recomendado",
-    "name": "nome do produto",
+    "id": "id do veículo recomendado",
+    "name": "nome/modelo do veículo",
     "original_price": valor original
   },
   "suggested_price": valor sugerido com desconto,

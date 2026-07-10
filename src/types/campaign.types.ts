@@ -132,6 +132,11 @@ export interface AudienceFilters {
   bant_authority?: boolean;
   bant_need?: boolean;
   bant_timeline?: boolean;
+  // Qualificação automotiva (intenção de compra)
+  intent_trade_in?: boolean;
+  intent_cash?: boolean;
+  intent_finance_no_entry?: boolean;
+  intent_buy_only?: boolean;
   exclude_campaign_days?: number;
   exclude_lead_ids?: string[];
 }

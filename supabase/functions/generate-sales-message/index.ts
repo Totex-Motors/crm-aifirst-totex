@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { leadAutomotiveContext } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -146,6 +147,7 @@ Deno.serve(async (req: Request) => {
         sentiment: conversationInsights.sentiment,
       } : null,
       products: products?.map((p: any) => ({ name: p.name, price: p.price })),
+      qualificacao_automotiva: leadAutomotiveContext(lead),
       custom_context,
       playbook_context: playbook_context || null,
     };
@@ -252,10 +254,10 @@ Deno.serve(async (req: Request) => {
 
     // Construir contexto do playbook
     const playbookSection = playbook_context
-      ? `\n\n**PLAYBOOK DE VENDAS:**\n${playbook_context}\n\nUse este contexto para personalizar a mensagem com os produtos, tom e argumentos corretos.`
+      ? `\n\n**PLAYBOOK DE VENDAS:**\n${playbook_context}\n\nUse este contexto para personalizar a mensagem com o veículo, tom e argumentos corretos.`
       : "";
 
-    const systemPrompt = `Você é um copywriter especialista em mensagens de WhatsApp para vendas.${playbookSection}
+    const systemPrompt = `Você é um copywriter especialista em mensagens de WhatsApp para uma revenda de veículos. Quando o lead tiver um veículo de interesse (em qualificacao_automotiva), referencie o carro e a forma de pagamento/troca de forma natural.${playbookSection}
 
 ${typePrompts[message_type]}
 
