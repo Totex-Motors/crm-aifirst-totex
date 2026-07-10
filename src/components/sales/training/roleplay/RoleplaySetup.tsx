@@ -33,9 +33,9 @@ const voices = [
 ];
 
 const scenarios = [
-  { id: 'discovery', label: 'Discovery', icon: Brain, description: 'Primeira conversa, entender necessidade' },
-  { id: 'proposal', label: 'Proposta', icon: DollarSign, description: 'Apresentar e defender proposta' },
-  { id: 'closing', label: 'Fechamento', icon: Zap, description: 'Fechar o deal' },
+  { id: 'discovery', label: 'Descoberta', icon: Brain, description: 'Primeira conversa, entender que carro o cliente procura' },
+  { id: 'proposal', label: 'Proposta', icon: DollarSign, description: 'Apresentar o carro, preço e condições' },
+  { id: 'closing', label: 'Fechamento', icon: Zap, description: 'Fechar a compra' },
   { id: 'objection', label: 'Objeções', icon: ShieldQuestion, description: 'Tratar resistências e dúvidas' },
 ];
 
@@ -70,8 +70,8 @@ export function RoleplaySetup({ onStart, isConnecting }: RoleplaySetupProps) {
       onStart(
         {
           name: customName.trim(),
-          role: customRole.trim() || 'Decisor',
-          company: customCompany.trim() || 'Empresa',
+          role: customRole.trim() || 'Comprador',
+          company: customCompany.trim() || 'Procurando um carro',
           context: customContext.trim(),
         },
         selectedScenario,
@@ -166,18 +166,18 @@ export function RoleplaySetup({ onStart, isConnecting }: RoleplaySetupProps) {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Cargo</label>
+              <label className="text-sm font-medium mb-1 block">Perfil</label>
               <Input
-                placeholder="Ex: CEO"
+                placeholder="Ex: Comprador apressado"
                 value={customRole}
                 onChange={(e) => setCustomRole(e.target.value)}
               />
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium mb-1 block">Empresa</label>
+            <label className="text-sm font-medium mb-1 block">O que ele procura</label>
             <Input
-              placeholder="Ex: TechCorp"
+              placeholder="Ex: SUV usado até 100k"
               value={customCompany}
               onChange={(e) => setCustomCompany(e.target.value)}
             />
@@ -187,7 +187,7 @@ export function RoleplaySetup({ onStart, isConnecting }: RoleplaySetupProps) {
               Briefing do cliente * <span className="text-muted-foreground font-normal">(personalidade, objeções, situação)</span>
             </label>
             <Textarea
-              placeholder="Descreva o perfil: como ele se comporta, quais objeções traz, o que já sabe sobre o produto, qual a situação da empresa dele..."
+              placeholder="Descreva o perfil: como se comporta, quais objeções traz, que carro procura, orçamento, se tem carro na troca, forma de pagamento..."
               value={customContext}
               onChange={(e) => setCustomContext(e.target.value)}
               rows={5}
