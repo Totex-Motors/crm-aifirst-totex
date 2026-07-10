@@ -11,9 +11,7 @@ import {
   Reply,
   Flame,
   Zap,
-  Building2,
   Bot,
-  DollarSign,
   UserCheck,
   Car,
 } from "lucide-react";
@@ -65,11 +63,7 @@ export function SalesConversationRow({
   const isHotLead = leadScore && leadScore >= 70;
   const isWarmLead = leadScore && leadScore >= 40 && leadScore < 70;
 
-  // Dados B2B
-  const companyName = (conv as any).lead_company_name || (conv as any).company_name;
-  const jobTitle = (conv as any).lead_job_title || (conv as any).job_title;
-  const monthlyRevenue = conv.lead_monthly_revenue || (conv as any).monthly_revenue;
-  const employeeCount = conv.lead_employee_count || (conv as any).employee_count;
+  // Qualificação automotiva
   const vehicleLabel = getVehicleLabel((conv as any).lead_vehicle_of_interest || (conv as any).vehicle_of_interest);
 
   // Responsável (vendedor atribuído ao lead)
@@ -192,21 +186,10 @@ export function SalesConversationRow({
               </span>
             )}
           </div>
-          {companyName && (
+          {vehicleLabel && (
             <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-              <Building2 className="h-3 w-3 shrink-0" />
-              <span className="truncate">{companyName}</span>
-            </p>
-          )}
-          {(monthlyRevenue || employeeCount) && (
-            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-              {monthlyRevenue ? (
-                <span className="text-green-600 dark:text-green-400 font-medium">
-                  <DollarSign className="h-3 w-3 inline shrink-0" />R${monthlyRevenue}
-                </span>
-              ) : employeeCount ? (
-                <span className="opacity-70">{employeeCount} funcionários</span>
-              ) : null}
+              <Car className="h-3 w-3 shrink-0 text-blue-500" />
+              <span className="truncate">{vehicleLabel}</span>
             </p>
           )}
         </div>

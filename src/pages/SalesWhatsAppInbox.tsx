@@ -70,7 +70,7 @@ import {
   Video,
   MoreHorizontal,
   Filter,
-  DollarSign,
+  Car,
   X,
 } from "lucide-react";
 import {
@@ -960,14 +960,14 @@ const SalesWhatsAppInbox = () => {
                       ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
                       : "border-border/60 bg-muted/30 hover:bg-muted/60"
                   )}>
-                    <DollarSign className="h-3 w-3 shrink-0" />
+                    <Car className="h-3 w-3 shrink-0" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Qualificação</SelectItem>
-                    <SelectItem value="with_revenue">Com faturamento</SelectItem>
-                    <SelectItem value="with_company">Com empresa</SelectItem>
-                    <SelectItem value="with_employees">Com funcionários</SelectItem>
+                    <SelectItem value="with_vehicle">Com veículo de interesse</SelectItem>
+                    <SelectItem value="with_trade">Com carro na troca</SelectItem>
+                    <SelectItem value="with_payment">Com forma de pagamento</SelectItem>
                     <SelectItem value="qualified">Qualificado completo</SelectItem>
                     <SelectItem value="no_data">Sem dados</SelectItem>
                   </SelectContent>
@@ -1037,14 +1037,15 @@ const SalesWhatsAppInbox = () => {
                   if (agentFilter === "error" && (!conv.lead_id || !agentErrorLeadIds.has(conv.lead_id))) return false;
                   // Filtro de qualificação
                   if (qualFilter !== "all") {
-                    const rev = (conv as any).monthly_revenue || conv.lead_monthly_revenue;
-                    const emp = (conv as any).employee_count || conv.lead_employee_count;
-                    const comp = (conv as any).company_name || (conv as any).lead_company_name;
-                    if (qualFilter === "with_revenue" && !rev) return false;
-                    if (qualFilter === "with_company" && !comp) return false;
-                    if (qualFilter === "with_employees" && !emp) return false;
-                    if (qualFilter === "qualified" && (!comp || !rev || !(conv as any).lead_challenges)) return false;
-                    if (qualFilter === "no_data" && (comp || rev || emp)) return false;
+                    const voi = (conv as any).lead_vehicle_of_interest;
+                    const hasVehicle = !!voi && (Array.isArray(voi) ? voi.length > 0 : Object.keys(voi).length > 0);
+                    const hasTrade = !!(conv as any).lead_intent_trade_in;
+                    const hasPayment = !!((conv as any).lead_intent_cash || (conv as any).lead_intent_finance_no_entry || (conv as any).lead_negotiation_type);
+                    if (qualFilter === "with_vehicle" && !hasVehicle) return false;
+                    if (qualFilter === "with_trade" && !hasTrade) return false;
+                    if (qualFilter === "with_payment" && !hasPayment) return false;
+                    if (qualFilter === "qualified" && (!hasVehicle || !hasPayment)) return false;
+                    if (qualFilter === "no_data" && (hasVehicle || hasTrade || hasPayment)) return false;
                   }
                   return true;
                 });

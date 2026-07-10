@@ -297,8 +297,8 @@ interface BookPayload {
   name: string;
   email: string;
   phone: string;
-  company: string;
-  revenue: number;
+  vehicle_interest?: string;
+  negotiation?: string;
   slot_datetime?: string;
   utm_source?: string;
   utm_campaign?: string;
@@ -306,8 +306,25 @@ interface BookPayload {
   evento?: string;
 }
 
+// Mapeia a forma de negociação escolhida no formulário para as flags de intenção automotiva
+function negotiationToIntents(negotiation?: string): Record<string, boolean> {
+  switch (negotiation) {
+    case "a_vista": return { intent_cash: true };
+    case "financiamento": return { intent_finance_no_entry: true };
+    case "troca": return { intent_trade_in: true };
+    default: return {};
+  }
+}
+
+const NEGOTIATION_LABELS: Record<string, string> = {
+  a_vista: "À vista",
+  financiamento: "Financiamento",
+  troca: "Tem carro na troca",
+  indefinido: "Ainda não definiu",
+};
+
 async function handleBook(supabase: any, payload: BookPayload) {
-  const { name, email, phone, company, revenue, slot_datetime, utm_source, utm_campaign, utm_content, evento } = payload;
+  const { name, email, phone, vehicle_interest, negotiation, slot_datetime, utm_source, utm_campaign, utm_content, evento } = payload;
   const finalUtmSource = utm_source || UTM_SOURCE;
   const finalUtmCampaign = utm_campaign || UTM_CAMPAIGN;
 
@@ -358,8 +375,6 @@ async function handleBook(supabase: any, payload: BookPayload) {
         name,
         email: email?.toLowerCase().trim() || null,
         phone: cleanPhone,
-        company_name: company || null,
-        monthly_revenue: revenue || null,
         utm_source: finalUtmSource,
         utm_campaign: finalUtmCampaign,
       })
@@ -370,25 +385,27 @@ async function handleBook(supabase: any, payload: BookPayload) {
     console.log(`[book-meeting] Created new lead: ${lead.id}`);
   }
 
-  // 3. Update lead with latest info
+  // 3. Update lead with latest info + qualificação automotiva
   const updatePayload: any = {};
   if (name) updatePayload.name = name;
   if (email) updatePayload.email = email.toLowerCase().trim();
-  if (company) updatePayload.company_name = company;
-  if (revenue !== undefined && revenue !== null) {
-    // Formatar faturamento como texto legível (sempre sobrescreve — dado mais recente)
-    const revenueText = revenue >= 1000000
-      ? `R$ ${(revenue/1000000).toFixed(1).replace('.0', '')}M/mês`
-      : `R$ ${(revenue/1000).toFixed(0)}k/mês`;
-    updatePayload.monthly_revenue = revenueText;
-    updatePayload.bant_budget = revenue >= 50000 ? `Faturamento informado: ${revenueText} (via formulário agendamento)` : null;
+
+  // Veículo de interesse informado no formulário
+  if (vehicle_interest && vehicle_interest.trim()) {
+    updatePayload.vehicle_of_interest = { raw: vehicle_interest.trim() };
   }
-  // BANT: Timeline = agendou pelo webinar (demonstra urgência)
+  // Forma de negociação → tipo + flags de intenção
+  if (negotiation) {
+    updatePayload.negotiation_type = NEGOTIATION_LABELS[negotiation] || negotiation;
+    Object.assign(updatePayload, negotiationToIntents(negotiation));
+  }
+  // Timeline: agendou visita/test drive = interesse imediato
   if (slot_datetime) {
-    updatePayload.bant_timeline = "Agendou reunião pelo pitch do webinário — interesse imediato";
+    updatePayload.bant_timeline = "Agendou visita/test drive pelo formulário — interesse imediato";
   }
   // Contexto pro agente/vendedor
-  updatePayload.context = `Lead preencheu formulário de agendamento no webinário. Empresa: ${company || 'N/I'}. Faturamento: R$ ${revenue ? (revenue/1000).toFixed(0) + 'k/mês' : 'N/I'}. ${slot_datetime ? 'Agendou call.' : 'Abaixo do threshold, aguardando contato.'}`;
+  const negLabel = negotiation ? (NEGOTIATION_LABELS[negotiation] || negotiation) : "N/I";
+  updatePayload.context = `Lead preencheu o formulário de agendamento. Veículo de interesse: ${vehicle_interest || "N/I"}. Negociação: ${negLabel}. ${slot_datetime ? "Agendou visita/test drive." : "Não escolheu horário, aguardando contato."}`;
   updatePayload.sales_stage = slot_datetime ? 'agendamento' : 'qualificacao';
 
   const { error: updateErr } = await supabase.from("leads").update(updatePayload).eq("id", lead.id);
@@ -427,11 +444,11 @@ async function handleBook(supabase: any, payload: BookPayload) {
     else console.log(`[book-meeting] Created webinar deal for lead: ${lead.id}`);
   }
 
-  // 5. If revenue >= 50000 AND slot provided → full booking
+  // 5. Slot escolhido → agenda a visita/test drive (sem gate de faturamento)
   let meetingLink: string | null = null;
   let scheduledAt: string | null = null;
 
-  if (revenue >= 50000 && slot_datetime) {
+  if (slot_datetime) {
     const slotStart = new Date(slot_datetime);
     const slotEnd = new Date(slotStart.getTime() + SLOT_DURATION_MIN * 60_000);
     scheduledAt = slotStart.toISOString();
@@ -441,8 +458,8 @@ async function handleBook(supabase: any, payload: BookPayload) {
       const accessToken = await getValidAccessToken(supabase, SAMUEL_ID);
 
       const calendarEvent = {
-        summary: `Reuniao IAP - ${name}${company ? ` (${company})` : ""}`,
-        description: `Lead: ${name}\nEmpresa: ${company || "N/A"}\nEmail: ${email || "N/A"}\nTelefone: ${phone}\nFaturamento: R$ ${(revenue || 0).toLocaleString("pt-BR")}\n\nAgendado via webinar pitch.`,
+        summary: `Visita / Test drive - ${name}${vehicle_interest ? ` (${vehicle_interest})` : ""}`,
+        description: `Lead: ${name}\nVeículo de interesse: ${vehicle_interest || "N/A"}\nNegociação: ${negLabel}\nEmail: ${email || "N/A"}\nTelefone: ${phone}\n\nAgendado pelo formulário de agendamento.`,
         start: {
           dateTime: slotStart.toISOString(),
           timeZone: "America/Sao_Paulo",
@@ -496,7 +513,7 @@ async function handleBook(supabase: any, payload: BookPayload) {
     // 5b. Create meeting in company_activities
     await supabase.from("company_activities").insert({
       task_type: "meeting",
-      name: `Reunião IA na Prática & ${name}`,
+      name: `Visita / Test drive — ${name}`,
       lead_id: lead.id,
       responsavel_id: SAMUEL_ID,
       scheduled_at: scheduledAt,
@@ -505,13 +522,13 @@ async function handleBook(supabase: any, payload: BookPayload) {
       completed: false,
       team: "comercial",
       metadata: {
-        meeting_type: "video",
+        meeting_type: "presencial",
         source: "book_meeting_page",
-        evento: evento || "webinario_0704",
+        evento: evento || null,
         utm_source: finalUtmSource,
         utm_campaign: finalUtmCampaign,
-        revenue,
-        company,
+        vehicle_interest: vehicle_interest || null,
+        negotiation: negLabel,
       },
     });
     console.log(`[book-meeting] Meeting created for ${lead.id} at ${scheduledAt}`);
@@ -569,10 +586,10 @@ async function handleBook(supabase: any, payload: BookPayload) {
     // Timeline já registrada via meeting acima (task_type: meeting)
     console.log(`[book-meeting] All done for ${lead.id} — meeting at ${slotStart.toISOString()}`);
   } else {
-    // 6. Revenue < 50000 or no slot → register interest only
+    // 6. Sem horário escolhido → registra o interesse pra equipe entrar em contato
     await supabase.from("company_activities").insert({
-      task_type: "webinar_booking",
-      name: `Solicitou agendamento (abaixo de 50k) — entrar em contato pra qualificar`,
+      task_type: "booking_request",
+      name: `Solicitou agendamento sem escolher horário — entrar em contato`,
       lead_id: lead.id,
       responsavel_id: SAMUEL_ID,
       status: "completed",
@@ -581,16 +598,15 @@ async function handleBook(supabase: any, payload: BookPayload) {
       scheduled_at: new Date().toISOString(),
       metadata: {
         source: "book_meeting_page",
-        evento: evento || "webinario_0704",
+        evento: evento || null,
         utm_source: finalUtmSource,
         utm_campaign: finalUtmCampaign,
         utm_content: utm_content || null,
-        revenue,
-        company,
-        below_threshold: true,
+        vehicle_interest: vehicle_interest || null,
+        negotiation: negLabel,
       },
     });
-    console.log("Lead below revenue threshold, timeline registered:", lead.id);
+    console.log("Lead sem horário escolhido, interesse registrado:", lead.id);
   }
 
   return {
