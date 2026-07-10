@@ -1636,30 +1636,30 @@ export function TaskDetailModal({ task, open, onOpenChange, onUpdate, clientName
                     </div>
                   )}
 
-                  {/* BANT */}
+                  {/* Qualificação (pagamento / decisor / veículo / urgência) */}
                   {task.metadata.call_analysis.bant_updates && (
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-emerald-200">
                       {task.metadata.call_analysis.bant_updates.budget && (
                         <div className="text-xs">
-                          <span className="text-emerald-600 font-medium">Budget:</span>{' '}
+                          <span className="text-emerald-600 font-medium">Pagamento:</span>{' '}
                           <span className="text-emerald-800">{task.metadata.call_analysis.bant_updates.budget}</span>
                         </div>
                       )}
                       {task.metadata.call_analysis.bant_updates.authority && (
                         <div className="text-xs">
-                          <span className="text-emerald-600 font-medium">Authority:</span>{' '}
+                          <span className="text-emerald-600 font-medium">Decisor:</span>{' '}
                           <span className="text-emerald-800">{task.metadata.call_analysis.bant_updates.authority}</span>
                         </div>
                       )}
                       {task.metadata.call_analysis.bant_updates.need && (
                         <div className="text-xs">
-                          <span className="text-emerald-600 font-medium">Need:</span>{' '}
+                          <span className="text-emerald-600 font-medium">Veículo/uso:</span>{' '}
                           <span className="text-emerald-800">{task.metadata.call_analysis.bant_updates.need}</span>
                         </div>
                       )}
                       {task.metadata.call_analysis.bant_updates.timeline && (
                         <div className="text-xs">
-                          <span className="text-emerald-600 font-medium">Timeline:</span>{' '}
+                          <span className="text-emerald-600 font-medium">Urgência:</span>{' '}
                           <span className="text-emerald-800">{task.metadata.call_analysis.bant_updates.timeline}</span>
                         </div>
                       )}

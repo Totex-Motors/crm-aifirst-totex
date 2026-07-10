@@ -243,7 +243,7 @@ export function CallAnalysisView({
             <button className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-muted/30 rounded-xl border border-slate-200 dark:border-border hover:bg-slate-100 dark:hover:bg-muted/50 transition-colors">
               <span className="text-sm font-medium flex items-center gap-2 text-slate-700 dark:text-foreground">
                 <Target className="h-4 w-4 text-slate-500 dark:text-muted-foreground" />
-                Dados Extraídos (BANT)
+                Dados Extraídos
               </span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -251,11 +251,14 @@ export function CallAnalysisView({
           <CollapsibleContent className="pt-2">
             <div className="p-3 bg-slate-50 dark:bg-muted/30 rounded-xl border border-slate-200 dark:border-border">
               <div className="grid grid-cols-2 gap-2 text-sm">
-                {analysis.dados_extraidos.empresa && (
-                  <div><span className="text-muted-foreground">Empresa:</span> <span className="font-medium">{analysis.dados_extraidos.empresa}</span></div>
+                {analysis.dados_extraidos.veiculo_interesse && (
+                  <div className="col-span-2"><span className="text-muted-foreground">Veículo de interesse:</span> <span className="font-medium">{analysis.dados_extraidos.veiculo_interesse}</span></div>
                 )}
-                {analysis.dados_extraidos.cargo && (
-                  <div><span className="text-muted-foreground">Cargo:</span> <span className="font-medium">{analysis.dados_extraidos.cargo}</span></div>
+                {analysis.dados_extraidos.forma_pagamento && analysis.dados_extraidos.forma_pagamento !== 'desconhecido' && (
+                  <div><span className="text-muted-foreground">Pagamento:</span> <span className="font-medium">{analysis.dados_extraidos.forma_pagamento}</span></div>
+                )}
+                {analysis.dados_extraidos.tem_troca && (
+                  <div><span className="text-muted-foreground">Troca:</span> <span className="font-medium">{analysis.dados_extraidos.veiculo_troca || 'Tem carro na troca'}</span></div>
                 )}
                 {analysis.dados_extraidos.necessidade && (
                   <div className="col-span-2"><span className="text-muted-foreground">Necessidade:</span> <span className="font-medium">{analysis.dados_extraidos.necessidade}</span></div>
@@ -264,7 +267,7 @@ export function CallAnalysisView({
                   <div><span className="text-muted-foreground">Orçamento:</span> <span className="font-medium">{analysis.dados_extraidos.orcamento}</span></div>
                 )}
                 {analysis.dados_extraidos.timeline && (
-                  <div><span className="text-muted-foreground">Timeline:</span> <span className="font-medium">{analysis.dados_extraidos.timeline}</span></div>
+                  <div><span className="text-muted-foreground">Prazo:</span> <span className="font-medium">{analysis.dados_extraidos.timeline}</span></div>
                 )}
                 {analysis.dados_extraidos.decisor && (
                   <div><span className="text-muted-foreground">Decisor:</span> <span className="font-medium">{analysis.dados_extraidos.decisor}</span></div>

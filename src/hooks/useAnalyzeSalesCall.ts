@@ -12,13 +12,20 @@ export interface SuggestedTask {
 }
 
 export interface ExtractedData {
-  empresa?: string;
-  cargo?: string;
+  // Qualificação automotiva
+  veiculo_interesse?: string;
+  forma_pagamento?: string;
+  tem_troca?: boolean;
+  veiculo_troca?: string;
   necessidade?: string;
   orcamento?: string;
   timeline?: string;
   decisor?: string;
   concorrentes?: string;
+  genero?: string;
+  // Legado B2B (mantido opcional pra compatibilidade com análises antigas)
+  empresa?: string;
+  cargo?: string;
 }
 
 export interface SalesCallAnalysis {

@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.3.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { automotiveExtractionToUpdates } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,17 +36,16 @@ Retorne um JSON válido com EXATAMENTE esta estrutura:
     }
   ],
   "dados_extraidos": {
-    "empresa": "Nome da empresa se mencionado",
-    "cargo": "Cargo se mencionado",
-    "necessidade": "Necessidade principal",
-    "orcamento": "Info de orçamento",
-    "timeline": "Prazo/urgência",
-    "decisor": "Se é decisor",
-    "concorrentes": "Concorrentes mencionados",
-    "genero": "masculino | feminino | desconhecido",
-    "tipo_negocio": "digital | varejo | clinica | saas | servicos | industria | outro",
-    "faixa_faturamento": "ate_10k | 10k_50k | 50k_100k | 100k_500k | 500k_plus | desconhecido",
-    "is_icp": "true | false"
+    "veiculo_interesse": "Carro que o cliente quer comprar (modelo/ano/faixa de preço)",
+    "forma_pagamento": "a_vista | financiamento | consorcio | desconhecido",
+    "tem_troca": true,
+    "veiculo_troca": "Carro que o cliente quer dar na troca, se houver",
+    "necessidade": "Uso/necessidade principal (família, trabalho, primeiro carro)",
+    "orcamento": "Faixa de preço/valor que o cliente pode pagar",
+    "timeline": "Prazo/urgência pra comprar",
+    "decisor": "Quem decide a compra (o próprio, cônjuge, sócio)",
+    "concorrentes": "Outras lojas/carros que o cliente está avaliando",
+    "genero": "masculino | feminino | desconhecido"
   },
   "score_adjustment": 0
 }
@@ -92,7 +92,7 @@ Retorne um JSON válido com EXATAMENTE esta estrutura:
 
   "veredicto": {
     "probabilidade": 65,
-    "justificativa": "Explicação de 2-3 frases sobre a probabilidade de fechamento, considerando BANT, engajamento e sinais de compra"
+    "justificativa": "Explicação de 2-3 frases sobre a probabilidade de fechamento, considerando forma de pagamento, engajamento e sinais de compra"
   },
 
   "recomendacao_estrategica": "Parágrafo com recomendação estratégica detalhada: como abordar este lead nas próximas interações, que argumentos usar, timing ideal, e como superar as objeções identificadas.",
@@ -112,17 +112,16 @@ Retorne um JSON válido com EXATAMENTE esta estrutura:
   ],
 
   "dados_extraidos": {
-    "empresa": "Nome da empresa do lead se mencionado",
-    "cargo": "Cargo do lead se mencionado",
-    "necessidade": "Principal necessidade identificada",
-    "orcamento": "Informações sobre orçamento se mencionadas",
-    "timeline": "Prazo/urgência mencionados",
-    "decisor": "Se o lead é decisor ou precisa consultar alguém",
-    "concorrentes": "Concorrentes mencionados",
-    "genero": "masculino | feminino | desconhecido",
-    "tipo_negocio": "digital | varejo | clinica | saas | servicos | industria | outro",
-    "faixa_faturamento": "ate_10k | 10k_50k | 50k_100k | 100k_500k | 500k_plus | desconhecido",
-    "is_icp": "true | false"
+    "veiculo_interesse": "Carro que o cliente quer comprar (modelo/ano/faixa de preço)",
+    "forma_pagamento": "a_vista | financiamento | consorcio | desconhecido",
+    "tem_troca": true,
+    "veiculo_troca": "Carro que o cliente quer dar na troca, se houver",
+    "necessidade": "Uso/necessidade principal (família, trabalho, primeiro carro)",
+    "orcamento": "Faixa de preço/valor que o cliente pode pagar",
+    "timeline": "Prazo/urgência pra comprar",
+    "decisor": "Quem decide a compra (o próprio, cônjuge, sócio)",
+    "concorrentes": "Outras lojas/carros que o cliente está avaliando",
+    "genero": "masculino | feminino | desconhecido"
   },
 
   "score_adjustment": 0
@@ -256,7 +255,9 @@ serve(async (req) => {
       const { data: lead } = await supabase
         .from("leads")
         .select(`
-          name, email, phone, company, position, source, status, sales_score,
+          name, email, phone, source, status, sales_score,
+          vehicle_of_interest, negotiation_type,
+          intent_cash, intent_finance_no_entry, intent_trade_in,
           bant_budget, bant_authority, bant_need, bant_timeline,
           ai_conversation_insights
         `)
@@ -264,17 +265,19 @@ serve(async (req) => {
         .single();
 
       if (lead) {
+        const voi = lead.vehicle_of_interest
+          ? (typeof lead.vehicle_of_interest === "object" ? JSON.stringify(lead.vehicle_of_interest) : String(lead.vehicle_of_interest))
+          : "N/A";
         leadContext = `
 CONTEXTO DO LEAD (informações já conhecidas):
 - Nome: ${lead.name || "N/A"}
-- Empresa: ${lead.company || "N/A"}
-- Cargo: ${lead.position || "N/A"}
 - Score atual: ${lead.sales_score || 0}/100
 - Status: ${lead.status || "N/A"}
-- Orçamento (BANT): ${lead.bant_budget || "N/A"}
-- Autoridade (BANT): ${lead.bant_authority || "N/A"}
-- Necessidade (BANT): ${lead.bant_need || "N/A"}
-- Timeline (BANT): ${lead.bant_timeline || "N/A"}
+- Veículo de interesse: ${voi}
+- Forma de negociação: ${lead.negotiation_type || "N/A"}
+- Pagamento: ${lead.intent_cash ? "à vista" : lead.intent_finance_no_entry ? "financiamento" : "N/A"}${lead.intent_trade_in ? " + tem carro na troca" : ""}
+- Necessidade (contexto): ${lead.bant_need || "N/A"}
+- Urgência (contexto): ${lead.bant_timeline || "N/A"}
 
 Considere este contexto ao analisar a chamada.
 `;
@@ -478,15 +481,8 @@ Analise a transcrição acima e gere a análise estruturada. Retorne APENAS o JS
         if (dados?.genero && dados.genero !== 'desconhecido') {
           profileFields.gender = dados.genero;
         }
-        if (dados?.tipo_negocio && dados.tipo_negocio !== 'outro') {
-          profileFields.business_type = dados.tipo_negocio;
-        }
-        if (dados?.faixa_faturamento && dados.faixa_faturamento !== 'desconhecido') {
-          profileFields.revenue_range = dados.faixa_faturamento;
-        }
-        if (typeof dados?.is_icp === 'boolean' || dados?.is_icp === 'true' || dados?.is_icp === 'false') {
-          profileFields.is_icp = dados.is_icp === true || dados.is_icp === 'true';
-        }
+        // Qualificação automotiva → campos canônicos (vehicle_of_interest, negotiation_type, intent_*)
+        Object.assign(profileFields, automotiveExtractionToUpdates(dados));
 
         await supabase
           .from("leads")
