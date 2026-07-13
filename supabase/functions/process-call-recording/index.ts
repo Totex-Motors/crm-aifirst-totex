@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.3.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { automotiveExtractionToUpdates } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +13,7 @@ let OPENAI_API_KEY = "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const analysisPrompt = `Você é um especialista em análise de chamadas comerciais.
+const analysisPrompt = `Você é um especialista em análise de chamadas de uma revenda de veículos.
 
 Analise a transcrição desta chamada de WhatsApp e extraia informações estruturadas.
 
@@ -39,12 +40,14 @@ Retorne um JSON válido com a seguinte estrutura:
     }
   ],
   "dados_extraidos": {
-    "empresa": "Nome da empresa mencionada ou null",
-    "cargo": "Cargo do interlocutor ou null",
-    "necessidade": "Necessidade identificada ou null",
-    "orcamento": "Orçamento mencionado ou null",
-    "prazo": "Prazo mencionado ou null",
-    "decisor": "Quem decide ou null"
+    "veiculo_interesse": "Carro que o cliente quer comprar (modelo/ano/faixa) ou null",
+    "forma_pagamento": "a_vista | financiamento | consorcio | desconhecido",
+    "tem_troca": true,
+    "veiculo_troca": "Carro que o cliente quer dar na troca, se houver, ou null",
+    "necessidade": "Uso/necessidade principal (família, trabalho, primeiro carro) ou null",
+    "orcamento": "Faixa de preço/valor que o cliente pode pagar ou null",
+    "prazo": "Prazo/urgência pra comprar ou null",
+    "decisor": "Quem decide a compra (o próprio, cônjuge, sócio) ou null"
   },
   "score_adjustment": número de -15 a +15 baseado no tom da chamada
 }
@@ -371,7 +374,7 @@ Analise a transcrição acima e gere o JSON estruturado com insights e tarefas s
         leadUpdate.sales_score = newScore;
       }
 
-      // Extrair dados do lead se disponíveis
+      // Extrair dados do lead se disponíveis (BANT texto + qualificação automotiva)
       if (analysis.dados_extraidos) {
         if (analysis.dados_extraidos.orcamento) {
           leadUpdate.bant_budget = analysis.dados_extraidos.orcamento;
@@ -385,6 +388,8 @@ Analise a transcrição acima e gere o JSON estruturado com insights e tarefas s
         if (analysis.dados_extraidos.prazo) {
           leadUpdate.bant_timeline = analysis.dados_extraidos.prazo;
         }
+        // Campos canônicos automotivos (vehicle_of_interest, negotiation_type, intent_*)
+        Object.assign(leadUpdate, automotiveExtractionToUpdates(analysis.dados_extraidos));
       }
 
       await supabase
