@@ -85,6 +85,7 @@ const MyWhatsApp = React.lazy(() => import("./pages/MyWhatsApp"));
 // Sales/Commercial pages (core CRM)
 import SalesDashboard from "./pages/SalesDashboardV3";
 import SalesLeads from "./pages/SalesLeads";
+import Contatos from "./pages/Contatos";
 import SalesPipeline from "./pages/SalesPipeline";
 import SalesNegociacoes from "./pages/SalesNegociacoes";
 import SalesWhatsAppInbox from "./pages/SalesWhatsAppInbox";
@@ -223,7 +224,7 @@ const AppRoutes = () => {
       <Route path="/comercial/workspace" element={<ProtectedRoute><SalesWorkspace /></ProtectedRoute>} />
       <Route path="/comercial/leads" element={<ProtectedRoute><SalesLeads mode="autoconf" /></ProtectedRoute>} />
       <Route path="/comercial/leads/:id" element={<ProtectedRoute><SalesLeadDetail /></ProtectedRoute>} />
-      <Route path="/comercial/contatos" element={<ProtectedRoute><SalesLeads mode="contacts" /></ProtectedRoute>} />
+      <Route path="/comercial/contatos" element={<ProtectedRoute><Contatos /></ProtectedRoute>} />
       <Route path="/comercial/contatos/:id" element={<ProtectedRoute><SalesLeadDetail /></ProtectedRoute>} />
       <Route path="/comercial/pipeline" element={<ProtectedRoute><SalesPipeline /></ProtectedRoute>} />
       <Route path="/comercial/negociacoes" element={<ProtectedRoute><SalesNegociacoes /></ProtectedRoute>} />

@@ -9,7 +9,7 @@ import type {
 } from '@/types/sales.types';
 
 // Fetch all sales leads with pagination
-export const useSalesLeads = (filters?: SalesLeadFilters & { page?: number; pageSize?: number; autoconfOnly?: boolean }) => {
+export const useSalesLeads = (filters?: SalesLeadFilters & { page?: number; pageSize?: number; autoconfOnly?: boolean; hasPhone?: boolean }) => {
   return useQuery({
     queryKey: ['sales-leads', filters],
     queryFn: async () => {
@@ -26,6 +26,9 @@ export const useSalesLeads = (filters?: SalesLeadFilters & { page?: number; page
 
       if (filters?.autoconfOnly) {
         query = query.not('external_id', 'is', null);
+      }
+      if (filters?.hasPhone) {
+        query = query.not('phone', 'is', null);
       }
       if (filters?.sales_stage) {
         query = query.eq('sales_stage', filters.sales_stage);
