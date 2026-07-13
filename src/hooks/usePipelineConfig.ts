@@ -14,12 +14,12 @@ export const usePipelines = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales_pipelines')
-        .select('*')
+        .select('*, tenants(name)')
         .eq('is_active', true)
         .order('position', { ascending: true });
 
       if (error) throw error;
-      return (data || []) as SalesPipeline[];
+      return (data || []) as (SalesPipeline & { tenants?: { name: string } | null })[];
     },
   });
 };
@@ -49,10 +49,31 @@ export const useCreatePipeline = () => {
         .single();
 
       if (error) throw error;
+      const pipelineId = (data as SalesPipeline).id;
+      const defaultStages = [
+        { name: 'Novo Lead',               position: 0, color: 'slate' },
+        { name: 'Em Qualificação',         position: 1, color: 'blue' },
+        { name: 'Test Drive',              position: 2, color: 'cyan' },
+        { name: 'Avaliação / Proposta',    position: 3, color: 'amber' },
+        { name: 'Financiamento (Credere)', position: 4, color: 'indigo' },
+        { name: 'Ganho',                   position: 5, color: 'green', is_won: true },
+        { name: 'Perdido',                 position: 6, color: 'red',   is_lost: true },
+      ];
+      await supabase.from('sales_pipeline_stages').insert(
+        defaultStages.map((s) => ({
+          pipeline_id: pipelineId,
+          name: s.name,
+          position: s.position,
+          color: s.color,
+          is_won: (s as any).is_won ?? false,
+          is_lost: (s as any).is_lost ?? false,
+        }))
+      );
       return data as SalesPipeline;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      queryClient.invalidateQueries({ queryKey: ['pipeline-stages'] });
     },
   });
 };

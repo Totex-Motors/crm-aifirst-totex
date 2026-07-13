@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -28,6 +31,7 @@ import {
   LogOut,
   LayoutGrid,
   Inbox,
+  Menu,
   type LucideIcon,
 } from "lucide-react";
 
@@ -258,9 +262,12 @@ export default function SettingsUnified() {
   const isAdmin = teamMember?.role === "admin";
   const [searchParams, setSearchParams] = useSearchParams();
   const activeSection = searchParams.get("s") || "modulos";
+  const isMobile = useIsMobile();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleNavigate = (sectionId: string) => {
     setSearchParams({ s: sectionId });
+    setMobileNavOpen(false);
   };
 
   // Filter out admin-only items
@@ -282,82 +289,110 @@ export default function SettingsUnified() {
     return filteredSections[0]?.items[0];
   }, [activeSection, filteredSections]);
 
+  // Navegação reutilizada na sidebar (desktop) e no drawer (mobile)
+  const navContent = (
+    <div className="p-4">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+          <Settings className="h-4 w-4 text-primary" />
+        </div>
+        <h2 className="text-sm font-semibold">Configurações</h2>
+      </div>
+
+      {/* Navigation */}
+      <nav className="space-y-5">
+        {filteredSections.map((section) => (
+          <div key={section.id}>
+            <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-1.5 px-2">
+              {section.label}
+            </p>
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigate(item.id)}
+                    title={item.hint || item.description}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left transition-all duration-150",
+                      "text-[13px]",
+                      isActive
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "h-3.5 w-3.5 shrink-0",
+                        isActive ? "text-primary" : "text-muted-foreground/60"
+                      )}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Sign Out */}
+      <div className="mt-6 pt-4 border-t border-border/50">
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Sair da conta</span>
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <AppLayout>
       <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-        {/* ===== LEFT SIDEBAR ===== */}
-        <aside className="w-[260px] shrink-0 border-r border-border/50 bg-background/50">
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              {/* Header */}
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <Settings className="h-4 w-4 text-primary" />
-                </div>
-                <h2 className="text-sm font-semibold">Configurações</h2>
-              </div>
+        {/* ===== LEFT SIDEBAR (desktop) ===== */}
+        {!isMobile && (
+          <aside className="w-[260px] shrink-0 border-r border-border/50 bg-background/50">
+            <ScrollArea className="h-full">{navContent}</ScrollArea>
+          </aside>
+        )}
 
-              {/* Navigation */}
-              <nav className="space-y-5">
-                {filteredSections.map((section) => (
-                  <div key={section.id}>
-                    <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-1.5 px-2">
-                      {section.label}
-                    </p>
-                    <div className="space-y-0.5">
-                      {section.items.map((item) => {
-                        const Icon = item.icon;
-                        const isActive = activeSection === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNavigate(item.id)}
-                            title={item.hint || item.description}
-                            className={cn(
-                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left transition-all duration-150",
-                              "text-[13px]",
-                              isActive
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                            )}
-                          >
-                            <Icon
-                              className={cn(
-                                "h-3.5 w-3.5 shrink-0",
-                                isActive ? "text-primary" : "text-muted-foreground/60"
-                              )}
-                            />
-                            <span className="truncate">{item.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </nav>
-
-              {/* Sign Out */}
-              <div className="mt-6 pt-4 border-t border-border/50">
-                <button
-                  onClick={signOut}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span>Sair da conta</span>
-                </button>
-              </div>
-            </div>
-          </ScrollArea>
-        </aside>
+        {/* ===== NAV DRAWER (mobile) ===== */}
+        {isMobile && (
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <SheetTitle className="sr-only">Navegação de configurações</SheetTitle>
+              <ScrollArea className="h-full">{navContent}</ScrollArea>
+            </SheetContent>
+          </Sheet>
+        )}
 
         {/* ===== CONTENT AREA ===== */}
-        <main className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="max-w-4xl p-6 lg:p-8">
+        <main className="flex-1 min-w-0 overflow-hidden">
+          <div className="h-full overflow-y-auto overflow-x-hidden">
+            <div className="max-w-4xl min-w-0 p-6 lg:p-8">
               {/* Section header with description */}
               {activeItem && (
                 <div className="mb-6 pb-4 border-b border-border/30">
-                  <h1 className="text-xl font-semibold text-foreground">{activeItem.label}</h1>
+                  <div className="flex items-center gap-3">
+                    {isMobile && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => setMobileNavOpen(true)}
+                        aria-label="Abrir menu de configurações"
+                      >
+                        <Menu className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <h1 className="text-xl font-semibold text-foreground">{activeItem.label}</h1>
+                  </div>
                   <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl leading-relaxed">
                     {activeItem.description}
                   </p>
@@ -367,7 +402,7 @@ export default function SettingsUnified() {
               {/* Dynamic content */}
               <SettingsContent section={activeSection} />
             </div>
-          </ScrollArea>
+          </div>
         </main>
       </div>
     </AppLayout>

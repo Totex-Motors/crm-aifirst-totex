@@ -180,7 +180,7 @@ export function LeadCard({
         className
       )}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4 overflow-hidden">
         {/* Star toggle */}
         <button
           onClick={handleStarToggle}
@@ -324,26 +324,40 @@ export function LeadCard({
           const rawEvaluated = lead.evaluated_vehicles ?? (autoconfMeta?.evaluated_vehicles as unknown);
           const evaluatedVehicles: Record<string, unknown>[] = Array.isArray(rawEvaluated) ? rawEvaluated as Record<string, unknown>[] : [];
           const userRes = autoconfMeta?.user_res ? String(autoconfMeta.user_res) : null;
-          const clientMessage = autoconfMeta?.message ? String(autoconfMeta.message) : null;
+          const rawMsg = autoconfMeta?.message ? String(autoconfMeta.message) : null;
+          const clientMessage = (() => {
+            if (!rawMsg) return null;
+            const cleaned = rawMsg
+              .replace(/<br\s*\/?>/gi, " ")
+              .replace(/<[^>]+>/g, "")
+              .replace(/https?:\/\/\S+/g, "")
+              // Remove chave: valor típicos de metadados webhook
+              .replace(/\b(url_duota\w*|source_id|source_type|source_url|origemUrl|intencao|origem|firstMessage)\s*:\s*\S*/gi, "")
+              .replace(/\s{2,}/g, " ")
+              .trim();
+            // Se ficou vazio ou curto demais após limpeza, não exibir
+            if (!cleaned || cleaned.length < 5) return null;
+            return cleaned.slice(0, 140);
+          })();
 
           return (
             <>
-              <div className="space-y-1 text-sm text-muted-foreground mb-3">
+              <div className="space-y-1 text-sm text-muted-foreground mb-3 min-w-0">
                 {lead.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5" />
-                    <span>{formatPhone(lead.phone)}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{formatPhone(lead.phone)}</span>
                   </div>
                 )}
                 {lead.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{lead.email}</span>
                   </div>
                 )}
                 {userRes && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">Atendido por: <span className="font-medium text-foreground">{userRes}</span></span>
                   </div>
                 )}
@@ -391,9 +405,9 @@ export function LeadCard({
 
               {/* Client message from AutoConf */}
               {clientMessage && (
-                <div className="mb-3 flex gap-2 text-xs text-muted-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50 italic">
+                <div className="mb-3 flex gap-2 text-xs text-muted-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50 italic overflow-hidden">
                   <Quote className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground/60" />
-                  <span>{clientMessage}</span>
+                  <span className="line-clamp-2 break-words min-w-0">{clientMessage}</span>
                 </div>
               )}
             </>
@@ -424,21 +438,21 @@ export function LeadCard({
         {/* Quick actions */}
         <div className="flex items-center gap-1 pt-3 border-t">
           {onCall && lead.phone && (
-            <Button variant="ghost" size="sm" onClick={onCall} className="flex-1">
-              <Phone className="h-3.5 w-3.5 mr-1" />
-              Ligar
+            <Button variant="ghost" size="sm" onClick={onCall} className="flex-1 min-w-0 px-2">
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <span className="ml-1 truncate hidden xs:inline">Ligar</span>
             </Button>
           )}
           {onWhatsApp && lead.phone && (
-            <Button variant="ghost" size="sm" onClick={onWhatsApp} className="flex-1">
-              <MessageSquare className="h-3.5 w-3.5 mr-1" />
-              WhatsApp
+            <Button variant="ghost" size="sm" onClick={onWhatsApp} className="flex-1 min-w-0 px-2">
+              <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+              <span className="ml-1 truncate hidden xs:inline">WhatsApp</span>
             </Button>
           )}
           {onView && (
-            <Button variant="outline" size="sm" onClick={onView} className="flex-1">
-              <ExternalLink className="h-3.5 w-3.5 mr-1" />
-              Ver mais
+            <Button variant="outline" size="sm" onClick={onView} className="flex-1 min-w-0 px-2">
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              <span className="ml-1 truncate">Ver mais</span>
             </Button>
           )}
         </div>

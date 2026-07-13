@@ -409,9 +409,9 @@ export function NotificationRulesBuilder() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-purple-500/10">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2 rounded-lg bg-purple-500/10 shrink-0">
             <Zap className="h-5 w-5 text-purple-500" />
           </div>
           <div>
@@ -419,7 +419,7 @@ export function NotificationRulesBuilder() {
             <p className="text-sm text-muted-foreground">Configure quando e como enviar lembretes</p>
           </div>
         </div>
-        <Button onClick={() => handleOpenModal()} className="gap-2">
+        <Button onClick={() => handleOpenModal()} className="gap-2 w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4" />
           Nova Automação
         </Button>
@@ -522,7 +522,7 @@ export function NotificationRulesBuilder() {
                 QUANDO
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Tipo de Gatilho</Label>
                   <Select
