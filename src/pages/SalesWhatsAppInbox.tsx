@@ -156,6 +156,7 @@ const SalesWhatsAppInbox = () => {
   }, [setSelectedConvId]);
   const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [showClientPanel, setShowClientPanel] = useSessionState<boolean>("sales-inbox-client-panel", false);
 
   // Capturar lead_id da URL para abrir conversa automaticamente
   useEffect(() => {
@@ -749,7 +750,6 @@ const SalesWhatsAppInbox = () => {
                     onClick={() => {
                       refetchConversations();
                       refetchMetrics();
-                      checkInstanceStatus();
                     }}
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -811,7 +811,7 @@ const SalesWhatsAppInbox = () => {
         <div className="flex-1 flex overflow-hidden">
           {/* Conversations List */}
           {(!isMobile || !selectedConversation) && (
-          <aside className={cn("border-r border-border/60 flex flex-col bg-background/50", isMobile ? "w-full" : "w-96")}>
+          <aside className={cn("border-r border-border/60 flex flex-col bg-background/50", isMobile ? "w-full" : "w-80")}>
             {/* Alerta de saúde da instância */}
             <InstanceHealthInlineBanner instanceId={instanceId} />
 
@@ -842,7 +842,7 @@ const SalesWhatsAppInbox = () => {
                 </div>
               </form>
 
-              {/* Pipeline + Instance */}
+              {/* Pipeline + Instance + Sort + Filter popover */}
               <div className="px-3 pb-2 flex items-center gap-1.5">
                 <Select
                   value={selectedPipelineId || "all"}
@@ -894,6 +894,114 @@ const SalesWhatsAppInbox = () => {
                     })}
                   </SelectContent>
                 </Select>
+
+                {/* Ordenar */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={toggleSortMode}
+                      className="h-8 text-[11px] px-2 rounded-lg flex items-center gap-1 border border-border/60 bg-muted/30 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                    >
+                      <ArrowUpDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {filters.sortMode === "priority" ? "Ordenar por data" : "Ordenar por prioridade"}
+                  </TooltipContent>
+                </Tooltip>
+
+                {/* Filtros avançados (IA + Qualificação) */}
+                {(() => {
+                  const hasSecondary = agentFilter !== "all" || qualFilter !== "all";
+                  const count = (agentFilter !== "all" ? 1 : 0) + (qualFilter !== "all" ? 1 : 0);
+                  return (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={cn(
+                            "h-8 px-2 rounded-lg flex items-center gap-1 border text-[11px] shrink-0 transition-colors",
+                            hasSecondary
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border/60 bg-muted/30 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                          )}
+                          title="Filtros avançados"
+                        >
+                          <Filter className="h-3 w-3" />
+                          {hasSecondary && <span className="text-[10px] font-semibold tabular-nums">{count}</span>}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-52 p-3 space-y-3">
+                        <div>
+                          <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Agente IA</p>
+                          <Select value={agentFilter} onValueChange={(val) => setAgentFilter(val as typeof agentFilter)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="active">IA ativo</SelectItem>
+                              <SelectItem value="paused">IA pausado</SelectItem>
+                              <SelectItem value="transferred">Transferidos</SelectItem>
+                              <SelectItem value="none">Sem IA</SelectItem>
+                              <SelectItem value="error">
+                                <span className="flex items-center gap-1.5">
+                                  Erro IA
+                                  {agentErrorLeadIds.size > 0 && (
+                                    <span className="text-[9px] bg-red-500 text-white rounded-full px-1.5 font-bold">
+                                      {agentErrorLeadIds.size}
+                                    </span>
+                                  )}
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Qualificação</p>
+                          <Select value={qualFilter} onValueChange={setQualFilter}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todas</SelectItem>
+                              <SelectItem value="with_vehicle">Com veículo</SelectItem>
+                              <SelectItem value="with_trade">Com troca</SelectItem>
+                              <SelectItem value="with_payment">Com pagamento</SelectItem>
+                              <SelectItem value="qualified">Qualificado completo</SelectItem>
+                              <SelectItem value="no_data">Sem dados</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {hasSecondary && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full h-7 text-xs"
+                            onClick={() => { setAgentFilter("all"); setQualFilter("all"); }}
+                          >
+                            Limpar estes filtros
+                          </Button>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  );
+                })()}
+
+                {/* Limpar todos */}
+                {(filters.slaFilter || filters.onlyPending || filters.search || agentFilter !== "all" || filters.funnelFilter || selectedPipelineId || qualFilter !== "all") && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => { setSearchTerm(""); setAgentFilter("all"); setQualFilter("all"); setSelectedInstanceId(myInstanceId || "all"); setSelectedPipelineId(null); setFilters({ instanceId: myInstanceId || undefined, sortMode: filters.sortMode, hideHandled: false }); }}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 shrink-0 transition-colors"
+                        aria-label="Limpar todos os filtros"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Limpar todos os filtros</TooltipContent>
+                  </Tooltip>
+                )}
               </div>
 
               {/* Stage chips — só quando pipeline selecionado */}
@@ -919,90 +1027,6 @@ const SalesWhatsAppInbox = () => {
                   </div>
                 ) : null;
               })()}
-
-              {/* Filtros secundários: IA · Qualificação · Ordenar · Limpar */}
-              <div className="px-3 pb-3 flex items-center gap-1.5">
-                <Select value={agentFilter} onValueChange={(val) => setAgentFilter(val as typeof agentFilter)}>
-                  <SelectTrigger className={cn(
-                    "h-7 text-[11px] rounded-md px-2 gap-1 flex-1 min-w-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-60 transition-colors",
-                    agentFilter === "error"
-                      ? "border-red-500/40 bg-red-500/10 text-red-400"
-                      : agentFilter !== "all"
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : "border-border/60 bg-muted/30 hover:bg-muted/60"
-                  )}>
-                    <Bot className="h-3 w-3 shrink-0" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">IA: todos</SelectItem>
-                    <SelectItem value="active">IA ativo</SelectItem>
-                    <SelectItem value="paused">IA pausado</SelectItem>
-                    <SelectItem value="transferred">Transferidos</SelectItem>
-                    <SelectItem value="none">Sem IA</SelectItem>
-                    <SelectItem value="error">
-                      <span className="flex items-center gap-1.5">
-                        Erro IA
-                        {agentErrorLeadIds.size > 0 && (
-                          <span className="text-[9px] bg-red-500 text-white rounded-full px-1.5 font-bold">
-                            {agentErrorLeadIds.size}
-                          </span>
-                        )}
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={qualFilter} onValueChange={setQualFilter}>
-                  <SelectTrigger className={cn(
-                    "h-7 text-[11px] rounded-md px-2 gap-1 flex-1 min-w-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-60 transition-colors",
-                    qualFilter !== "all"
-                      ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
-                      : "border-border/60 bg-muted/30 hover:bg-muted/60"
-                  )}>
-                    <Car className="h-3 w-3 shrink-0" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Qualificação</SelectItem>
-                    <SelectItem value="with_vehicle">Com veículo de interesse</SelectItem>
-                    <SelectItem value="with_trade">Com carro na troca</SelectItem>
-                    <SelectItem value="with_payment">Com forma de pagamento</SelectItem>
-                    <SelectItem value="qualified">Qualificado completo</SelectItem>
-                    <SelectItem value="no_data">Sem dados</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={toggleSortMode}
-                      className="h-7 text-[11px] px-2 rounded-md flex items-center gap-1 border border-border/60 bg-muted/30 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                    >
-                      <ArrowUpDown className="h-3 w-3 opacity-60" />
-                      {filters.sortMode === "priority" ? "Prior." : "Recentes"}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {filters.sortMode === "priority" ? "Ordenar por data" : "Ordenar por prioridade"}
-                  </TooltipContent>
-                </Tooltip>
-
-                {(filters.slaFilter || filters.onlyPending || filters.search || agentFilter !== "all" || filters.funnelFilter || selectedPipelineId || qualFilter !== "all") && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => { setSearchTerm(""); setAgentFilter("all"); setQualFilter("all"); setSelectedInstanceId(myInstanceId || "all"); setSelectedPipelineId(null); setFilters({ instanceId: myInstanceId || undefined, sortMode: filters.sortMode, hideHandled: false }); }}
-                        className="h-7 w-7 rounded-md flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 shrink-0 transition-colors"
-                        aria-label="Limpar filtros"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Limpar filtros</TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
             </div>
 
             {/* List */}
@@ -1127,26 +1151,26 @@ const SalesWhatsAppInbox = () => {
             {selectedConversation ? (
               <>
                 {/* Chat Header */}
-                <div className="flex-shrink-0 px-3 sm:px-4 py-3 bg-blue-600 text-white">
-                  <div className="flex items-center justify-between">
+                <div className="flex-shrink-0 px-3 sm:px-4 py-2.5 bg-card border-b border-border/60">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       {isMobile && (
-                        <button onClick={() => setSelectedConversation(null)} className="p-1 -ml-1 hover:bg-white/20 rounded">
-                          <ArrowLeft className="h-5 w-5" />
+                        <button onClick={() => setSelectedConversation(null)} className="p-1 -ml-1 hover:bg-muted rounded">
+                          <ArrowLeft className="h-5 w-5 text-muted-foreground" />
                         </button>
                       )}
                       <div className="min-w-0">
-                        <h3 className="font-semibold truncate">{selectedConversation.conversation_name}</h3>
-                        <p className="text-xs text-blue-100 truncate">
-                          {selectedConversation.contact_phone || ""} • {selectedConversation.conversation_type === "grupo" ? "Grupo" : "Individual"}
+                        <h3 className="font-semibold truncate text-foreground">{selectedConversation.conversation_name}</h3>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {selectedConversation.contact_phone || ""}{selectedConversation.contact_phone ? " • " : ""}{selectedConversation.conversation_type === "grupo" ? "Grupo" : "Individual"}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       {/* Botão Concluir - visível quando conversa pendente/urgente */}
                       {selectedConversation.pending_reply && !selectedConversation.is_handled && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs bg-amber-500/30 text-amber-100 px-2 py-1 rounded-full flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1 border border-amber-500/20">
                             <Clock className="h-3 w-3" />
                             Aguardando {selectedConversation.wait_minutes < 60
                               ? `${Math.floor(selectedConversation.wait_minutes)}min`
@@ -1154,7 +1178,7 @@ const SalesWhatsAppInbox = () => {
                           </span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="bg-white/20 hover:bg-white/30 text-white gap-1 h-7 text-xs">
+                              <Button size="sm" variant="outline" className="gap-1 h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950">
                                 <Check className="h-3.5 w-3.5" />
                                 Concluir
                                 <ChevronDown className="h-3 w-3" />
@@ -1208,7 +1232,7 @@ const SalesWhatsAppInbox = () => {
                       {selectedConversation.lead_id && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="sm" variant="ghost" className="bg-white/20 hover:bg-white/30 text-white gap-1 h-7 text-xs">
+                            <Button size="sm" variant="ghost" className="gap-1 h-7 text-xs">
                               <MoreHorizontal className="h-3.5 w-3.5" />
                               Ações
                             </Button>
@@ -1273,20 +1297,35 @@ const SalesWhatsAppInbox = () => {
                           </div>
                         </PopoverContent>
                       </Popover>
-                      {/* Mini Agenda - verificar horários livres */}
-                      <InboxMiniAgenda className="bg-white/20 border-white/30 text-white hover:bg-white/30" />
-                      {/* AI Agent Badge - apenas para conversas individuais com lead */}
+                      {/* Mini Agenda */}
+                      <InboxMiniAgenda />
+                      {/* AI Agent Badge */}
                       {selectedConversation.lead_id && selectedConversation.conversation_type !== "grupo" && (
                         <AIAgentBadge
                           leadId={selectedConversation.lead_id}
                           showControls={true}
-                          className="bg-white/20 border-white/30 text-white hover:bg-white/30"
                         />
                       )}
-                      {/* Info button for mobile */}
+                      {/* Painel de detalhes — desktop */}
+                      {!isMobile && selectedConversation.lead_id && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={showClientPanel ? "secondary" : "ghost"}
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setShowClientPanel(!showClientPanel)}
+                            >
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{showClientPanel ? "Ocultar detalhes" : "Ver detalhes do lead"}</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {/* Info button — mobile */}
                       {isMobile && selectedConversation.lead_id && (
-                        <button onClick={() => setShowInfoPanel(true)} className="p-1.5 hover:bg-white/20 rounded">
-                          <Info className="h-5 w-5" />
+                        <button onClick={() => setShowInfoPanel(true)} className="p-1.5 hover:bg-muted rounded">
+                          <Info className="h-5 w-5 text-muted-foreground" />
                         </button>
                       )}
                     </div>
@@ -1316,9 +1355,9 @@ const SalesWhatsAppInbox = () => {
           </main>
           )}
 
-          {/* Side Panel - Lead Info (desktop only) */}
-          {!isMobile && (
-            <aside className="w-72 border-l hidden xl:block">
+          {/* Side Panel - Lead Info (desktop only, colapsável) */}
+          {!isMobile && showClientPanel && (
+            <aside className="w-72 border-l border-border/60 flex flex-col shrink-0">
               <ClientInfoPanel conversation={selectedConversation} instanceId={instanceId || undefined} />
             </aside>
           )}
