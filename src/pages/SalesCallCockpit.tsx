@@ -723,7 +723,6 @@ Se houver histórico de conversa com o lead, use algo da conversa para personali
                   <SelectContent>
                     <SelectItem value="stage_priority">Prioridade da etapa</SelectItem>
                     <SelectItem value="recent">Mais recente</SelectItem>
-                    <SelectItem value="revenue">Maior faturamento</SelectItem>
                     <SelectItem value="score">Maior score</SelectItem>
                   </SelectContent>
                 </Select>
@@ -743,27 +742,6 @@ Se houver histórico de conversa com o lead, use algo da conversa para personali
                     type="date"
                     value={filters.dateTo || ''}
                     onChange={e => { setFilters(prev => ({ ...prev, dateTo: e.target.value || undefined })); setCurrentDealId(null); }}
-                    className="h-8 bg-zinc-800 border-zinc-700 text-xs flex-1"
-                  />
-                </div>
-              </div>
-
-              {/* Revenue */}
-              <div>
-                <p className="text-xs font-medium text-zinc-400 mb-2">Faturamento mensal</p>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Mín"
-                    value={filters.minRevenue || ''}
-                    onChange={e => { setFilters(prev => ({ ...prev, minRevenue: e.target.value ? Number(e.target.value) : undefined })); setCurrentDealId(null); }}
-                    className="h-8 bg-zinc-800 border-zinc-700 text-xs flex-1"
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Máx"
-                    value={filters.maxRevenue || ''}
-                    onChange={e => { setFilters(prev => ({ ...prev, maxRevenue: e.target.value ? Number(e.target.value) : undefined })); setCurrentDealId(null); }}
                     className="h-8 bg-zinc-800 border-zinc-700 text-xs flex-1"
                   />
                 </div>

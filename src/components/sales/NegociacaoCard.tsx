@@ -207,12 +207,6 @@ export function NegociacaoCard({
 
                 return (
                   <div className="flex items-center gap-1 mt-1 flex-wrap">
-                    {enrollment?.webinar_title && (
-                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-medium max-w-[140px] truncate">
-                        <Sparkles className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{enrollment.webinar_title}</span>
-                      </span>
-                    )}
                     {attendanceBadge}
                     {sourceShort && (
                       <span

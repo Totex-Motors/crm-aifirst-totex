@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { leadAutomotiveContext } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +37,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { contact_id, lead_id, product_id, playbook_context } = await req.json();
+    const { contact_id, lead_id, product_id, vehicle_id, playbook_context } = await req.json();
 
     const resolvedLeadId = lead_id || contact_id;
 
@@ -67,22 +68,31 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 2. Buscar produtos disponíveis
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, name, price, description")
-      .eq("active", true);
+    // 2. Buscar veículos disponíveis no estoque
+    const { data: vehiclesRaw } = await supabase
+      .from("vehicles")
+      .select("id, title, make, model, year, price, mileage, condition, color")
+      .eq("is_active", true)
+      .limit(60);
 
-    if (!products || products.length === 0) {
+    const products = (vehiclesRaw || []).map((v: any) => ({
+      id: v.id,
+      name: v.title || [v.make, v.model, v.year].filter(Boolean).join(" "),
+      price: v.price,
+      description: [v.condition, v.color, v.mileage ? `${v.mileage} km` : null].filter(Boolean).join(" · "),
+    }));
+
+    if (products.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Nenhum produto disponível" }),
+        JSON.stringify({ error: "Nenhum veículo disponível no estoque" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Se product_id foi especificado, filtrar
-    const targetProduct = product_id
-      ? products.find((p: any) => p.id === product_id)
+    // Se um veículo específico foi indicado (vehicle_id ou product_id legado), filtrar
+    const targetVehicleId = vehicle_id || product_id;
+    const targetProduct = targetVehicleId
+      ? products.find((p: any) => p.id === targetVehicleId)
       : null;
 
     // 3. Buscar mensagens recentes para contexto
@@ -133,16 +143,17 @@ Deno.serve(async (req: Request) => {
           need: lead.bant_need,
           timeline: lead.bant_timeline,
         },
+        qualificacao_automotiva: leadAutomotiveContext(lead),
         utm_source: lead.utm_source,
       },
       playbook_context: playbook_context || null,
-      products: products.map((p: any) => ({
+      veiculos_estoque: products.map((p: any) => ({
         id: p.id,
         name: p.name,
         price: p.price,
         description: p.description?.substring(0, 200),
       })),
-      target_product: targetProduct,
+      veiculo_alvo: targetProduct,
       conversation_insights: conversationInsights ? {
         objections: conversationInsights.objections,
         interests: conversationInsights.interests,
@@ -154,7 +165,7 @@ Deno.serve(async (req: Request) => {
       })),
       previous_deals: previousDeals?.map((d: any) => ({
         status: d.status,
-        product: d.product_id,
+        vehicle: d.vehicle_id || d.product_id,
         price_offered: d.negotiated_price,
         lost_reason: d.lost_reason,
       })),
@@ -167,32 +178,33 @@ Deno.serve(async (req: Request) => {
 
     // Construir contexto do playbook
     const playbookSection = playbook_context
-      ? `\n\n**PLAYBOOK DE VENDAS:**\n${playbook_context}\n\nUse este contexto para escolher o produto mais adequado e argumentos de venda alinhados à estratégia da empresa.`
+      ? `\n\n**PLAYBOOK DE VENDAS:**\n${playbook_context}\n\nUse este contexto para escolher o veículo mais adequado e argumentos de venda alinhados à estratégia da loja.`
       : "";
 
-    const systemPrompt = `Você é um especialista em vendas consultivas e precificação inteligente.${playbookSection}
+    const systemPrompt = `Você é um especialista em vendas de veículos e precificação inteligente.${playbookSection}
 
-Analise o perfil do lead e sugira a MELHOR PROPOSTA COMERCIAL para maximizar a chance de conversão.
+Analise o perfil do lead e sugira a MELHOR PROPOSTA COMERCIAL (veículo + preço + condições) para maximizar a chance de fechar a compra.
 
 **FATORES A CONSIDERAR:**
-1. Score e qualificação BANT do lead
+1. Score e qualificação do lead (veículo de interesse, forma de pagamento, se tem carro na troca) — ver qualificacao_automotiva
 2. Objeções identificadas nas conversas
-3. Interesse demonstrado em produtos específicos
+3. Interesse demonstrado em veículos/modelos específicos
 4. Benchmark de negociações similares que converteram
 5. Margem de negociação segura
 
 **REGRAS:**
 - Desconto máximo permitido: 20%
-- Se lead tem budget=false, sugira parcelamento maior
-- Se tem authority=false, sugira material para apresentar ao decisor
-- Se tem urgency, use isso como argumento
+- Se o lead vai financiar, foque na parcela que cabe no bolso dele
+- Se tem carro na troca, use o valor da troca como argumento de negociação
+- Se decide junto com outra pessoa (cônjuge/sócio), sugira trazê-la pra ver o carro
+- Se tem urgência, use isso como argumento
 - Baseie-se nos benchmarks de conversão
 
 **FORMATO DE RESPOSTA (JSON):**
 {
   "recommended_product": {
-    "id": "id do produto recomendado",
-    "name": "nome do produto",
+    "id": "id do veículo recomendado",
+    "name": "nome/modelo do veículo",
     "original_price": valor original
   },
   "suggested_price": valor sugerido com desconto,

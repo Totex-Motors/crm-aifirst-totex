@@ -17,7 +17,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   LeadScoreBadge,
   QualificationCard,
-  LeadWebinarsCard,
   NegociacaoCard,
   CreateNegociacaoModal,
   EditNegociacaoModal,
@@ -85,7 +84,7 @@ import { useCall } from "@/contexts/CallContext";
 
 import {
   MessageSquare, Activity, Target, TrendingUp, ArrowLeft, Mail, Phone,
-  Building2, Users, Clock, ExternalLink, Video, Calendar, CheckCircle2,
+  Building2, Car, Users, Clock, ExternalLink, Video, Calendar, CheckCircle2,
   Copy, DollarSign, FileText, User, Wallet, Globe, Hash, Instagram,
   Sparkles, Briefcase, RefreshCw, Pencil, Save, X, Heart, GraduationCap, AlertTriangle,
   StickyNote, Ticket, Merge, GitMerge, Receipt, Send, Star, GitBranch, ChevronDown, Zap, Loader2, UserX, Mic, Trash2, Sprout, XCircle,
@@ -118,6 +117,7 @@ import {
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn, navigateTo, getLeadsBasePath } from "@/lib/utils";
+import { getVehicleLabel } from "@/lib/vehicleLabel";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import { supabase } from "@/lib/supabase";
 import type { SalesStage } from "@/types/sales.types";
@@ -369,6 +369,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
     utm_content: '',
     company_name: '',
     job_title: '',
+    vehicle_interest: '',
   });
   const updateLeadInfo = useUpdateLeadInfo();
 
@@ -574,6 +575,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
       utm_content: lead.utm_content || '',
       company_name: (lead as any).company_name || '',
       job_title: (lead as any).job_title || '',
+      vehicle_interest: getVehicleLabel((lead as any).vehicle_of_interest) || '',
     });
     setIsEditLeadOpen(true);
   };
@@ -582,7 +584,12 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const handleSaveLeadInfo = async () => {
     if (!id) return;
     try {
-      await updateLeadInfo.mutateAsync({ leadId: id, data: editForm });
+      const { vehicle_interest, ...rest } = editForm;
+      const data = {
+        ...rest,
+        vehicle_of_interest: vehicle_interest?.trim() ? { raw: vehicle_interest.trim() } : null,
+      };
+      await updateLeadInfo.mutateAsync({ leadId: id, data });
       toast({ title: "Lead atualizado", description: "Informações salvas com sucesso!" });
       setIsEditLeadOpen(false);
       refetch();
@@ -1131,9 +1138,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                 )}
               </div>
             )}
-
-            {/* Webinarios — historico de inscricoes e atendencia */}
-            {id && <LeadWebinarsCard leadId={id} />}
 
             {/* Contatos Vinculados */}
             {(() => {
@@ -2175,15 +2179,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
               <div className="space-y-6 py-4">
                 {/* Cards de destaque */}
                 <div className="grid grid-cols-2 gap-3">
-                  {selectedDiagnostic.monthly_revenue && (
-                    <div className="p-3 rounded-lg border bg-card">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <DollarSign className="h-4 w-4" />
-                        <span className="text-xs font-medium uppercase tracking-wide">Faturamento</span>
-                      </div>
-                      <p className="text-sm font-semibold">{selectedDiagnostic.monthly_revenue}</p>
-                    </div>
-                  )}
                   {selectedDiagnostic.ai_knowledge_level && (
                     <div className="p-3 rounded-lg border bg-card">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -2416,50 +2411,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                 </div>
               )}
 
-              {/* Webinar detail card */}
-              {selectedTimelineEvent.type === 'webinar' && selectedTimelineEvent.metadata && (
-                <div className="space-y-3 p-4 bg-cyan-50 rounded-xl border border-cyan-200">
-                  <h4 className="text-sm font-semibold text-cyan-800 flex items-center gap-2"><Video className="h-4 w-4" /> Dados do Webinario</h4>
-                  {selectedTimelineEvent.metadata.quiz_name && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><FileText className="h-3.5 w-3.5" /> Quiz</span>
-                      <span className="font-medium">{selectedTimelineEvent.metadata.quiz_name}</span>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.event_topic && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><Target className="h-3.5 w-3.5" /> Tema</span>
-                      <span className="font-medium">{selectedTimelineEvent.metadata.event_topic}</span>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.event_date && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><Calendar className="h-3.5 w-3.5" /> Data do Evento</span>
-                      <span className="font-medium">{new Date(selectedTimelineEvent.metadata.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.headline && (
-                    <div className="space-y-1.5">
-                      <span className="text-sm text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Headline</span>
-                      <div className="p-3 bg-white rounded-lg border text-sm">{selectedTimelineEvent.metadata.headline}</div>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.landing_page && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Landing Page</span>
-                      <a href={selectedTimelineEvent.metadata.landing_page} target="_blank" rel="noopener" className="font-medium text-cyan-600 hover:underline truncate max-w-[200px]">
-                        {selectedTimelineEvent.metadata.landing_page.replace('https://', '')}
-                      </a>
-                    </div>
-                  )}
-                  {selectedTimelineEvent.metadata.utm_source && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-2"><ExternalLink className="h-3.5 w-3.5" /> Origem</span>
-                      <span className="font-medium">{selectedTimelineEvent.metadata.utm_source}{selectedTimelineEvent.metadata.utm_campaign ? ` / ${selectedTimelineEvent.metadata.utm_campaign}` : ''}</span>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {selectedTimelineEvent.amount && (
                 <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
@@ -2824,28 +2775,17 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
             {/* Campos B2B - Empresa */}
             <div className="border-t pt-4 mt-2">
               <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Dados da Empresa (B2B)
+                <Car className="h-4 w-4" />
+                Interesse automotivo
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-company">Empresa</Label>
-                  <Input
-                    id="edit-company"
-                    value={editForm.company_name}
-                    onChange={(e) => setEditForm({ ...editForm, company_name: e.target.value })}
-                    placeholder="Nome da empresa"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-job-title">Cargo</Label>
-                  <Input
-                    id="edit-job-title"
-                    value={editForm.job_title}
-                    onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
-                    placeholder="CEO, Gerente, etc."
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-vehicle-interest">Veículo de interesse</Label>
+                <Input
+                  id="edit-vehicle-interest"
+                  value={editForm.vehicle_interest}
+                  onChange={(e) => setEditForm({ ...editForm, vehicle_interest: e.target.value })}
+                  placeholder="Ex: Corolla 2020, SUV até 100k..."
+                />
               </div>
             </div>
             <div className="border-t pt-4 mt-2">

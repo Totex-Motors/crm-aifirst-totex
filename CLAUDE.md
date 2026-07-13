@@ -26,12 +26,28 @@ Se `.setup-complete` JA existir, siga o fluxo normal da conversa.
 
 ## O que e este projeto
 
-CRM comercial AI-first, limpo, pronto pra ser entregue aos alunos do programa
-IA na Pratica. So funcionalidades de vendas: pipeline, inbox WhatsApp, agente
-de IA, coach em tempo real, treinamento e gestao basica de time.
+CRM comercial AI-first **focado no nicho automotivo (revendas de veiculos)**.
+So funcionalidades de vendas: pipeline, inbox WhatsApp, agente de IA, coach em
+tempo real, treinamento e gestao basica de time.
 
 **Numeros (pos-limpeza):** 28 paginas | ~16 pastas de componentes | ~79 hooks |
 52 Edge Functions | 23 migrations.
+
+## Nicho automotivo (IMPORTANTE)
+
+Este CRM foi adaptado de um template B2B genérico para **revenda de veiculos**.
+As convencoes do nicho:
+
+- **"Negociacao"** é o termo de UI para o antigo "Deal" (a camada fisica do banco
+  continua `deals`/`deal_id` — NAO renomear tabelas/colunas).
+- Cada negociacao é vinculada a um **veiculo do estoque** (`deals.vehicle_id` →
+  tabela `vehicles`), nao a um "produto".
+- **Qualificacao automotiva** substitui o BANT B2B. Colunas boolean no lead:
+  `intent_buy_only`, `intent_trade_in`, `intent_finance_no_entry`, `intent_cash`,
+  `intent_sell`, `intent_special_search` + `vehicle_of_interest` (jsonb) +
+  `negotiation_type` (text). O helper `_shared/automotive.ts` mapeia a extracao
+  da IA nesses campos, usado por agente, analise de call/conversa e formulario
+  de agendamento. NAO reintroduzir empresa/faturamento/funcionarios/webinar.
 
 ## Stack
 
@@ -55,8 +71,8 @@ Ficam em `/configuracoes > Modulos`.
 - Cockpit do vendedor (visao diaria, ligacoes, hot leads)
 - Dashboard comercial (pipeline metrics, ranking, alertas)
 - Pipeline Kanban (drag & drop, estagios configuraveis, multi-pipeline)
-- Leads com Scoring IA + BANT
-- Deals / Oportunidades (com pagamentos e comissoes)
+- Leads com Scoring IA + Qualificacao automotiva (intencao de compra)
+- Negociacoes (vinculadas ao veiculo do estoque, com pagamentos e comissoes)
 - Inbox WhatsApp comercial (UAZAPI + Cloud API, multi-instancia)
 - Telefonia (chamadas VoIP com transcricao real-time)
 - **Agente IA autonomo** (responde leads via WhatsApp 24/7)
@@ -209,8 +225,8 @@ As edge functions leem via `getIntegrationKey()` da tabela `config`.
 - `/comercial/pipeline` -> Pipeline Kanban
 - `/comercial/leads` -> Lista de leads
 - `/comercial/leads/:id` -> Detalhe do lead (com WhatsApp, chamadas, deals, tarefas, IA)
-- `/comercial/deals` -> Deals / Oportunidades
-- `/comercial/deals/:id` -> Detalhe do deal (com pagamentos, comissoes)
+- `/comercial/negociacoes` -> Negociacoes (vinculadas ao veiculo do estoque)
+- `/comercial/negociacoes/:id` -> Detalhe da negociacao (com pagamentos, comissoes)
 - `/comercial/inbox` -> Inbox WhatsApp
 - `/comercial/agenda` -> Agenda comercial
 - `/comercial/workspace` -> Sales Workspace

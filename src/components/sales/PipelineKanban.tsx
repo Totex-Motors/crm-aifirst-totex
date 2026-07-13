@@ -999,12 +999,6 @@ function NegociacaoCard({
                   {portal.label}
                 </span>
               )}
-              {enrollment?.webinar_title && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-semibold max-w-[120px] truncate">
-                  <Sparkles className="h-2.5 w-2.5 shrink-0" />
-                  <span className="truncate">{enrollment.webinar_title}</span>
-                </span>
-              )}
               {attendanceBadge}
               {sourceShort && (
                 <span className="inline-flex items-center text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold" title={`Origem: ${utmSource}`}>
@@ -1164,7 +1158,6 @@ function NegociacaoCard({
               </TooltipTrigger>
               <TooltipContent>
                 <p>Score Diagnóstico: {(deal as any).diagnostic_score}/100</p>
-                {(deal as any).diagnostic_revenue && <p>Faturamento: {(deal as any).diagnostic_revenue}</p>}
               </TooltipContent>
             </Tooltip>
           )}

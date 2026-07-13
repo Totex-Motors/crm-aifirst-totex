@@ -134,10 +134,10 @@ function FilterMode({
     (filters.last_interaction_after ? 1 : 0) +
     (filters.last_interaction_before ? 1 : 0) +
     (filters.no_sales_rep ? 1 : 0) +
-    (filters.bant_budget ? 1 : 0) +
-    (filters.bant_authority ? 1 : 0) +
-    (filters.bant_need ? 1 : 0) +
-    (filters.bant_timeline ? 1 : 0);
+    (filters.intent_trade_in ? 1 : 0) +
+    (filters.intent_cash ? 1 : 0) +
+    (filters.intent_finance_no_entry ? 1 : 0) +
+    (filters.intent_buy_only ? 1 : 0);
 
   return (
     <Accordion type="multiple" defaultValue={['pipeline']} className="space-y-2">
@@ -270,8 +270,8 @@ function FilterMode({
           <div className="flex items-center gap-2 text-sm font-medium">
             <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
             Qualificação
-            {((filters.bant_budget ? 1 : 0) + (filters.bant_authority ? 1 : 0) + (filters.bant_need ? 1 : 0) + (filters.bant_timeline ? 1 : 0)) > 0 && (
-              <Badge variant="secondary" className="text-[10px]">BANT</Badge>
+            {((filters.intent_trade_in ? 1 : 0) + (filters.intent_cash ? 1 : 0) + (filters.intent_finance_no_entry ? 1 : 0) + (filters.intent_buy_only ? 1 : 0)) > 0 && (
+              <Badge variant="secondary" className="text-[10px]">Automotivo</Badge>
             )}
           </div>
         </AccordionTrigger>
@@ -309,15 +309,20 @@ function FilterMode({
             </div>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">BANT</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Intenção de compra</Label>
             <div className="grid grid-cols-2 gap-1.5">
-              {(['bant_budget', 'bant_authority', 'bant_need', 'bant_timeline'] as const).map((key) => (
+              {([
+                { key: 'intent_trade_in', label: 'Com troca' },
+                { key: 'intent_cash', label: 'À vista' },
+                { key: 'intent_finance_no_entry', label: 'Financiamento' },
+                { key: 'intent_buy_only', label: 'Só compra' },
+              ] as const).map(({ key, label }) => (
                 <label key={key} className="flex items-center gap-2 text-xs cursor-pointer">
                   <Checkbox
                     checked={filters[key] || false}
                     onCheckedChange={(checked) => updateFilter(key, checked ? true : undefined)}
                   />
-                  <span className="capitalize">{key.replace('bant_', '')}</span>
+                  <span>{label}</span>
                 </label>
               ))}
             </div>

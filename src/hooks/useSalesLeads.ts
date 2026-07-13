@@ -384,11 +384,12 @@ export const useUpdateLeadInfo = () => {
         utm_content?: string;
         company_name?: string;
         job_title?: string;
+        vehicle_of_interest?: Record<string, unknown> | null;
         tags?: string[];
       };
     }) => {
       // Remover campos que não existem na tabela
-      const allowedFields = ['name', 'email', 'phone', 'instagram', 'region', 'utm_source', 'utm_campaign', 'utm_content', 'company_name', 'job_title', 'tags'];
+      const allowedFields = ['name', 'email', 'phone', 'instagram', 'region', 'utm_source', 'utm_campaign', 'utm_content', 'company_name', 'job_title', 'vehicle_of_interest', 'tags'];
       const cleanData: Record<string, any> = {};
 
       Object.entries(data).forEach(([key, value]) => {

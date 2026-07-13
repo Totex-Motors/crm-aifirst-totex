@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { leadAutomotiveContext, vehicleInterestLabel } from "../_shared/automotive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -159,7 +160,7 @@ Deno.serve(async (req: Request) => {
         name: lead.name,
         email: lead.email,
         phone: lead.phone,
-        company: lead.company_name,
+        qualificacao_automotiva: leadAutomotiveContext(lead),
         stage: lead.sales_stage,
         score: lead.sales_score,
         source: lead.source,
@@ -201,7 +202,7 @@ Analise TODOS os dados disponíveis e gere um briefing completo e prático.
 3. **Timeline resumida**: 3-5 eventos mais importantes em ordem cronológica
 4. **Última conversa**: Resumo do último contato e assuntos pendentes
 5. **Objeções conhecidas**: O que já foi levantado como impedimento
-6. **Interesses**: Produtos ou temas que despertaram interesse
+6. **Interesses**: Veículos, modelos ou condições que despertaram interesse
 7. **Sentimento**: positivo, neutro ou negativo
 8. **Pontos de atenção**: Algo a evitar ou ter cuidado
 9. **Gancho de abertura**: Sugestão de como iniciar a conversa naturalmente
@@ -292,7 +293,7 @@ Gere o briefing completo para eu contatar este lead.`;
 
       // Fallback: criar briefing básico com os dados disponíveis
       briefing = {
-        who: `${lead.name}${lead.company_name ? ` da ${lead.company_name}` : ""}`,
+        who: `${lead.name}${vehicleInterestLabel(lead.vehicle_of_interest) ? ` — interesse: ${vehicleInterestLabel(lead.vehicle_of_interest)}` : ""}`,
         how_found_us: lead.utm_source || lead.source || "Origem não identificada",
         timeline_summary: activities?.slice(0, 3).map((a: any) => `${a.type}: ${a.title}`) || ["Sem atividades registradas"],
         last_conversation: messages?.[0]?.content?.substring(0, 200) || "Sem conversas recentes",

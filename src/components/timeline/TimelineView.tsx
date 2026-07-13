@@ -261,11 +261,11 @@ export function TimelineView({
                         {event.metadata?.source === 'book_meeting_page' && (
                           <div className="mt-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800 space-y-1">
                             <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">📋 Dados do agendamento:</p>
-                            {event.metadata.company && (
-                              <p className="text-xs"><span className="font-semibold text-orange-600">Empresa:</span> {event.metadata.company}</p>
+                            {event.metadata.vehicle_interest && (
+                              <p className="text-xs"><span className="font-semibold text-orange-600">Veículo de interesse:</span> {event.metadata.vehicle_interest}</p>
                             )}
-                            {event.metadata.revenue && (
-                              <p className="text-xs"><span className="font-semibold text-orange-600">Faturamento:</span> R$ {(event.metadata.revenue / 1000).toFixed(0)}k/mês</p>
+                            {event.metadata.negotiation && (
+                              <p className="text-xs"><span className="font-semibold text-orange-600">Negociação:</span> {event.metadata.negotiation}</p>
                             )}
                             {event.metadata.evento && (
                               <p className="text-xs"><span className="font-semibold text-orange-600">Evento:</span> {event.metadata.evento}</p>

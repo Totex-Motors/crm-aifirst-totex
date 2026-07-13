@@ -323,7 +323,7 @@ export function CreateLeadOrNegociacaoModal({
     email: "",
     phone: "",
     instagram: "",
-    company_name: "",        // Nome da Empresa
+    vehicle_interest: "",    // Veículo de interesse
     // UTMs simplificados
     utm_source: "instagram", // Canal
     utm_campaign: "",        // Campanha
@@ -666,7 +666,9 @@ export function CreateLeadOrNegociacaoModal({
           email: newLeadForm.email || null,
           phone: newLeadForm.phone || null,
           instagram: newLeadForm.instagram || null,
-          company_name: newLeadForm.company_name || null,
+          vehicle_of_interest: newLeadForm.vehicle_interest?.trim()
+            ? { raw: newLeadForm.vehicle_interest.trim() }
+            : null,
           // UTMs
           utm_source: newLeadForm.utm_source || null,
           utm_campaign: newLeadForm.utm_campaign || null,
@@ -965,7 +967,7 @@ export function CreateLeadOrNegociacaoModal({
       email: "",
       phone: "",
       instagram: "",
-      company_name: "",
+      vehicle_interest: "",
       utm_source: "instagram",
       utm_campaign: "",
       utm_content: "",
@@ -1217,14 +1219,14 @@ export function CreateLeadOrNegociacaoModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="company_name">Empresa</Label>
+                  <Label htmlFor="vehicle_interest">Veículo de interesse</Label>
                   <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Car className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="company_name"
-                      placeholder="Nome da empresa"
-                      value={newLeadForm.company_name}
-                      onChange={(e) => setNewLeadForm({ ...newLeadForm, company_name: e.target.value })}
+                      id="vehicle_interest"
+                      placeholder="Ex: Corolla 2020, SUV até 100k..."
+                      value={newLeadForm.vehicle_interest}
+                      onChange={(e) => setNewLeadForm({ ...newLeadForm, vehicle_interest: e.target.value })}
                       className="pl-9"
                     />
                   </div>

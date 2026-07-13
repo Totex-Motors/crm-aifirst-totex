@@ -9,7 +9,6 @@ export { BANTIndicator, BANTCard, QualificationCard } from './BANTIndicator';
 export { NegociacaoCard, NegociacaoKanbanCard } from './NegociacaoCard';
 export { LeadCard, LeadKanbanCard } from './LeadCard';
 export { SalesStatCard, SalesStatInline, SalesStatBadge, SalesStatsGrid } from './SalesStatCard';
-export { LeadWebinarsCard } from './LeadWebinarsCard';
 export { NegociacaoOriginCard } from './NegociacaoOriginCard';
 export { SidebarNegociacoes } from './SidebarNegociacoes';
 

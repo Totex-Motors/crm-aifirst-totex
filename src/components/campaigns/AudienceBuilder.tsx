@@ -292,15 +292,20 @@ export default function AudienceBuilder({ filters, onChange }: Props) {
               </div>
             </div>
             <div>
-              <Label className="text-xs">BANT</Label>
+              <Label className="text-xs">Qualificação automotiva</Label>
               <div className="grid grid-cols-2 gap-1 mt-1">
-                {(['bant_budget', 'bant_authority', 'bant_need', 'bant_timeline'] as const).map(key => (
+                {([
+                  { key: 'intent_trade_in', label: 'Com troca' },
+                  { key: 'intent_cash', label: 'À vista' },
+                  { key: 'intent_finance_no_entry', label: 'Financiamento' },
+                  { key: 'intent_buy_only', label: 'Só compra' },
+                ] as const).map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-2 text-xs cursor-pointer">
                     <Checkbox
                       checked={filters[key] || false}
                       onCheckedChange={(checked) => updateFilter(key, checked ? true : undefined)}
                     />
-                    <span>{key.replace('bant_', '').charAt(0).toUpperCase() + key.replace('bant_', '').slice(1)}</span>
+                    <span>{label}</span>
                   </label>
                 ))}
               </div>

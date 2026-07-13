@@ -787,7 +787,7 @@ function ReviewPanel({
     if (filters.cities?.length) lines.push(`Cidades: ${filters.cities.slice(0, 3).join(', ')}${filters.cities.length > 3 ? ` +${filters.cities.length - 3}` : ''}`);
     if (filters.utm_sources?.length) lines.push(`UTM: ${filters.utm_sources.join(', ')}`);
     if (filters.score_min !== undefined || filters.score_max !== undefined) lines.push(`Score ${filters.score_min ?? 0}-${filters.score_max ?? 100}`);
-    if (filters.bant_budget || filters.bant_authority || filters.bant_need || filters.bant_timeline) lines.push('Com BANT preenchido');
+    if (filters.intent_trade_in || filters.intent_cash || filters.intent_finance_no_entry || filters.intent_buy_only) lines.push('Com qualificação automotiva');
     if (filters.exclude_campaign_days) lines.push(`Excluindo quem recebeu nos últimos ${filters.exclude_campaign_days} dias`);
     if (lines.length === 0) lines.push('Sem filtros aplicados');
     return lines;

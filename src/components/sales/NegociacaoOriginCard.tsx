@@ -115,7 +115,6 @@ export function NegociacaoOriginCard({ dealId, leadId }: DealOriginCardProps) {
   if (isLoading || !origin) return null;
 
   const hasAnyData =
-    origin.webinar ||
     origin.utm_source ||
     origin.utm_campaign ||
     origin.landing_page ||
@@ -132,34 +131,6 @@ export function NegociacaoOriginCard({ dealId, leadId }: DealOriginCardProps) {
     : null;
   const SourceIcon = sourceConfig?.icon || Globe;
 
-  // Webinar status
-  let webinarStatusBadge: React.ReactNode = null;
-  if (origin.webinar) {
-    const eventDate = origin.webinar.event_date ? new Date(origin.webinar.event_date) : null;
-    const eventHasHappened = eventDate ? eventDate <= new Date() : false;
-    if (!eventHasHappened) {
-      webinarStatusBadge = (
-        <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-600 dark:text-amber-400">
-          <Clock className="h-3 w-3" /> Aguardando
-        </Badge>
-      );
-    } else if (origin.webinar.attended) {
-      const mins = origin.webinar.attended_duration || 0;
-      const durStr = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60 > 0 ? `${mins % 60}min` : ''}` : `${mins}min`;
-      webinarStatusBadge = (
-        <Badge variant="outline" className="gap-1 border-green-500/30 text-green-600 dark:text-green-400">
-          <CheckCircle2 className="h-3 w-3" /> Compareceu {mins > 0 && `· ${durStr}`}
-        </Badge>
-      );
-    } else {
-      webinarStatusBadge = (
-        <Badge variant="outline" className="gap-1 border-red-500/30 text-red-600 dark:text-red-400">
-          <XCircle className="h-3 w-3" /> Faltou
-        </Badge>
-      );
-    }
-  }
-
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -169,33 +140,7 @@ export function NegociacaoOriginCard({ dealId, leadId }: DealOriginCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Bloco 1: Webinario (se houver) */}
-        {origin.webinar && (
-          <div className="p-3 rounded-lg border border-violet-200/50 bg-violet-50/50 dark:bg-violet-950/20 dark:border-violet-900/30 space-y-2">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
-                <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold text-sm">{origin.webinar.title}</p>
-                  {webinarStatusBadge}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap">
-                  <span>Inscrito {format(new Date(origin.webinar.enrolled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
-                  {origin.webinar.event_date && (
-                    <>
-                      <span>·</span>
-                      <span>Evento {format(new Date(origin.webinar.event_date), "dd/MM/yy", { locale: ptBR })}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bloco 2: Origem do trafego (UTMs) */}
+        {/* Bloco: Origem do trafego (UTMs) */}
         {(origin.utm_source || origin.utm_campaign) && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tráfego</p>

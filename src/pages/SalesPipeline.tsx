@@ -685,7 +685,6 @@ export function PipelineBoardContent() {
                 <SelectItem value="urgency">Urgencia</SelectItem>
                 <SelectItem value="recent">Mais recentes</SelectItem>
                 <SelectItem value="value">Maior valor negociação</SelectItem>
-                <SelectItem value="revenue">Maior faturamento</SelectItem>
                 <SelectItem value="score">Score do lead</SelectItem>
                 <SelectItem value="time_in_stage">Tempo na etapa</SelectItem>
               </SelectContent>
@@ -822,69 +821,6 @@ export function PipelineBoardContent() {
                           <span className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                             Sem tarefa hoje ({activityCounts.noTaskToday})
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Webinario — só aparece no pipeline Webinário */}
-                  {isWebinarPipeline && webinarConfigs.length > 0 && (
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Webinario</label>
-                      <Select value={webinarFilter || "all"} onValueChange={(v) => setWebinarFilter(v === "all" ? undefined : v)}>
-                        <SelectTrigger className="h-9 text-sm border-slate-200">
-                          <Sparkles className="h-3.5 w-3.5 mr-2 text-violet-400" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos os webinarios</SelectItem>
-                          {webinarConfigs.map(w => (
-                            <SelectItem key={w.id} value={w.id}>{w.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {/* Faturamento */}
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">Faturamento</label>
-                    <Select value={revenueFilter} onValueChange={setRevenueFilter}>
-                      <SelectTrigger className="h-9 text-sm border-slate-200">
-                        <DollarSign className="h-3.5 w-3.5 mr-2 text-slate-400" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="100k+">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            +R$ 100k
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="50k-100k">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                            R$ 50k-100k
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="10k-50k">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                            R$ 10k-50k
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="ate10k">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                            Ate R$ 10k
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="sem_faturamento">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-red-400"></span>
-                            Sem info
                           </span>
                         </SelectItem>
                       </SelectContent>
