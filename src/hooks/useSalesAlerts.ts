@@ -409,6 +409,40 @@ export const useActiveAlertsForLead = (leadId: string | undefined) => {
   });
 };
 
+// Bulk fetch alerts for multiple leads (usado no Pipeline para evitar N+1 queries)
+export const useActiveAlertsForLeads = (leadIds: string[]) => {
+  return useQuery({
+    queryKey: ['leads-active-alerts-bulk', leadIds],
+    queryFn: async () => {
+      if (!leadIds.length) return {} as Record<string, SalesAlert[]>;
+      const { data, error } = await supabase
+        .from('sales_alerts')
+        .select('*')
+        .in('lead_id', leadIds)
+        .eq('is_actioned', false)
+        .in('alert_type', [
+          'no_followup_critical',
+          'no_followup_medium',
+          'overdue_task',
+          'overdue_task_escalated',
+          'unconfirmed_meeting',
+          'unconfirmed_meeting_escalated',
+        ])
+        .order('priority', { ascending: false });
+
+      if (error) throw error;
+      const byLead: Record<string, SalesAlert[]> = {};
+      for (const alert of data || []) {
+        if (!alert.lead_id) continue;
+        if (!byLead[alert.lead_id]) byLead[alert.lead_id] = [];
+        byLead[alert.lead_id].push(alert as SalesAlert);
+      }
+      return byLead;
+    },
+    enabled: leadIds.length > 0,
+  });
+};
+
 // Get alerts summary by type
 export const useAlertsSummary = () => {
   return useQuery({

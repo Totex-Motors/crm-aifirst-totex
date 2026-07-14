@@ -20,12 +20,14 @@ import {
   Plus, TrendingUp, DollarSign, Target, Phone, Video,
   Clock, MessageSquare, AlertTriangle, Flame, Snowflake,
   Calendar, User, Users, Crown, ExternalLink, Send, PhoneCall, CheckCircle,
-  UserX, Pause, XCircle, Building2, Trash2, Sparkles, ChevronRight
+  UserX, Pause, XCircle, Building2, Trash2, Sparkles, ChevronRight, Car
 } from "lucide-react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { getVehicleLabel } from "@/lib/vehicleLabel";
 import { AlertBadge } from "@/components/sales/AlertBadge";
 import { useUpcomingCallsForLeads } from "@/hooks/useTasks";
+import { useActiveAlertsForLeads } from "@/hooks/useSalesAlerts";
+import type { SalesAlert } from "@/types/sales.types";
 import { format, isToday, isTomorrow, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -183,6 +185,9 @@ export function PipelineKanban({
   // Fetch scheduled calls for all leads in pipeline
   const { data: callsByLead } = useUpcomingCallsForLeads(leadIds);
 
+  // Fetch alerts for all leads in one query (evita N+1 queries do AlertBadge)
+  const { data: alertsByLead } = useActiveAlertsForLeads(leadIds);
+
   const handleDragStart = (deal: Negociacao, stageId: string) => {
     setDraggedDeal({ deal, fromStageId: stageId });
   };
@@ -262,6 +267,7 @@ export function PipelineKanban({
           isDragOver={dragOverStageId === column.stage.id}
           isDragging={draggedDeal !== null}
           callsByLead={callsByLead}
+          alertsByLead={alertsByLead}
           sortBy={sortBy}
           width={getColumnWidth(column.stage.id)}
           onResizeStart={(e) => handleResizeStart(e, column.stage.id)}
@@ -298,6 +304,7 @@ interface KanbanColumnProps {
   isDragOver: boolean;
   isDragging: boolean;
   callsByLead?: Record<string, ScheduledCall>;
+  alertsByLead?: Record<string, SalesAlert[]>;
   sortBy: PipelineSortBy;
   width: number;
   onResizeStart: (e: React.MouseEvent) => void;
@@ -346,6 +353,7 @@ function KanbanColumn({
   isDragOver,
   isDragging,
   callsByLead,
+  alertsByLead,
   sortBy,
   width,
   onResizeStart,
@@ -479,6 +487,7 @@ function KanbanColumn({
               onDragStart={() => onDragStart(deal, stage.id)}
               onDragEnd={onDragEnd}
               scheduledCall={deal.lead_id ? callsByLead?.[deal.lead_id] : undefined}
+              prefetchedAlerts={deal.lead_id ? alertsByLead?.[deal.lead_id] : undefined}
               isFinalized={stage.is_won || stage.is_lost}
               allStages={allStages}
               onMoveToStage={(dealId, toStageId) => onMoveToStage(dealId, stage.id, toStageId)}
@@ -681,6 +690,7 @@ function NegociacaoCard({
   onDragStart,
   onDragEnd,
   scheduledCall,
+  prefetchedAlerts,
   isFinalized = false,
   allStages,
   onMoveToStage,
@@ -693,6 +703,7 @@ function NegociacaoCard({
   onDragStart: () => void;
   onDragEnd: () => void;
   scheduledCall?: ScheduledCall;
+  prefetchedAlerts?: SalesAlert[];
   isFinalized?: boolean;
   allStages?: { id: string; name: string }[];
   onMoveToStage?: (dealId: string, toStageId: string) => void;
@@ -1052,7 +1063,7 @@ function NegociacaoCard({
 
           {/* Alert Badge - alertas ativos (follow-up, tarefa, reunião) */}
           {!isFinalized && deal.lead_id && (
-            <AlertBadge leadId={deal.lead_id} compact={false} />
+            <AlertBadge leadId={deal.lead_id} compact={false} prefetchedAlerts={prefetchedAlerts} />
           )}
 
           {/* Interagiu hoje - badge verde */}

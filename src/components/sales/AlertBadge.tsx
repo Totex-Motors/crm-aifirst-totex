@@ -2,11 +2,13 @@ import { AlertTriangle, Clock, PhoneOff, CalendarX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useActiveAlertsForLead } from '@/hooks/useSalesAlerts';
+import type { SalesAlert } from '@/types/sales.types';
 
 interface AlertBadgeProps {
   leadId: string;
   className?: string;
   compact?: boolean;
+  prefetchedAlerts?: SalesAlert[];
 }
 
 const ALERT_CONFIG: Record<string, { icon: typeof AlertTriangle; label: string; color: string }> = {
@@ -42,8 +44,9 @@ const ALERT_CONFIG: Record<string, { icon: typeof AlertTriangle; label: string; 
   },
 };
 
-export function AlertBadge({ leadId, className, compact = false }: AlertBadgeProps) {
-  const { data: alerts } = useActiveAlertsForLead(leadId);
+export function AlertBadge({ leadId, className, compact = false, prefetchedAlerts }: AlertBadgeProps) {
+  const { data: fetchedAlerts } = useActiveAlertsForLead(prefetchedAlerts !== undefined ? undefined : leadId);
+  const alerts = prefetchedAlerts ?? fetchedAlerts;
 
   if (!alerts || alerts.length === 0) return null;
 
