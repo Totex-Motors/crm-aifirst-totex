@@ -116,9 +116,14 @@ export const useSyncVehicles = () => {
   return useMutation({
     mutationFn: async () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ?? (import.meta.env.VITE_SUPABASE_ANON_KEY as string);
       const res = await fetch(`${supabaseUrl}/functions/v1/sync-vehicle-stock`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
       });
       if (!res.ok) throw new Error(`Sync HTTP ${res.status}`);
       return res.json();

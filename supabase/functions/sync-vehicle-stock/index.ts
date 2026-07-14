@@ -121,8 +121,18 @@ function parseAd(adXml: string) {
   };
 }
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 // ---------- Handler ----------
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS });
+  }
+
   const startedAt = Date.now();
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -194,13 +204,13 @@ Deno.serve(async (_req) => {
     console.log("[sync-vehicle-stock] DONE", summary);
 
     return new Response(JSON.stringify(summary), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...CORS, "Content-Type": "application/json" },
       status: failed === 0 ? 200 : 207,
     });
   } catch (e: any) {
     console.error("[sync-vehicle-stock] FATAL", e);
     return new Response(JSON.stringify({ status: "error", error: e.message }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...CORS, "Content-Type": "application/json" },
       status: 500,
     });
   }
