@@ -23,6 +23,7 @@ import {
   UserX, Pause, XCircle, Building2, Trash2, Sparkles, ChevronRight
 } from "lucide-react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { getVehicleLabel } from "@/lib/vehicleLabel";
 import { AlertBadge } from "@/components/sales/AlertBadge";
 import { useUpcomingCallsForLeads } from "@/hooks/useTasks";
 import { format, isToday, isTomorrow, formatDistanceToNow } from "date-fns";
