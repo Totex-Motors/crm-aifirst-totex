@@ -226,9 +226,9 @@ export function GoogleCalendarSection() {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div
-                className={`p-2 rounded-full ${
+                className={`p-2 rounded-full shrink-0 ${
                   isCalendarConnected ? "bg-green-500/10" : "bg-gray-500/10"
                 }`}
               >
@@ -273,7 +273,7 @@ export function GoogleCalendarSection() {
 
               <div className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium">Sincronização Automática</p>
                     <p className="text-sm text-muted-foreground">
                       Eventos do Google Calendar aparecem nas suas tarefas
