@@ -97,7 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasInitiallySignedIn = true; // Já tem sessão — próximos SIGNED_IN são refreshes
         const tm = await fetchTeamMember(initialSession.user.email);
         if (isMounted && tm) {
-          setTeamMember(tm);
+          if (tm.is_active === false) {
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
+            setTeamMember(null);
+            sessionRef.current = null;
+          } else {
+            setTeamMember(tm);
+          }
         }
       }
 
@@ -138,8 +146,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (newSession?.user?.email) {
           const tm = await fetchTeamMember(newSession.user.email);
           if (isMounted && tm) {
-            setTeamMember(tm);
-            linkAuthUser(newSession.user.id, newSession.user.email); // fire-and-forget
+            if (tm.is_active === false) {
+              await supabase.auth.signOut();
+              setSession(null);
+              setUser(null);
+              setTeamMember(null);
+              hasInitiallySignedIn = false;
+            } else {
+              setTeamMember(tm);
+              linkAuthUser(newSession.user.id, newSession.user.email); // fire-and-forget
+            }
           }
         }
         if (isMounted) setLoading(false);

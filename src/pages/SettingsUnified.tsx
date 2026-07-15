@@ -375,7 +375,7 @@ export default function SettingsUnified() {
         {/* ===== CONTENT AREA ===== */}
         <main className="flex-1 min-w-0 overflow-hidden">
           <div className="h-full overflow-y-auto overflow-x-hidden">
-            <div className="max-w-4xl min-w-0 p-6 lg:p-8">
+            <div className="max-w-4xl min-w-0 p-4 sm:p-6 lg:p-8">
               {/* Section header with description */}
               {activeItem && (
                 <div className="mb-6 pb-4 border-b border-border/30">

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -769,18 +770,18 @@ export function CommissionsTab() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Comissoes</CardTitle>
               <CardDescription>
                 Gerencie comissoes, regras e gateways de pagamento
               </CardDescription>
             </div>
-            <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-              <TabsList>
-                <TabsTrigger value="list">Lista</TabsTrigger>
-                <TabsTrigger value="rules">Regras</TabsTrigger>
-                <TabsTrigger value="gateways">Gateways</TabsTrigger>
+            <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full sm:w-auto">
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="list" className="flex-1 sm:flex-none">Lista</TabsTrigger>
+                <TabsTrigger value="rules" className="flex-1 sm:flex-none">Regras</TabsTrigger>
+                <TabsTrigger value="gateways" className="flex-1 sm:flex-none">Gateways</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -1191,10 +1192,9 @@ export function TeamTab() {
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
-                <Input
+                <PhoneInput
                   value={createForm.phone}
-                  onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
+                  onChange={(digits) => setCreateForm({ ...createForm, phone: digits })}
                 />
               </div>
             </div>
@@ -1283,10 +1283,9 @@ export function TeamTab() {
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
-                <Input
+                <PhoneInput
                   value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
+                  onChange={(digits) => setEditForm({ ...editForm, phone: digits })}
                 />
               </div>
             </div>
@@ -1529,8 +1528,8 @@ export function PlaybooksTab() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
               Playbook de Vendas
@@ -1544,7 +1543,7 @@ export function PlaybooksTab() {
               Configure o contexto e diretrizes para a IA de vendas
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "edit" | "preview")}>
               <TabsList>
                 <TabsTrigger value="edit" className="gap-2">

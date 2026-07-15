@@ -160,13 +160,25 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Missing required fields: member_id, is_active" }, 400);
       }
 
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("team_members")
         .update({ is_active })
-        .eq("id", member_id);
+        .eq("id", member_id)
+        .select("id, auth_user_id");
 
       if (error) {
         return jsonResponse({ error: `Toggle active error: ${error.message}` }, 400);
+      }
+
+      const authUserId = updated?.[0]?.auth_user_id as string | null;
+      if (authUserId) {
+        // ban_duration "none" reativa; ~100 anos equivale a banimento indefinido
+        const { error: banErr } = await supabase.auth.admin.updateUserById(authUserId, {
+          ban_duration: is_active ? "none" : "876000h",
+        });
+        if (banErr) {
+          console.error("[manage-team-member] Falha ao (des)banir conta:", banErr.message);
+        }
       }
 
       return jsonResponse({ success: true });

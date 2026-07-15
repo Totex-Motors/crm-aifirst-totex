@@ -279,7 +279,7 @@ export function WhatsAppTaskBotConfig() {
           <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shrink-0">
             <Bot className="h-6 w-6 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-xl font-semibold">Bot de Tarefas via WhatsApp</h2>
             <p className="text-sm text-muted-foreground">
               Mencione o bot no grupo para criar tarefas automaticamente
@@ -369,7 +369,7 @@ export function WhatsAppTaskBotConfig() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome do Bot</Label>
                   <Input
@@ -409,7 +409,7 @@ export function WhatsAppTaskBotConfig() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Mensagens de Contexto</Label>
                   <Input
@@ -485,8 +485,8 @@ export function WhatsAppTaskBotConfig() {
         <TabsContent value="groups" className="mt-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <CardTitle className="text-lg">Grupos Habilitados</CardTitle>
                   <CardDescription>
                     Selecione em quais grupos o bot deve responder quando mencionado
@@ -496,6 +496,7 @@ export function WhatsAppTaskBotConfig() {
                   variant="outline"
                   onClick={handleSyncGroups}
                   disabled={syncGroups.isPending || !instanceId}
+                  className="w-full sm:w-auto shrink-0"
                 >
                   {syncGroups.isPending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

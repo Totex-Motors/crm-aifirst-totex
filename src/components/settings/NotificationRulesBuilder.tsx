@@ -596,7 +596,7 @@ export function NotificationRulesBuilder() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2 md:col-span-2">
                       <Label>Tempo</Label>
                       <Select
                         value={formData.trigger_minutes?.toString()}
