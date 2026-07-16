@@ -12,14 +12,8 @@ export interface WhatsAppTemplate {
   status: string;
   rejection_reason: string | null;
   components: any[];
-  example_values: Record<string, any>;
   variables_count: number;
   internal_tags: string[];
-  total_sent: number;
-  total_delivered: number;
-  total_read: number;
-  total_failed: number;
-  last_used_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -405,14 +405,21 @@ async function getOfficialInstanceId(supabase: any): Promise<string | null> {
 }
 
 async function buildTemplateText(supabase: any, templateName: string, params?: string[]): Promise<string> {
-  // Buscar texto da tabela (fonte única de verdade)
+  // Buscar texto da tabela (fonte única de verdade).
+  // whatsapp_cloud_templates guarda só `components` no formato da Meta —
+  // o corpo é o component BODY.
   const { data: tpl } = await supabase
-    .from('whatsapp_templates')
-    .select('body_text')
+    .from('whatsapp_cloud_templates')
+    .select('components')
     .eq('name', templateName)
+    .limit(1)
     .maybeSingle();
 
-  let text = tpl?.body_text || `[Template: ${templateName}]`;
+  const bodyText = Array.isArray(tpl?.components)
+    ? tpl.components.find((c: any) => c?.type === 'BODY')?.text
+    : null;
+
+  let text = bodyText || `[Template: ${templateName}]`;
   if (params) {
     params.forEach((p, i) => {
       text = text.replace(`{{${i + 1}}}`, p);

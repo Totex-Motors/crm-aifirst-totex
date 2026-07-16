@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { templateBodyText, templateButtons } from "@/lib/whatsappTemplate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCall } from "@/contexts/CallContext";
 import { useWavoipDevice, useCreateWavoipDevice, useDeleteWavoipDevice } from "@/hooks/useWavoip";
@@ -509,7 +510,6 @@ function CloudAPISection() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTemplate, setNewTemplate] = useState({ name: '', body: '', category: 'UTILITY' });
-  const [showAllTemplates, setShowAllTemplates] = useState(false);
 
   const fetchData = useCallback(async () => {
     // Buscar instância Cloud API
@@ -523,7 +523,7 @@ function CloudAPISection() {
 
     // Buscar templates
     const { data: tpls } = await supabase
-      .from('whatsapp_templates')
+      .from('whatsapp_cloud_templates')
       .select('*')
       .order('name');
     setTemplates(tpls || []);
@@ -536,52 +536,13 @@ function CloudAPISection() {
     if (!instance) return;
     setSyncing(true);
     try {
-      // Buscar token da instância
-      const token = instance.api_key;
-      const waba_id = instance.metadata?.business_account_id;
-      if (!token || !waba_id) throw new Error('Token ou WABA ID não configurado');
+      // A edge function fala com a Meta server-side (token não vai pro browser)
+      // e faz o upsert em whatsapp_cloud_templates já com tenant_id.
+      const { data, error } = await supabase.functions.invoke('sync-whatsapp-templates', { body: {} });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      const res = await fetch(
-        `https://graph.facebook.com/v22.0/${waba_id}/message_templates?fields=name,status,components,language,category&limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-
-      const metaTemplates = data.data || [];
-      let synced = 0;
-
-      for (const t of metaTemplates) {
-        const bodyComp = t.components?.find((c: any) => c.type === 'BODY');
-        const buttonComp = t.components?.find((c: any) => c.type === 'BUTTONS');
-        const headerComp = t.components?.find((c: any) => c.type === 'HEADER');
-
-        // Checar se já existe como 'platform' pra não sobrescrever source
-        const { data: existing } = await supabase
-          .from('whatsapp_templates')
-          .select('source')
-          .eq('meta_template_id', t.id)
-          .maybeSingle();
-
-        await supabase.from('whatsapp_templates').upsert({
-          meta_template_id: t.id,
-          name: t.name,
-          status: t.status,
-          category: t.category,
-          language: t.language || 'pt_BR',
-          body_text: bodyComp?.text || '',
-          header_type: headerComp?.format || null,
-          header_text: headerComp?.text || null,
-          buttons: buttonComp?.buttons || [],
-          components: t.components || [],
-          instance_id: instance.id,
-          source: existing?.source === 'platform' ? 'platform' : 'meta_sync',
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'meta_template_id' });
-        synced++;
-      }
-
-      toast({ title: `${synced} templates sincronizados!` });
+      toast({ title: `${data?.upserted ?? 0} templates sincronizados!` });
       fetchData();
     } catch (err: any) {
       toast({ title: 'Erro ao sincronizar', description: err.message, variant: 'destructive' });
@@ -594,9 +555,6 @@ function CloudAPISection() {
     if (!instance || !newTemplate.name.trim() || !newTemplate.body.trim()) return;
     setCreating(true);
     try {
-      const token = instance.api_key;
-      const waba_id = instance.metadata?.business_account_id;
-
       // Detectar variáveis {{1}}, {{2}} etc no body
       const varMatches = newTemplate.body.match(/\{\{\d+\}\}/g) || [];
       const uniqueVars = [...new Set(varMatches)];
@@ -620,48 +578,23 @@ function CloudAPISection() {
         });
       }
 
-      const res = await fetch(
-        `https://graph.facebook.com/v22.0/${waba_id}/message_templates`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: newTemplate.name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-            language: 'pt_BR',
-            category: newTemplate.category,
-            components,
-          }),
-        }
-      );
-      const data = await res.json();
-      console.log('[CreateTemplate] Response:', JSON.stringify(data));
-      console.log('[CreateTemplate] WABA ID:', waba_id, '| Name:', newTemplate.name, '| Category:', newTemplate.category);
-      if (data.error) {
+      // A edge function cria na Meta e salva em whatsapp_cloud_templates.
+      const { data, error } = await supabase.functions.invoke('create-whatsapp-template', {
+        body: {
+          name: newTemplate.name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+          language: 'pt_BR',
+          category: newTemplate.category,
+          components,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) {
         // Traduzir erros comuns do Meta
-        const userMsg = data.error.error_user_msg || data.error.message;
         const translations: Record<string, string> = {
           'As variáveis não podem estar no início ou no fim do modelo.': 'A mensagem não pode começar nem terminar com variável (ex: {{1}}). Coloque texto antes e depois.',
         };
-        const translated = translations[userMsg] || userMsg;
-        throw new Error(translated);
+        throw new Error(translations[data.error] || data.error);
       }
-
-      // Salvar na tabela local
-      await supabase.from('whatsapp_templates').insert({
-        meta_template_id: data.id,
-        name: newTemplate.name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-        status: data.status || 'PENDING',
-        category: newTemplate.category,
-        language: 'pt_BR',
-        body_text: newTemplate.body,
-        buttons: [],
-        components,
-        instance_id: instance.id,
-        source: 'platform',
-      });
 
       toast({ title: 'Template criado!', description: 'Aguardando aprovação do Meta (pode levar até 24h).' });
       setShowCreateDialog(false);
@@ -702,17 +635,9 @@ function CloudAPISection() {
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-medium text-sm flex items-center gap-1.5">
-            <FileText className="h-4 w-4" /> Templates ({showAllTemplates ? templates.length : templates.filter(t => t.source === 'platform').length})
+            <FileText className="h-4 w-4" /> Templates ({templates.length})
           </h3>
           <div className="flex gap-2">
-            <Button
-              variant={showAllTemplates ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowAllTemplates(!showAllTemplates)}
-              className="text-xs"
-            >
-              {showAllTemplates ? 'Mostrar meus' : 'Ver todos'}
-            </Button>
             <Button variant="outline" size="sm" onClick={syncTemplates} disabled={syncing}>
               {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
               Sincronizar
@@ -729,7 +654,7 @@ function CloudAPISection() {
           </div>
         ) : (
           <div className="space-y-2">
-            {(showAllTemplates ? templates : templates.filter(t => t.source === 'platform')).map((t) => (
+            {templates.map((t) => (
               <div key={t.id} className="border rounded-lg p-3 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-medium text-sm">{t.name.replace(/_/g, ' ')}</span>
@@ -743,10 +668,10 @@ function CloudAPISection() {
                     <Badge variant="outline" className="text-[10px]">{t.category}</Badge>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground whitespace-pre-line">{t.body_text}</p>
-                {t.buttons && t.buttons.length > 0 && (
+                <p className="text-xs text-muted-foreground whitespace-pre-line">{templateBodyText(t)}</p>
+                {templateButtons(t).length > 0 && (
                   <div className="flex gap-1 mt-1.5">
-                    {t.buttons.map((b: any, i: number) => (
+                    {templateButtons(t).map((b: any, i: number) => (
                       <Badge key={i} variant="secondary" className="text-[10px]">{b.text}</Badge>
                     ))}
                   </div>

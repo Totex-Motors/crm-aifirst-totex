@@ -579,7 +579,9 @@ export const usePaymentAuditLog = (paymentId: string) => {
         .order('changed_at', { ascending: false });
 
       if (error) throw error;
-      return data as DealPaymentAuditEntry[];
+      // O banco tipa change_type como text e changes como Json; DealPaymentAuditEntry
+      // estreita para a união de change_type e para o array de mudanças.
+      return data as unknown as DealPaymentAuditEntry[];
     },
     enabled: !!paymentId,
   });

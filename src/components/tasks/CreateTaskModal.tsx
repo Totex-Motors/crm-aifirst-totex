@@ -963,7 +963,6 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
                                   key={item.id}
                                   className={cn(
                                     "absolute left-9 right-1 rounded px-1.5 py-0.5 text-[10px] truncate border-l-2",
-                                    item.type === "block" && "bg-zinc-800 border-l-zinc-500 text-zinc-300",
                                     item.type === "google" && "bg-blue-950/60 border-l-blue-400 text-blue-200",
                                     item.type === "task" && item.taskType === "meeting" && "bg-indigo-950/60 border-l-indigo-400 text-indigo-200",
                                     item.type === "task" && item.taskType === "call" && "bg-blue-950/60 border-l-blue-400 text-blue-200",

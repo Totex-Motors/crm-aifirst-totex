@@ -712,8 +712,6 @@ export const useWinDeal = () => {
         valor_faltante: number;
         garantia_cdc: boolean;
         garantia_cdc_inicio: string | null;
-        tempo_acesso_meses: number;
-        bonus_saas: boolean;
         observacoes_cs: string | null;
       };
     }) => {
@@ -792,8 +790,6 @@ export const useWinDeal = () => {
             valor_faltante: negotiationDetails.valor_faltante,
             garantia_cdc: negotiationDetails.garantia_cdc,
             garantia_cdc_inicio: negotiationDetails.garantia_cdc_inicio,
-            tempo_acesso_meses: negotiationDetails.tempo_acesso_meses,
-            bonus_saas: negotiationDetails.bonus_saas,
             observacoes_cs: negotiationDetails.observacoes_cs,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'deal_id' });
@@ -979,10 +975,6 @@ export const useWinDeal = () => {
               if (negotiationDetails && !negotiationDetails.entrada_completa) {
                 negFlags.push(`🟠 Entrada parcial — falta R$${negotiationDetails.valor_faltante?.toFixed(2)}`);
                 negFlags.push('⚠️ NÃO LIBERAR ACESSO até pagamento completo');
-              }
-              if (negotiationDetails?.bonus_saas) negFlags.push('🟢 Bônus SaaS incluso');
-              if (negotiationDetails?.tempo_acesso_meses) {
-                negFlags.push(`🔵 Acesso: ${negotiationDetails.tempo_acesso_meses === 0 ? 'Vitalício' : `${negotiationDetails.tempo_acesso_meses} meses`}`);
               }
 
               // Use sales-specific fields (diagnostico, pontos_chave, riscos, proximo_passo)

@@ -30,8 +30,11 @@ CRM comercial AI-first **focado no nicho automotivo (revendas de veiculos)**.
 So funcionalidades de vendas: pipeline, inbox WhatsApp, agente de IA, coach em
 tempo real, treinamento e gestao basica de time.
 
-**Numeros (pos-limpeza):** 28 paginas | ~16 pastas de componentes | ~79 hooks |
-52 Edge Functions | 23 migrations.
+**Numeros (jul/2026):** 40 paginas | ~16 pastas de componentes | 84 hooks |
+69 Edge Functions | 45 migrations | 289 tabelas no banco.
+
+> As contagens acima ja estiveram desatualizadas por meses. Se for citar numero,
+> **conte** (`ls src/pages/*.tsx | wc -l`) em vez de confiar nesta linha.
 
 ## Nicho automotivo (IMPORTANTE)
 
@@ -122,7 +125,7 @@ Todas as configs em `/configuracoes` com sidebar de navegacao.
 
 ```
 src/
-|- pages/           -> 28 paginas
+|- pages/           -> 40 paginas
 |- components/      -> 16 pastas de componentes
 |  |- ui/           -> shadcn/ui base
 |  |- sales/        -> Componentes do comercial (pipeline, deals, leads, ai/, payments/, dashboard/)
@@ -140,19 +143,19 @@ src/
 |  |- shared/       -> Componentes compartilhados
 |  |- layout/       -> AppSidebar, AppLayout
 |  |- focus-mode/   -> Modo foco
-|- hooks/           -> 79 hooks (React Query)
+|- hooks/           -> 84 hooks (React Query)
 |- contexts/        -> Auth, Call, Meeting, FocusMode, DemoMode, Theme
 |- types/           -> Tipagens TypeScript
 |- lib/             -> Utilitarios (Supabase client, etc)
 |- services/        -> Servicos (Google Calendar, WhatsApp)
 
 supabase/
-|- functions/       -> 52 Edge Functions
-|- migrations/      -> 23 migrations SQL
+|- functions/       -> 69 Edge Functions
+|- migrations/      -> 45 migrations SQL
 |- cleanup_unused_tables.sql  -> Script para dropar tabelas dos modulos removidos
 ```
 
-## Edge Functions (52)
+## Edge Functions (69)
 
 ### IA (nucleo)
 - `ai-sales-agent` — Agente IA que responde leads via WhatsApp
@@ -252,6 +255,16 @@ As edge functions leem via `getIntegrationKey()` da tabela `config`.
 - Icones: Lucide React
 - Imports: alias `@/` (ex: `@/components/ui/button`)
 - Edge Functions: Deno + imports de `jsr:` e `npm:`
+- **Paginas sao lazy**: toda pagina entra no `App.tsx` como
+  `React.lazy(() => import(...))` sob um unico `Suspense`. Import estatico de
+  pagina volta a inchar o chunk de entrada. So Login/ForgotPassword/
+  ResetPassword/NotFound sao eager (precisam do primeiro paint).
+- **Nunca chame API externa do browser com token da instancia.** Fica na edge
+  function (o token nao sai do servidor). Ja houve caso de `MyWhatsApp` chamar a
+  Graph API da Meta direto do cliente, duplicando um edge function que ja existia.
+- **Nao ignore `error` do Supabase.** `const { data } = await supabase...` sem
+  checar `error` transforma query quebrada em `data` null silencioso — foi assim
+  que varios bugs passaram meses despercebidos.
 
 ## Multi-Tenant e Permissoes
 
@@ -302,6 +315,103 @@ Regras configuradas em **Configuracoes > Comercial > Automacoes**.
 ### Action `move_deal_stage`:
 Atualiza `deals.pipeline_stage_id` + `leads.pipeline_stage_id` + `leads.etapa_funil` + `leads.sales_stage`.
 Config: `target_stage_id` (obrigatorio), `only_if_position_less_than` (guard de posicao).
+
+## Schema vs codigo — LEIA ANTES DE MEXER EM QUERY
+
+O banco e o repositorio ja estiveram muito dessincronizados. Boa parte foi
+corrigida em jul/2026, mas o padrao pode voltar. O que ficou de licao:
+
+### Os tipos gerados sao a fonte da verdade, nao o codigo
+
+`src/types/database.types.ts` e gerado do banco:
+
+```bash
+npx supabase gen types typescript --project-id <ref> --schema public > src/types/database.types.ts
+```
+
+Quando ele esta desatualizado, o TypeScript **para de reclamar de query quebrada**:
+o Postgrest devolve `SelectQueryError` e o erro some. Em jul/2026 o arquivo cobria
+83 das 289 tabelas, e isso escondia varios bugs reais em producao — selects de
+coluna inexistente que devolviam 400, com o codigo ignorando `error` e seguindo
+com `data` null. Se for mexer em query, **regenere os tipos antes**.
+
+### Antes de criar tabela, cheque se ela ja existe com outro nome
+
+Ja aconteceu de o codigo consultar tabela que nunca existiu enquanto a
+equivalente estava ao lado:
+
+- `whatsapp_templates` **nao existe** — a tabela e `whatsapp_cloud_templates`.
+  Corpo e botoes nao sao colunas: derivam de `components` (formato cru da Meta)
+  via `src/lib/whatsappTemplate.ts`.
+- `sales_deals` **nao existe** — e `deals`.
+
+### Tabelas que o codigo consulta e que NAO existem
+
+Verificar antes de confiar. Em jul/2026 ainda faltavam, entre outras:
+`content_agent_config`, `ceo_bot_config`, `agents_personas`, `cs_checkins`,
+`farming_reasons`, `instagram_profiles`, `instagram_stories`,
+`instagram_feed_posts`, `sales_activities`, `scheduled_messages`.
+
+Colunas fantasma conhecidas: `leads.landing_page`, `leads.company`,
+`leads.dia_do_playbook`, `leads.partner_lead_id`, `organizations.health_score`,
+`call_history.call_session_id`, `instagram_messages.metadata`.
+
+### Nome de migration: SEMPRE timestamp de 14 digitos
+
+`20260716_foo.sql` (8 digitos) colide com `20260716010000_bar.sql` (14) e o CLI
+**nao consegue parear local com remoto**, recusando o push com "Remote migration
+versions not found in local migrations directory". Use
+`YYYYMMDDHHMMSS_nome.sql`.
+
+### Migration precisa ser idempotente
+
+Boa parte do schema ja foi aplicada fora do CLI (SQL Editor), entao um push
+re-aplica DDL existente. Regra:
+
+- `CREATE TABLE` / `CREATE INDEX` → `IF NOT EXISTS`
+- `INSERT` de seed → `ON CONFLICT DO NOTHING` ou `WHERE NOT EXISTS`
+- **`CREATE POLICY` nao aceita `IF NOT EXISTS`** → sempre
+  `DROP POLICY IF EXISTS <nome>` antes, inclusive do nome novo
+- `ADD CONSTRAINT` → `DROP CONSTRAINT IF EXISTS <nome>` antes
+- Funcao → `CREATE OR REPLACE` + `SET search_path = public, pg_catalog`
+
+RLS por tenant, no padrao do projeto (o `(SELECT ...)` evita reavaliar por linha):
+
+```sql
+CREATE POLICY tenant_all_<tabela> ON public.<tabela>
+  FOR ALL TO authenticated
+  USING (tenant_id = (SELECT public.get_tenant_id()))
+  WITH CHECK (tenant_id = (SELECT public.get_tenant_id()));
+```
+
+### `vehicles` e os scripts `setup-cardoso-*`
+
+A tabela central do nicho ficou meses sem migration de origem: era criada so pelo
+script avulso `setup-cardoso-9-vehicles.sql`, e um setup do zero rodando so as
+migrations ficava sem estoque. Corrigido em `20260719000000_vehicles.sql`.
+
+**A URL do feed XML NAO vai na migration.** O script avulso gravava a URL do S3
+do Grupo Cardoso hardcoded em `config.VEHICLE_FEED_URL`; ela e chave de
+integracao, configurada em `/configuracoes > Integracoes` e lida via
+`requireIntegrationKey()`.
+
+Os outros `setup-cardoso-*.sql` na raiz sao **dados de um cliente** (pipelines,
+produtos, playbooks, time, veiculos de teste), nao schema de template. Se algum
+deles criar estrutura que o codigo precisa, essa estrutura pertence a uma
+migration — o dado do cliente, nao.
+
+### FK com nome load-bearing
+
+Embeds do Postgrest usam o nome da constraint. Se renomear, o embed quebra:
+
+- `deal_payment_audit_log_changed_by_fkey` → `useNegociacaoPayments`
+- `sales_training_cases_lead_id_fkey` / `_sales_rep_id_fkey` → `useSalesTrainingCases`
+
+### Tipos que enganam
+
+- `products.id` e **TEXT**, nao UUID (e `deals.product_id` acompanha).
+- `roleplay_sessions.persona_id` e **TEXT**: as personas sao slugs hardcoded
+  (`roberto_cetico`, `ana_preco`), nao vem de tabela.
 
 ## Limpeza do banco
 
@@ -368,19 +478,47 @@ Essas skills ja tem o fluxo completo — nao reinvente.
 - ❌ Criar instancia UAZAPI ANTES dos webhooks estarem no ar → msgs nao chegam
 - ❌ Aplicar `002_ai_agent_crons` com `SUPABASE_PROJECT_URL` no placeholder → cron chama URL invalida
 - ❌ Pular `001_post_baseline_fixes` → perde 18 FKs (embeds 400) + 16 RPCs (404s)
-- ❌ Pular `20260415_call_recordings_bucket.sql` → upload de gravacoes de chamada falha com 400
+- ❌ Pular `20260415000001_call_recordings_bucket.sql` → upload de gravacoes de chamada falha com 400
 - ❌ Hardcode de API keys / Client IDs / Phone Number IDs em codigo → **regra inviolavel**, use `getIntegrationKey()` em `_shared/config.ts` + UI `/configuracoes`
 - ❌ Hardcode de URL UAZAPI (ex: `your-uazapi-instance.uazapi.com`) → **regra inviolavel**, use `instance.api_url` ou `config.UAZAPI_ADMIN_URL`
 - ❌ Cadastrar so `WHATSAPP_CLOUD_TOKEN` sem `WHATSAPP_PHONE_NUMBER_ID` (ou vice-versa) → Cloud API precisa dos DOIS
 - ❌ Usar `/status` da UAZAPI (health check) em vez de `/instance/status` (status da instancia)
 - ❌ Esquecer de desativar Email Confirm → aluno nao consegue logar em contas de teste
 - ❌ Agente IA nao responder audio/imagem → tem que ter `GEMINI_API_KEY` (Whisper so pega audio, nao imagem)
+- ❌ Confiar no `database.types.ts` sem regenerar → tipos velhos escondem query quebrada (ver "Schema vs codigo")
+- ❌ Migration com versao de 8 digitos (`20260716_foo.sql`) → colide com as de 14 e trava o `db push`
+- ❌ `CREATE POLICY` sem `DROP POLICY IF EXISTS` do nome novo → push aborta com 42710 ao re-aplicar
+- ❌ `supabase migration repair --status reverted` sem olhar antes → a coluna `statements` de
+  `supabase_migrations.schema_migrations` pode ser a **unica copia** do SQL daquela migration.
+  Extraia (`supabase db dump --data-only --schema supabase_migrations`, precisa de Docker) antes de apagar.
+- ❌ Assumir que `npm run build` valida tipos → ele roda so `vite build`. Rode `npx tsc --noEmit -p tsconfig.app.json` a parte.
+- ❌ Importar pagina estaticamente no `App.tsx` → todas sao `React.lazy` sob um `Suspense`.
+  Import estatico volta a inchar o chunk de entrada (ja foi 5,7 MB).
 
 ## Estrategia de midia do agente
 
 - **Audio**: UAZAPI transcreve via Whisper se `OPENAI_API_KEY` estiver configurada; fallback pra Gemini multimodal com `GEMINI_API_KEY`
 - **Imagem**: Gemini Vision descreve o conteudo (`describeImageViaGemini`) e popula `content` com texto — o agente "ve" a imagem via descricao
 - **Sem chave de midia**: agente recebe `[Audio]` / `[Imagem]` vazio e pode alucinar ("nao consigo ver") — ensinar o aluno a cadastrar Gemini logo de cara
+
+## Treinamento com IA (`/comercial/treinamento`)
+
+Duas features independentes na mesma pagina:
+
+**Roleplay (simulador de call).** As 5 personas sao **hardcoded** em
+`DEFAULT_PERSONAS` (`useRoleplaySession.ts`) e ja estao no nicho automotivo
+(comprador cetico de SUV, negociadora que compara com a FIPE, etc). As edge
+functions `roleplay-session` e `roleplay-evaluate` **nao tocam o banco** — sao
+proxies de LLM. O banco so entra no fim: `roleplay_sessions` guarda transcricao,
+avaliacao, `score` (o `nota_geral`, 0-100) e `verdict` (o `veredicto`:
+sim/nao/talvez).
+
+**Biblioteca de casos.** Casos reais salvos de chamadas e reunioes em
+`sales_training_cases`. O fluxo de alimentar existe em 4 pontos, todos via
+`SaveToTrainingModal`: `CallEndedModal`, `CallDetailModal`,
+`MeetingSummaryModal` e o botao "Novo Caso" da propria pagina.
+
+O roleplay **nao depende** da biblioteca: `startSession` recebe persona, nao caso.
 
 ## Visibilidade de eventos do agente
 

@@ -2640,8 +2640,8 @@ async function executeTool(
         const startOfDayISO = `${targetDate}T00:00:00-03:00`;
         const endOfDayISO = `${targetDate}T23:59:59-03:00`;
 
-        // Fetch all 4 sources in parallel: activities, team_member (name + working_hours + meeting_duration), blocks, google events
-        const [activitiesRes, repRes, blocksRes, googleEventsRes] = await Promise.all([
+        // Fetch all 3 sources in parallel: activities, team_member (name), google events
+        const [activitiesRes, repRes, googleEventsRes] = await Promise.all([
           // 1. company_activities - apenas calls/meetings/onboarding ocupam agenda
           // follow_up, whatsapp, email, checkin, internal etc. NÃO bloqueiam horário
           supabase
@@ -2656,17 +2656,10 @@ async function executeTool(
           // 2. team_member info
           supabase
             .from('team_members')
-            .select('name, working_hours, meeting_duration_minutes, auth_user_id')
+            .select('name, auth_user_id')
             .eq('id', salesRepId)
             .single(),
-          // 3. calendar_blocks
-          supabase
-            .from('calendar_blocks')
-            .select('title, block_type, start_datetime, end_datetime, recurrence_days, recurrence_start_time, recurrence_end_time')
-            .eq('team_member_id', salesRepId)
-            .eq('is_active', true)
-            .or(`block_type.eq.recurring,and(block_type.eq.one_time,start_datetime.lte.${endOfDayISO},end_datetime.gte.${startOfDayISO})`),
-          // 4. google calendar events (via auth_user_id lookup - done after)
+          // 3. google calendar events (via auth_user_id lookup - done after)
           (async () => {
             const { data: tmData } = await supabase
               .from('team_members')
@@ -2687,19 +2680,16 @@ async function executeTool(
         if (activitiesRes.error) throw activitiesRes.error;
         const activities = activitiesRes.data || [];
         const rep = repRes.data;
-        const calBlocks = blocksRes.data || [];
         const googleEvents = googleEventsRes.data || [];
 
-        // Meeting duration: use team_member setting > agent setting > default 45
-        const MEETING_DURATION = rep?.meeting_duration_minutes || agentSettings?.meeting_duration_minutes || 45;
+        // Meeting duration: agent setting > default 45
+        const MEETING_DURATION = agentSettings?.meeting_duration_minutes || 45;
 
-        // Working hours for this day (from team_member or default 9-17)
+        // Horário/dias de trabalho vêm das settings do agente (Configurações > Agente de Vendas)
         const targetDayOfWeek = new Date(`${targetDate}T12:00:00-03:00`).getDay();
-        const workingHours = rep?.working_hours as Record<string, { start: string; end: string } | null> | null;
-        const dayConfig = workingHours?.[String(targetDayOfWeek)];
 
-        // If day is off (null), return empty
-        if (workingHours && dayConfig === null) {
+        // Dia fora dos working_days do agente — sem slots
+        if (agentSettings?.working_days && !agentSettings.working_days.includes(targetDayOfWeek)) {
           return {
             success: true,
             result: {
@@ -2715,8 +2705,8 @@ async function executeTool(
         }
 
         // Parse working hours range
-        const whStartStr = dayConfig?.start || '09:00';
-        const whEndStr = dayConfig?.end || '17:00';
+        const whStartStr = agentSettings?.working_hours_start || '09:00';
+        const whEndStr = agentSettings?.working_hours_end || '17:00';
         const [whStartH, whStartM] = whStartStr.split(':').map(Number);
         const [whEndH, whEndM] = whEndStr.split(':').map(Number);
         const workStartMin = whStartH * 60 + whStartM;
@@ -2739,26 +2729,6 @@ async function executeTool(
           }
           const time = `${String(brasiliaHour).padStart(2, '0')}:${String(brasiliaMinute).padStart(2, '0')}`;
           busyIntervals.push({ startMin, endMin, time, activity: a.name, type: a.task_type });
-        }
-
-        // Add calendar_blocks to busy intervals
-        for (const block of calBlocks) {
-          if (block.block_type === 'one_time' && block.start_datetime && block.end_datetime) {
-            const s = new Date(block.start_datetime);
-            const e = new Date(block.end_datetime);
-            const sH = (s.getUTCHours() - 3 + 24) % 24;
-            const sM = s.getUTCMinutes();
-            const eH = (e.getUTCHours() - 3 + 24) % 24;
-            const eM = e.getUTCMinutes();
-            const time = `${String(sH).padStart(2, '0')}:${String(sM).padStart(2, '0')}`;
-            busyIntervals.push({ startMin: sH * 60 + sM, endMin: eH * 60 + eM, time, activity: `Bloqueio: ${block.title}`, type: 'block' });
-          }
-          if (block.block_type === 'recurring' && block.recurrence_days?.includes(targetDayOfWeek) && block.recurrence_start_time && block.recurrence_end_time) {
-            const [rsH, rsM] = block.recurrence_start_time.split(':').map(Number);
-            const [reH, reM] = block.recurrence_end_time.split(':').map(Number);
-            const time = `${String(rsH).padStart(2, '0')}:${String(rsM).padStart(2, '0')}`;
-            busyIntervals.push({ startMin: rsH * 60 + rsM, endMin: reH * 60 + reM, time, activity: `Bloqueio: ${block.title}`, type: 'block' });
-          }
         }
 
         // Add Google Calendar events to busy intervals

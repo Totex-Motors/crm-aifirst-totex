@@ -32,9 +32,7 @@ import {
   CreditCard,
   CalendarIcon,
   FileText,
-  Clock,
   ShieldAlert,
-  Gift,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
@@ -80,8 +78,6 @@ export function WinNegociacaoModal({ open, onOpenChange, deal }: WinDealModalPro
   const [entradaCompleta, setEntradaCompleta] = useState(true);
   const [valorFaltante, setValorFaltante] = useState(0);
   const [garantiaCdc, setGarantiaCdc] = useState(true);
-  const [tempoAcessoMeses, setTempoAcessoMeses] = useState("12");
-  const [bonusSaas, setBonusSaas] = useState(false);
   const [observacoesCs, setObservacoesCs] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -99,8 +95,6 @@ export function WinNegociacaoModal({ open, onOpenChange, deal }: WinDealModalPro
       setEntradaCompleta(true);
       setValorFaltante(0);
       setGarantiaCdc(true);
-      setTempoAcessoMeses("12");
-      setBonusSaas(false);
       setObservacoesCs("");
       setNotes("");
     }
@@ -146,8 +140,6 @@ export function WinNegociacaoModal({ open, onOpenChange, deal }: WinDealModalPro
           valor_faltante: entradaCompleta ? 0 : valorFaltante,
           garantia_cdc: garantiaCdc,
           garantia_cdc_inicio: garantiaCdc ? wonDate : null,
-          tempo_acesso_meses: parseInt(tempoAcessoMeses),
-          bonus_saas: bonusSaas,
           observacoes_cs: observacoesCs || null,
         },
       });
@@ -464,36 +456,6 @@ export function WinNegociacaoModal({ open, onOpenChange, deal }: WinDealModalPro
                   </div>
                   <Switch checked={garantiaCdc} onCheckedChange={setGarantiaCdc} />
                 </div>
-
-                <div className={cn("rounded-lg border p-3 flex items-center justify-between", bonusSaas && "border-green-300 bg-green-50")}>
-                  <div>
-                    <Label className="text-xs font-medium flex items-center gap-1">
-                      <Gift className={cn("h-3 w-3", bonusSaas ? "text-green-500" : "text-muted-foreground")} />
-                      Bônus SaaS
-                    </Label>
-                  </div>
-                  <Switch checked={bonusSaas} onCheckedChange={setBonusSaas} />
-                </div>
-              </div>
-
-              {/* Tempo de acesso */}
-              <div className="rounded-lg border p-3 flex items-center justify-between">
-                <div>
-                  <Label className="text-xs font-medium flex items-center gap-1">
-                    <Clock className="h-3 w-3 text-muted-foreground" />
-                    Tempo de acesso
-                  </Label>
-                </div>
-                <Select value={tempoAcessoMeses} onValueChange={setTempoAcessoMeses}>
-                  <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="3">3 meses</SelectItem>
-                    <SelectItem value="6">6 meses</SelectItem>
-                    <SelectItem value="12">12 meses</SelectItem>
-                    <SelectItem value="24">24 meses</SelectItem>
-                    <SelectItem value="0">Vitalício</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Observações — 1 campo só */}

@@ -237,7 +237,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
           if (deal.discount_reason) detailParts.push(`Justificativa: ${deal.discount_reason}`);
           if (negotiationDetails?.entrada_completa === false) detailParts.push(`⚠️ Entrada parcial`);
           if (negotiationDetails?.garantia_cdc) detailParts.push(`⚠️ CDC 7 dias`);
-          if (negotiationDetails?.tempo_acesso_meses) detailParts.push(`Acesso: ${negotiationDetails.tempo_acesso_meses} meses`);
           if (negotiationDetails?.observacoes_cs) detailParts.push(`CS: ${negotiationDetails.observacoes_cs}`);
 
           events.push({

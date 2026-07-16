@@ -6,10 +6,9 @@ export interface NegotiationDetails {
   deal_id: string;
   entrada_completa: boolean;
   valor_faltante: number;
+  /** CDC (Crédito Direto ao Consumidor): 7 dias de direito de arrependimento. */
   garantia_cdc: boolean;
   garantia_cdc_inicio: string | null;
-  tempo_acesso_meses: number;
-  bonus_saas: boolean;
   observacoes_cs: string | null;
   created_at: string;
   updated_at: string;
