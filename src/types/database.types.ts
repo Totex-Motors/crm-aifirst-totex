@@ -3193,6 +3193,7 @@ export type Database = {
           id: string
           is_all_day: boolean | null
           is_critical: boolean | null
+          is_recurring: boolean
           lead_id: string | null
           meeting_id: string | null
           meeting_link: string | null
@@ -3206,6 +3207,8 @@ export type Database = {
           priority: string | null
           product_id: string | null
           recording_url: string | null
+          recurrence_count: number
+          recurrence_interval_days: number | null
           reminder_at: string | null
           reminder_sent_at: string | null
           responsavel_id: string | null
@@ -3239,6 +3242,7 @@ export type Database = {
           id?: string
           is_all_day?: boolean | null
           is_critical?: boolean | null
+          is_recurring?: boolean
           lead_id?: string | null
           meeting_id?: string | null
           meeting_link?: string | null
@@ -3252,6 +3256,8 @@ export type Database = {
           priority?: string | null
           product_id?: string | null
           recording_url?: string | null
+          recurrence_count?: number
+          recurrence_interval_days?: number | null
           reminder_at?: string | null
           reminder_sent_at?: string | null
           responsavel_id?: string | null
@@ -3285,6 +3291,7 @@ export type Database = {
           id?: string
           is_all_day?: boolean | null
           is_critical?: boolean | null
+          is_recurring?: boolean
           lead_id?: string | null
           meeting_id?: string | null
           meeting_link?: string | null
@@ -3298,6 +3305,8 @@ export type Database = {
           priority?: string | null
           product_id?: string | null
           recording_url?: string | null
+          recurrence_count?: number
+          recurrence_interval_days?: number | null
           reminder_at?: string | null
           reminder_sent_at?: string | null
           responsavel_id?: string | null
