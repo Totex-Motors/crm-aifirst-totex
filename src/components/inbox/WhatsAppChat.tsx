@@ -14,6 +14,7 @@ import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { useConversationMessages } from '@/hooks/useWhatsAppInbox';
 import { WhatsAppMessage, WhatsAppReaction } from '@/hooks/useWhatsAppEngagement';
 import { supabase } from '@/lib/supabase';
+import { templateBodyText } from '@/lib/whatsappTemplate';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { MaterialsLibraryModal } from '@/components/sales/MaterialsLibraryModal';
@@ -738,10 +739,9 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({
     if (!selectedInstanceIsCloudAPI || !windowClosed) return;
     const loadTemplates = async () => {
       const { data } = await supabase
-        .from('whatsapp_templates')
+        .from('whatsapp_cloud_templates')
         .select('*')
         .eq('status', 'APPROVED')
-        .eq('source', 'platform')
         .order('name');
       setTemplates(data || []);
     };
@@ -2292,7 +2292,7 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({
                 {(() => {
                   const filtered = templates.filter(t =>
                     !templateSearch || t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
-                    (t.body_text || '').toLowerCase().includes(templateSearch.toLowerCase())
+                    templateBodyText(t).toLowerCase().includes(templateSearch.toLowerCase())
                   );
                   return filtered.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">Nenhum template encontrado</p>
@@ -2309,7 +2309,7 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2">
-                        {(t.body_text || '').replace(/\{\{1\}\}/g, contactName?.split(' ')[0] || 'Nome')}
+                        {templateBodyText(t).replace(/\{\{1\}\}/g, contactName?.split(' ')[0] || 'Nome')}
                       </p>
                     </button>
                   ));
@@ -2330,7 +2330,7 @@ export const WhatsAppChat: React.FC<WhatsAppChatProps> = ({
               <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
                 <p className="text-sm font-medium mb-1 capitalize text-green-800 dark:text-green-300">{selectedTemplate.name.replace(/_/g, ' ')}</p>
                 <p className="text-sm whitespace-pre-line">
-                  {(selectedTemplate.body_text || '').replace(/\{\{1\}\}/g, contactName?.split(' ')[0] || 'Nome')}
+                  {templateBodyText(selectedTemplate).replace(/\{\{1\}\}/g, contactName?.split(' ')[0] || 'Nome')}
                 </p>
               </div>
               <AlertDialogFooter>
