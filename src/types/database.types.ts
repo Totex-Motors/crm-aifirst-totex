@@ -10752,6 +10752,71 @@ export type Database = {
           },
         ]
       }
+      roleplay_sessions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_seconds: number
+          evaluation: Json | null
+          id: string
+          persona_company: string | null
+          persona_id: string | null
+          persona_name: string
+          persona_role: string | null
+          sales_rep_id: string | null
+          scenario: string
+          score: number | null
+          tenant_id: string
+          transcription: Json
+          verdict: string | null
+          voice: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number
+          evaluation?: Json | null
+          id?: string
+          persona_company?: string | null
+          persona_id?: string | null
+          persona_name: string
+          persona_role?: string | null
+          sales_rep_id?: string | null
+          scenario: string
+          score?: number | null
+          tenant_id?: string
+          transcription?: Json
+          verdict?: string | null
+          voice: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number
+          evaluation?: Json | null
+          id?: string
+          persona_company?: string | null
+          persona_id?: string | null
+          persona_name?: string
+          persona_role?: string | null
+          sales_rep_id?: string | null
+          scenario?: string
+          score?: number | null
+          tenant_id?: string
+          transcription?: Json
+          verdict?: string | null
+          voice?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roleplay_sessions_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_alerts: {
         Row: {
           actioned_at: string | null
@@ -11312,6 +11377,113 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_training_cases: {
+        Row: {
+          ai_analysis: Json | null
+          call_history_id: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          key_moments: Json | null
+          lead_id: string | null
+          meeting_id: string | null
+          notes: string | null
+          outcome: string | null
+          rating: number | null
+          record_url: string | null
+          sales_rep_id: string | null
+          source_type: string
+          tags: string[]
+          tenant_id: string
+          title: string
+          transcription: Json | null
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          call_history_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          key_moments?: Json | null
+          lead_id?: string | null
+          meeting_id?: string | null
+          notes?: string | null
+          outcome?: string | null
+          rating?: number | null
+          record_url?: string | null
+          sales_rep_id?: string | null
+          source_type?: string
+          tags?: string[]
+          tenant_id?: string
+          title: string
+          transcription?: Json | null
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          ai_analysis?: Json | null
+          call_history_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          key_moments?: Json | null
+          lead_id?: string | null
+          meeting_id?: string | null
+          notes?: string | null
+          outcome?: string | null
+          rating?: number | null
+          record_url?: string | null
+          sales_rep_id?: string | null
+          source_type?: string
+          tags?: string[]
+          tenant_id?: string
+          title?: string
+          transcription?: Json | null
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_training_cases_call_history_id_fkey"
+            columns: ["call_history_id"]
+            isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_training_cases_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_training_cases_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_training_cases_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]
@@ -14539,6 +14711,10 @@ export type Database = {
       }
       increment_email_campaign_counter: {
         Args: { p_campaign_id: string; p_field: string }
+        Returns: undefined
+      }
+      increment_training_view_count: {
+        Args: { case_id: string }
         Returns: undefined
       }
       is_any_admin: { Args: never; Returns: boolean }
