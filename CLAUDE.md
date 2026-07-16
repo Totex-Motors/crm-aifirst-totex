@@ -31,7 +31,7 @@ So funcionalidades de vendas: pipeline, inbox WhatsApp, agente de IA, coach em
 tempo real, treinamento e gestao basica de time.
 
 **Numeros (jul/2026):** 40 paginas | ~16 pastas de componentes | 84 hooks |
-69 Edge Functions | 47 migrations | 289 tabelas no banco.
+69 Edge Functions | 45 migrations | 289 tabelas no banco.
 
 > As contagens acima ja estiveram desatualizadas por meses. Se for citar numero,
 > **conte** (`ls src/pages/*.tsx | wc -l`) em vez de confiar nesta linha.
@@ -151,7 +151,7 @@ src/
 
 supabase/
 |- functions/       -> 69 Edge Functions
-|- migrations/      -> 47 migrations SQL
+|- migrations/      -> 45 migrations SQL
 |- cleanup_unused_tables.sql  -> Script para dropar tabelas dos modulos removidos
 ```
 
