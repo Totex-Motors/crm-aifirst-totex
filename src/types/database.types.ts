@@ -5065,6 +5065,60 @@ export type Database = {
           },
         ]
       }
+      deal_negotiation_details: {
+        Row: {
+          created_at: string
+          deal_id: string
+          entrada_completa: boolean
+          garantia_cdc: boolean
+          garantia_cdc_inicio: string | null
+          id: string
+          observacoes_cs: string | null
+          tenant_id: string
+          updated_at: string
+          valor_faltante: number
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          entrada_completa?: boolean
+          garantia_cdc?: boolean
+          garantia_cdc_inicio?: string | null
+          id?: string
+          observacoes_cs?: string | null
+          tenant_id?: string
+          updated_at?: string
+          valor_faltante?: number
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          entrada_completa?: boolean
+          garantia_cdc?: boolean
+          garantia_cdc_inicio?: string | null
+          id?: string
+          observacoes_cs?: string | null
+          tenant_id?: string
+          updated_at?: string
+          valor_faltante?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_negotiation_details_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_negotiation_details_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals_with_vehicle"
+            referencedColumns: ["deal_id"]
+          },
+        ]
+      }
       deal_payment_audit_log: {
         Row: {
           change_type: string
