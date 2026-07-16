@@ -4,13 +4,13 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { useCall } from "@/contexts/CallContext";
 import { supabase } from "@/lib/supabase";
+import { getVehicleLabel } from "@/lib/vehicleLabel";
 import { cn } from "@/lib/utils";
 
 interface LeadInfo {
   id: string;
   name: string;
-  organization?: string;
-  products?: string[];
+  vehicleOfInterest?: string | null;
 }
 
 export function IncomingCallModal() {
@@ -41,23 +41,19 @@ export function IncomingCallModal() {
         });
 
         if (data) {
-          const { data: lead } = await supabase
+          const { data: lead, error } = await supabase
             .from("leads")
-            .select(`
-              id,
-              name,
-              active_products,
-              organization:organizations(name)
-            `)
+            .select("id, name, vehicle_of_interest")
             .eq("id", data)
             .single();
+
+          if (error) throw error;
 
           if (lead) {
             setLeadInfo({
               id: lead.id,
               name: lead.name,
-              organization: lead.organization?.name,
-              products: lead.active_products || [],
+              vehicleOfInterest: getVehicleLabel(lead.vehicle_of_interest),
             });
           }
         }
@@ -113,21 +109,11 @@ export function IncomingCallModal() {
               {/* Info adicional do lead */}
               {leadInfo && (
                 <div className="flex flex-col items-center gap-1 mt-2">
-                  {leadInfo.organization && (
-                    <span className="text-sm text-muted-foreground">
-                      {leadInfo.organization}
-                    </span>
-                  )}
-                  {leadInfo.products && leadInfo.products.length > 0 && (
+                  {leadInfo.vehicleOfInterest && (
                     <div className="flex gap-1 flex-wrap justify-center">
-                      {leadInfo.products.slice(0, 3).map((product) => (
-                        <span
-                          key={product}
-                          className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full"
-                        >
-                          {product}
-                        </span>
-                      ))}
+                      <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                        {leadInfo.vehicleOfInterest}
+                      </span>
                     </div>
                   )}
                 </div>
