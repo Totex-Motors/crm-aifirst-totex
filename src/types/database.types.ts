@@ -5065,6 +5065,71 @@ export type Database = {
           },
         ]
       }
+      deal_payment_audit_log: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          changes: Json
+          deal_id: string | null
+          deal_payment_id: string
+          id: string
+          reason: string | null
+          tenant_id: string
+        }
+        Insert: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          changes?: Json
+          deal_id?: string | null
+          deal_payment_id: string
+          id?: string
+          reason?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          changes?: Json
+          deal_id?: string | null
+          deal_payment_id?: string
+          id?: string
+          reason?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_payment_audit_log_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_payment_audit_log_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_payment_audit_log_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals_with_vehicle"
+            referencedColumns: ["deal_id"]
+          },
+          {
+            foreignKeyName: "deal_payment_audit_log_deal_payment_id_fkey"
+            columns: ["deal_payment_id"]
+            isOneToOne: false
+            referencedRelation: "deal_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_payment_installments: {
         Row: {
           amount: number
@@ -11962,6 +12027,93 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          deal_id: string | null
+          deal_payment_id: string | null
+          id: string
+          lead_id: string | null
+          payment_method: string | null
+          payment_platform: string | null
+          product_id: string | null
+          product_name: string | null
+          status: string
+          tenant_id: string
+          transaction_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          deal_id?: string | null
+          deal_payment_id?: string | null
+          id?: string
+          lead_id?: string | null
+          payment_method?: string | null
+          payment_platform?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          status?: string
+          tenant_id?: string
+          transaction_date?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deal_id?: string | null
+          deal_payment_id?: string | null
+          id?: string
+          lead_id?: string | null
+          payment_method?: string | null
+          payment_platform?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          status?: string
+          tenant_id?: string
+          transaction_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals_with_vehicle"
+            referencedColumns: ["deal_id"]
+          },
+          {
+            foreignKeyName: "transactions_deal_payment_id_fkey"
+            columns: ["deal_payment_id"]
+            isOneToOne: false
+            referencedRelation: "deal_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       twilio_call_logs: {
         Row: {
