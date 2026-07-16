@@ -1741,7 +1741,6 @@ function SidebarLegend() {
           { label: "Reunião", color: "bg-indigo-500" },
           { label: "Ligação", color: "bg-blue-500" },
           { label: "WhatsApp", color: "bg-green-500" },
-          { label: "Bloqueio", color: "bg-slate-400" },
           { label: "Google Calendar", color: "bg-amber-400" },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-2">
