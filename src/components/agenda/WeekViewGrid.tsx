@@ -3,9 +3,9 @@ import { format, startOfWeek, addDays, isSameDay, isToday, differenceInMinutes }
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { EventCard } from "./EventCard";
-import { CreateBlockPopover } from "./CreateBlockPopover";
-import type { WorkingHours, CalendarBlock, CalendarEvent } from "@/hooks/useCalendarSettings";
-import { expandRecurringBlocks, isWithinWorkingHours } from "@/hooks/useCalendarSettings";
+import { CreateTaskPopover } from "./CreateTaskPopover";
+import type { WorkingHours, CalendarEvent } from "@/hooks/useCalendarSettings";
+import { isWithinWorkingHours } from "@/hooks/useCalendarSettings";
 import type { Task } from "@/hooks/useTasks";
 
 const QUICK_TASK_CONFIG: Record<string, { dotColor: string; label: string }> = {
@@ -20,7 +20,6 @@ interface WeekViewGridProps {
   selectedDate: Date;
   tasks: Task[];
   quickTasks?: Task[];
-  blocks: CalendarBlock[];
   googleEvents: CalendarEvent[];
   workingHours: WorkingHours;
   onTaskClick?: (task: Task) => void;
@@ -47,7 +46,6 @@ export function WeekViewGrid({
   selectedDate,
   tasks,
   quickTasks = [],
-  blocks,
   googleEvents,
   workingHours,
   onTaskClick,
@@ -70,17 +68,6 @@ export function WeekViewGrid({
       scrollRef.current.scrollTop = (8 - START_HOUR) * HOUR_HEIGHT - 20;
     }
   }, []);
-
-  // Expand recurring blocks for this week
-  const expandedBlocks = useMemo(
-    () => expandRecurringBlocks(blocks.filter(b => b.block_type === "recurring"), weekDays[0], weekDays[6]),
-    [blocks, weekDays[0].toISOString()]
-  );
-
-  const oneTimeBlocks = useMemo(
-    () => blocks.filter(b => b.block_type === "one_time" && b.start_datetime && b.end_datetime),
-    [blocks]
-  );
 
   const handleSlotClick = useCallback((dayIndex: number, hour: number, quarter: number) => {
     const day = weekDays[dayIndex];
@@ -187,14 +174,6 @@ export function WeekViewGrid({
               return d && isSameDay(d, day);
             });
 
-            const dayOneTimeBlocks = oneTimeBlocks.filter(b => {
-              const s = new Date(b.start_datetime!);
-              const e = new Date(b.end_datetime!);
-              return isSameDay(s, day) || isSameDay(e, day) || (s < day && e > day);
-            });
-
-            const dayRecurringBlocks = expandedBlocks.filter(b => isSameDay(b.start, day));
-
             const dayGoogleEvents = googleEvents.filter(e => {
               const s = new Date(e.start_datetime);
               return isSameDay(s, day);
@@ -262,47 +241,6 @@ export function WeekViewGrid({
                   );
                 })}
 
-                {/* One-time blocks */}
-                {dayOneTimeBlocks.map(block => {
-                  const s = new Date(block.start_datetime!);
-                  const e = new Date(block.end_datetime!);
-                  // Clamp to this day
-                  const dayStart = new Date(day); dayStart.setHours(START_HOUR, 0, 0, 0);
-                  const dayEnd = new Date(day); dayEnd.setHours(END_HOUR, 0, 0, 0);
-                  const clampedStart = s < dayStart ? dayStart : s;
-                  const clampedEnd = e > dayEnd ? dayEnd : e;
-                  const top = timeToTop(clampedStart);
-                  const height = durationToPx(clampedStart, clampedEnd);
-                  return (
-                    <EventCard
-                      key={block.id}
-                      title={block.title}
-                      startTime={format(clampedStart, "HH:mm")}
-                      endTime={format(clampedEnd, "HH:mm")}
-                      type="block"
-                      topPx={top}
-                      heightPx={height}
-                    />
-                  );
-                })}
-
-                {/* Recurring blocks */}
-                {dayRecurringBlocks.map((block, idx) => {
-                  const top = timeToTop(block.start);
-                  const height = durationToPx(block.start, block.end);
-                  return (
-                    <EventCard
-                      key={`rec-${block.blockId}-${idx}`}
-                      title={block.title}
-                      startTime={format(block.start, "HH:mm")}
-                      endTime={format(block.end, "HH:mm")}
-                      type="block"
-                      topPx={top}
-                      heightPx={height}
-                    />
-                  );
-                })}
-
                 {/* Google Calendar events */}
                 {dayGoogleEvents.map(evt => {
                   const s = new Date(evt.start_datetime);
@@ -346,7 +284,7 @@ export function WeekViewGrid({
         {/* Popover for creating block/task */}
         {popoverState.open && (
           <div className="absolute" style={{ top: 0, left: 0, width: 0, height: 0 }}>
-            <CreateBlockPopover
+            <CreateTaskPopover
               open={popoverState.open}
               onOpenChange={(o) => setPopoverState(prev => ({ ...prev, open: o }))}
               defaultStart={popoverState.startDate}
@@ -354,7 +292,7 @@ export function WeekViewGrid({
               onCreateTask={onCreateTask}
             >
               <span />
-            </CreateBlockPopover>
+            </CreateTaskPopover>
           </div>
         )}
       </div>

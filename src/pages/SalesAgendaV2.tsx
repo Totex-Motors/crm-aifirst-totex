@@ -42,8 +42,6 @@ import { CalendarSettingsSheet } from "@/components/agenda/CalendarSettingsSheet
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import {
-  useWorkingHours,
-  useCalendarBlocks,
   useGoogleCalendarEvents,
   defaultWorkingHours,
 } from "@/hooks/useCalendarSettings";
@@ -378,14 +376,7 @@ export function AgendaViewContent() {
   });
 
   // ── Calendar settings (for week/day views) ────────────────────────
-  const { data: whSettings } = useWorkingHours(effectiveRepId || undefined);
-  const workingHours = whSettings?.working_hours || defaultWorkingHours();
-
-  const { data: blocks = [] } = useCalendarBlocks(
-    effectiveRepId || undefined,
-    rangeStartISO,
-    rangeEndISO,
-  );
+  const workingHours = defaultWorkingHours();
 
   const { data: googleEvents = [] } = useGoogleCalendarEvents(
     effectiveRepId || undefined,
@@ -651,7 +642,6 @@ export function AgendaViewContent() {
 
   const refetchAll = () => {
     queryClient.invalidateQueries({ queryKey: ["agenda-v2-tasks"] });
-    queryClient.invalidateQueries({ queryKey: ["calendar-blocks"] });
     queryClient.invalidateQueries({ queryKey: ["google-calendar-events"] });
   };
 
@@ -1199,7 +1189,6 @@ export function AgendaViewContent() {
                     selectedDate={selectedDate}
                     tasks={gridAppointments}
                     quickTasks={gridQuickTasks}
-                    blocks={blocks}
                     googleEvents={googleEvents}
                     workingHours={workingHours}
                     onTaskClick={handleTaskClick}
@@ -1522,7 +1511,6 @@ export function AgendaViewContent() {
                     selectedDate={selectedDate}
                     tasks={gridAppointments}
                     quickTasks={gridQuickTasks}
-                    blocks={blocks}
                     googleEvents={googleEvents}
                     workingHours={workingHours}
                     onTaskClick={handleTaskClick}

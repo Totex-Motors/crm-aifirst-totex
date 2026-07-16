@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { Phone, Video, MessageSquare, Mail, Clock, Building2, Settings2, Calendar, Lock } from "lucide-react";
+import { Phone, Video, MessageSquare, Mail, Clock, Building2, Settings2, Calendar } from "lucide-react";
 
-export type EventCardType = "task" | "block" | "google";
+export type EventCardType = "task" | "google";
 
 interface EventCardProps {
   title: string;
@@ -50,26 +50,6 @@ export function EventCard({
 }: EventCardProps) {
   const isSmall = heightPx < 36;
   const isTiny = heightPx < 24;
-
-  if (type === "block") {
-    return (
-      <div
-        className="absolute left-1 right-1 rounded border border-slate-200 cursor-pointer overflow-hidden z-10 group"
-        style={{
-          top: topPx,
-          height: Math.max(heightPx, 18),
-          background: "repeating-linear-gradient(135deg, transparent, transparent 3px, rgba(148,163,184,0.15) 3px, rgba(148,163,184,0.15) 6px)",
-          backgroundColor: "rgb(241 245 249 / 0.9)",
-        }}
-        onClick={onClick}
-      >
-        <div className="flex items-center gap-1 px-1.5 py-0.5 h-full">
-          <Lock className="h-3 w-3 text-slate-400 shrink-0" />
-          {!isTiny && <span className="text-[10px] font-medium text-slate-500 truncate">{title}</span>}
-        </div>
-      </div>
-    );
-  }
 
   if (type === "google") {
     return (

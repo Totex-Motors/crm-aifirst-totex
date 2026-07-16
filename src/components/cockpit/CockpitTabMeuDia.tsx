@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCall } from '@/contexts/CallContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCompleteTask } from '@/hooks/useTasks';
-import { useWorkingHours, useCalendarBlocks, useGoogleCalendarEvents, defaultWorkingHours } from '@/hooks/useCalendarSettings';
+import { useGoogleCalendarEvents, defaultWorkingHours } from '@/hooks/useCalendarSettings';
 import { useDailyActivitySummary } from '@/hooks/useDailyActivitySummary';
 import { supabase } from '@/lib/supabase';
 import { DayViewGrid } from '@/components/agenda/DayViewGrid';
@@ -64,9 +64,7 @@ export function CockpitTabMeuDia() {
   });
 
   // Calendar settings for DayViewGrid
-  const { data: whSettings } = useWorkingHours(memberId || undefined);
-  const workingHours = whSettings?.working_hours || defaultWorkingHours();
-  const { data: blocks = [] } = useCalendarBlocks(memberId || undefined, todayStart, todayEnd);
+  const workingHours = defaultWorkingHours();
   const { data: googleEvents = [] } = useGoogleCalendarEvents(memberId || undefined, todayStart, todayEnd);
 
   // Activity summary
@@ -138,7 +136,6 @@ export function CockpitTabMeuDia() {
               selectedDate={today}
               tasks={gridAppointments}
               quickTasks={gridQuickTasks}
-              blocks={blocks}
               googleEvents={googleEvents}
               workingHours={workingHours}
             />
