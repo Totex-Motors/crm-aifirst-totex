@@ -31,7 +31,7 @@ So funcionalidades de vendas: pipeline, inbox WhatsApp, agente de IA, coach em
 tempo real, treinamento e gestao basica de time.
 
 **Numeros (jul/2026):** 40 paginas | ~16 pastas de componentes | 84 hooks |
-69 Edge Functions | 44 migrations | 289 tabelas no banco.
+69 Edge Functions | 47 migrations | 289 tabelas no banco.
 
 > As contagens acima ja estiveram desatualizadas por meses. Se for citar numero,
 > **conte** (`ls src/pages/*.tsx | wc -l`) em vez de confiar nesta linha.
@@ -151,7 +151,7 @@ src/
 
 supabase/
 |- functions/       -> 69 Edge Functions
-|- migrations/      -> 44 migrations SQL
+|- migrations/      -> 47 migrations SQL
 |- cleanup_unused_tables.sql  -> Script para dropar tabelas dos modulos removidos
 ```
 
@@ -384,11 +384,21 @@ CREATE POLICY tenant_all_<tabela> ON public.<tabela>
   WITH CHECK (tenant_id = (SELECT public.get_tenant_id()));
 ```
 
-### `vehicles` nao tem migration de origem
+### `vehicles` e os scripts `setup-cardoso-*`
 
-A tabela central do nicho e criada pelo script avulso
-`setup-cardoso-9-vehicles.sql`, nao por migration. Um setup do zero rodando so as
-migrations **fica sem ela**.
+A tabela central do nicho ficou meses sem migration de origem: era criada so pelo
+script avulso `setup-cardoso-9-vehicles.sql`, e um setup do zero rodando so as
+migrations ficava sem estoque. Corrigido em `20260719000000_vehicles.sql`.
+
+**A URL do feed XML NAO vai na migration.** O script avulso gravava a URL do S3
+do Grupo Cardoso hardcoded em `config.VEHICLE_FEED_URL`; ela e chave de
+integracao, configurada em `/configuracoes > Integracoes` e lida via
+`requireIntegrationKey()`.
+
+Os outros `setup-cardoso-*.sql` na raiz sao **dados de um cliente** (pipelines,
+produtos, playbooks, time, veiculos de teste), nao schema de template. Se algum
+deles criar estrutura que o codigo precisa, essa estrutura pertence a uma
+migration — o dado do cliente, nao.
 
 ### FK com nome load-bearing
 
