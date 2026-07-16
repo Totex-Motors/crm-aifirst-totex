@@ -53,5 +53,16 @@ export default defineConfig(({ mode }) => ({
         max_line_len: false,
       },
     },
+    rollupOptions: {
+      output: {
+        // Vendors estáveis em chunks próprios: mudam raramente, então o browser
+        // reaproveita o cache entre deploys em vez de rebaixar tudo a cada build.
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-query': ['@tanstack/react-query'],
+        },
+      },
+    },
   },
 }));

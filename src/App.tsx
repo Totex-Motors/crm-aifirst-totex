@@ -79,46 +79,46 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 // Settings unificada + WhatsApp
-import SettingsUnified from "./pages/SettingsUnified";
+const SettingsUnified = React.lazy(() => import("./pages/SettingsUnified"));
 const MyWhatsApp = React.lazy(() => import("./pages/MyWhatsApp"));
 
 // Sales/Commercial pages (core CRM)
-import SalesDashboard from "./pages/SalesDashboardV3";
-import SalesLeads from "./pages/SalesLeads";
-import Contatos from "./pages/Contatos";
-import SalesPipeline from "./pages/SalesPipeline";
-import SalesNegociacoes from "./pages/SalesNegociacoes";
-import SalesWhatsAppInbox from "./pages/SalesWhatsAppInbox";
-import SalesLeadDetail from "./pages/SalesLeadDetail";
-import SalesNegociacaoDetail from "./pages/SalesNegociacaoDetail";
-import Products from "./pages/Products";
-import Commissions from "./pages/Commissions";
-import SalesPlaybook from "./pages/SalesPlaybook";
-import SalesWorkspace from "./pages/SalesWorkspace";
-import SalesAgenda from "./pages/SalesAgendaV2";
-import SalesMaterialsConfig from "./pages/SalesMaterialsConfig";
-import SalesTraining from "./pages/SalesTraining";
-import CockpitShell from "./pages/CockpitShell";
+const SalesDashboard = React.lazy(() => import("./pages/SalesDashboardV3"));
+const SalesLeads = React.lazy(() => import("./pages/SalesLeads"));
+const Contatos = React.lazy(() => import("./pages/Contatos"));
+const SalesPipeline = React.lazy(() => import("./pages/SalesPipeline"));
+const SalesNegociacoes = React.lazy(() => import("./pages/SalesNegociacoes"));
+const SalesWhatsAppInbox = React.lazy(() => import("./pages/SalesWhatsAppInbox"));
+const SalesLeadDetail = React.lazy(() => import("./pages/SalesLeadDetail"));
+const SalesNegociacaoDetail = React.lazy(() => import("./pages/SalesNegociacaoDetail"));
+const Products = React.lazy(() => import("./pages/Products"));
+const Commissions = React.lazy(() => import("./pages/Commissions"));
+const SalesPlaybook = React.lazy(() => import("./pages/SalesPlaybook"));
+const SalesWorkspace = React.lazy(() => import("./pages/SalesWorkspace"));
+const SalesAgenda = React.lazy(() => import("./pages/SalesAgendaV2"));
+const SalesMaterialsConfig = React.lazy(() => import("./pages/SalesMaterialsConfig"));
+const SalesTraining = React.lazy(() => import("./pages/SalesTraining"));
+const CockpitShell = React.lazy(() => import("./pages/CockpitShell"));
 
 // Gestão básica
-import TaskManagement from "./pages/TaskManagement";
-import TeamCalendar from "./pages/TeamCalendar";
-import TeamMeetings from "./pages/TeamMeetings";
+const TaskManagement = React.lazy(() => import("./pages/TaskManagement"));
+const TeamCalendar = React.lazy(() => import("./pages/TeamCalendar"));
+const TeamMeetings = React.lazy(() => import("./pages/TeamMeetings"));
 
 // Marketing (Email + WhatsApp + Automações)
-import MarketingDashboard from "./pages/MarketingDashboard";
-import EmailMarketingHub from "./pages/EmailMarketingHub";
-import EmailCampaignNew from "./pages/EmailCampaignNew";
-import EmailCampaignDetail from "./pages/EmailCampaignDetail";
-import EmailTemplates from "./pages/EmailTemplates";
-import EmailTemplateEditor from "./pages/EmailTemplateEditor";
-import MarketingAutomations from "./pages/marketing/MarketingAutomations";
-import MarketingAutomationEditor from "./pages/marketing/MarketingAutomationEditor";
-import WhatsAppTemplates from "./pages/WhatsAppTemplates";
-import WhatsAppTemplateNew from "./pages/WhatsAppTemplateNew";
-import SalesCampaigns from "./pages/SalesCampaigns";
-import SalesCampaignNew from "./pages/SalesCampaignNew";
-import SalesCampaignDetail from "./pages/SalesCampaignDetail";
+const MarketingDashboard = React.lazy(() => import("./pages/MarketingDashboard"));
+const EmailMarketingHub = React.lazy(() => import("./pages/EmailMarketingHub"));
+const EmailCampaignNew = React.lazy(() => import("./pages/EmailCampaignNew"));
+const EmailCampaignDetail = React.lazy(() => import("./pages/EmailCampaignDetail"));
+const EmailTemplates = React.lazy(() => import("./pages/EmailTemplates"));
+const EmailTemplateEditor = React.lazy(() => import("./pages/EmailTemplateEditor"));
+const MarketingAutomations = React.lazy(() => import("./pages/marketing/MarketingAutomations"));
+const MarketingAutomationEditor = React.lazy(() => import("./pages/marketing/MarketingAutomationEditor"));
+const WhatsAppTemplates = React.lazy(() => import("./pages/WhatsAppTemplates"));
+const WhatsAppTemplateNew = React.lazy(() => import("./pages/WhatsAppTemplateNew"));
+const SalesCampaigns = React.lazy(() => import("./pages/SalesCampaigns"));
+const SalesCampaignNew = React.lazy(() => import("./pages/SalesCampaignNew"));
+const SalesCampaignDetail = React.lazy(() => import("./pages/SalesCampaignDetail"));
 
 // Public booking
 const BookMeeting = React.lazy(() => import("./pages/BookMeeting"));
@@ -194,8 +194,17 @@ const NavigationListener = () => {
   return null;
 };
 
+// Fallback das rotas lazy — todas as páginas são carregadas sob demanda,
+// então o boundary abaixo cobre qualquer transição de rota.
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
 const AppRoutes = () => {
   return (
+    <React.Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Rotas públicas */}
       <Route path="/login" element={<Login />} />
@@ -280,6 +289,7 @@ const AppRoutes = () => {
 
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </React.Suspense>
   );
 };
 
