@@ -345,19 +345,34 @@ equivalente estava ao lado:
   via `src/lib/whatsappTemplate.ts`.
 - `sales_deals` **nao existe** — e `deals`.
 
-### Tabelas que o codigo consulta e que NAO existem
+### Tabelas fantasma: zeradas em jul/2026
 
-Verificar antes de confiar. Em jul/2026 ainda faltavam: `farming_reasons` e
-`scheduled_messages` (ambas com botao vivo no `SalesLeadDetail`, que da erro ao
-clicar).
+Nenhuma tabela consultada pelo codigo esta faltando no banco. Foram removidas
+(codigo morto ou feature sem schema): `content_agent_config`, `ceo_bot_config`,
+`agents_personas`, `cs_checkins`, `sales_activities`, `project_funnels`,
+`support_conversations`, `farming_reasons`, `scheduled_messages` e o modulo
+Instagram. E foram criadas: `transactions`, `deal_payment_audit_log`,
+`deal_negotiation_details`, `roleplay_sessions`, `sales_training_cases`,
+`whatsapp_template_tags`.
 
-Ja resolvidas: `content_agent_config`, `ceo_bot_config`, `agents_personas`,
-`cs_checkins`, `sales_activities`, `project_funnels`, `support_conversations` e
-o modulo Instagram — todas eram codigo morto e foram removidas.
+**Antes de adicionar `.from('<tabela>')`, confirme que ela existe** nos tipos
+gerados. O padrao que se repetiu a sessao inteira: interface local declara campo
+que o banco nao tem, um `.insert({ ...input })` leva o campo junto, e o Postgrest
+recusa com PGRST204 — quebrando a feature toda.
 
-Colunas fantasma conhecidas: `leads.landing_page`, `leads.company`,
-`leads.dia_do_playbook`, `leads.partner_lead_id`, `organizations.health_score`,
-`call_history.call_session_id`.
+Colunas fantasma que ainda restam (legado B2B, no `leads`/`organizations`):
+`leads.landing_page`, `leads.company`, `leads.dia_do_playbook`,
+`leads.partner_lead_id`, `organizations.health_score`, `organizations.employee_count`,
+`organizations.challenges`, `call_history.call_session_id`.
+
+### `scheduled_messages` vs `wa_scheduled_messages`
+
+Nao sao a mesma coisa. `wa_scheduled_messages` **existe** e e a fila de
+campanhas/sequencias de comunidade (`target_jid`, `community_id`,
+`enrollment_id`, `scheduled_for`), consumida pelo cron de
+`process-scheduled-messages`. O `scheduled_messages` que o front usava era
+"agendar mensagem pra este lead" (`lead_id`, `phone`, `scheduled_at`) — outra
+feature, que nunca teve tabela e foi removida. **Nao confundir as duas.**
 
 ### O modulo Instagram foi removido (jul/2026)
 

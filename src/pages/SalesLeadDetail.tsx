@@ -47,7 +47,6 @@ import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ViewNegociacaoModal } from "@/components/sales/ViewNegociacaoModal";
 import { TransferPipelineModal } from "@/components/sales/TransferPipelineModal";
 import { LoseNegociacaoModal } from "@/components/sales/LoseNegociacaoModal";
-import { FarmingReasonModal } from "@/components/sales/FarmingReasonModal";
 import { CallButton, CallHistory, CallDetailModal } from "@/components/calls";
 import { MeetingHistory } from "@/components/meeting/MeetingHistory";
 import { NotesList } from "@/components/sales/NotesList";
@@ -58,7 +57,6 @@ import { AIAgentBadge } from "@/components/inbox/AIAgentBadge";
 import { SidebarNegociacoes } from "@/components/sales/SidebarNegociacoes";
 import { TimelineView } from "@/components/timeline/TimelineView";
 import { CancelRefundModal } from "@/components/sales/CancelRefundModal";
-import { ScheduleMessageModal } from "@/components/sales/ScheduleMessageModal";
 import { LeadTagsInput } from "@/components/sales/LeadTagsInput";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -289,7 +287,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const [selectedEmailSubject, setSelectedEmailSubject] = useState<string>("");
 
   // AI Modals state
-  const [isScheduleMessageOpen, setIsScheduleMessageOpen] = useState(false);
   const [isScheduleMeetingFromChat, setIsScheduleMeetingFromChat] = useState(false);
   const [meetingDefaults, setMeetingDefaults] = useState<{ title?: string; due_datetime?: string }>({});
   const [isExtractingMeeting, setIsExtractingMeeting] = useState(false);
@@ -300,8 +297,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const [isTransferPipelineOpen, setIsTransferPipelineOpen] = useState(false);
   const [isLoseDealOpen, setIsLoseDealOpen] = useState(false);
   const [isRefundDealOpen, setIsRefundDealOpen] = useState(false);
-  const [isFarmingReasonOpen, setIsFarmingReasonOpen] = useState(false);
-  const [farmingTargetStageId, setFarmingTargetStageId] = useState<string | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [deleteDealConfirm, setDeleteDealConfirm] = useState<any>(null);
   const [managingContactsDealId, setManagingContactsDealId] = useState<string | null>(null);
@@ -484,12 +479,8 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
       return;
     }
 
-    // Farming → abrir FarmingReasonModal
-    if ((targetStage as any)?.is_farming) {
-      setFarmingTargetStageId(stageId);
-      setIsFarmingReasonOpen(true);
-      return;
-    }
+    // Etapas de farming seguem o fluxo normal de mudanca de etapa: a captura de
+    // motivo foi removida junto com farming_reasons, tabela que nunca existiu.
 
     // Demais etapas → mover o DEAL + registrar na timeline
     try {
@@ -1593,15 +1584,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
               <TabsContent value="mensagens">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsScheduleMessageOpen(true)}
-                          className="border-blue-200 hover:bg-blue-50"
-                        >
-                          <Clock className="h-4 w-4 mr-2 text-blue-500" />
-                          Agendar Msg
-                        </Button>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1888,15 +1870,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         }}
       />
 
-      {/* Schedule Message Modal */}
-      <ScheduleMessageModal
-        open={isScheduleMessageOpen}
-        onOpenChange={setIsScheduleMessageOpen}
-        leadId={id || ""}
-        leadName={lead.name}
-        leadPhone={lead.phone || ""}
-        instanceId={teamMember?.whatsapp_instance_id}
-      />
 
       {/* Create Negociacao Modal */}
       <CreateNegociacaoModal
@@ -1968,16 +1941,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
         mode="refund"
       />
 
-      {/* Farming Reason Modal */}
-      {id && (
-        <FarmingReasonModal
-          open={isFarmingReasonOpen}
-          onOpenChange={setIsFarmingReasonOpen}
-          leadId={id}
-          leadName={lead?.name || "Lead"}
-          farmingStageId={farmingTargetStageId || ""}
-        />
-      )}
 
       {/* Diagnostic Detail Modal */}
       <Dialog open={isDiagnosticDetailOpen} onOpenChange={(open) => {
