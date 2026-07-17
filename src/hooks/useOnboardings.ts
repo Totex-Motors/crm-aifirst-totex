@@ -135,6 +135,9 @@ export interface Onboarding {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  tenant_id: string;
+  early_access_at: string | null;
+  early_access_granted: boolean | null;
   // Joins
   organization?: { id: string; name: string; slug: string };
   meeting?: { id: string; title: string; transcriptions: any[] };

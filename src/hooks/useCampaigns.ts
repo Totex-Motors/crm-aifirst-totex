@@ -131,7 +131,7 @@ export const useCampaigns = (statusFilter?: CampaignStatus) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as Campaign[];
+      return (data || []) as unknown as Campaign[];
     },
   });
 };
@@ -151,7 +151,7 @@ export const useCampaign = (id: string | undefined) => {
         .eq('tenant_id', tenantId)
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     enabled: !!id && !!tenantId,
     refetchInterval: (query) => {
@@ -181,7 +181,7 @@ export const useCreateCampaign = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] });
@@ -204,7 +204,7 @@ export const useUpdateCampaign = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] });
@@ -262,7 +262,7 @@ export const useStartCampaign = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] });
@@ -314,7 +314,7 @@ export const useScheduleCampaign = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] });
@@ -343,7 +343,7 @@ export const usePauseCampaign = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] });
@@ -372,7 +372,7 @@ export const useResumeCampaign = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] });
@@ -407,7 +407,7 @@ export const useCancelCampaign = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as Campaign;
+      return data as unknown as Campaign;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] });
