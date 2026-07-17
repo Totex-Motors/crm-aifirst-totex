@@ -35,6 +35,9 @@ export interface Task {
   confirmed_by_client: boolean;
   client_contact_method: 'whatsapp' | 'phone' | 'zoom' | 'meet' | 'presencial' | null;
   meeting_link: string | null;
+  google_event_id: string | null;
+  google_calendar_synced: boolean | null;
+  product_id: string | null;
   participants: string[] | null;
   is_recurring: boolean;
   recurrence_interval_days: number | null;

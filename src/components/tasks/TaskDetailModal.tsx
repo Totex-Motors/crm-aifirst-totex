@@ -657,7 +657,7 @@ export function TaskDetailModal({ task, open, onOpenChange, onUpdate, clientName
         lead_id: task.lead_id,
         organization_id: task.organization_id,
         responsavel_id: task.responsavel_id,
-        contact_method: task.contact_method,
+        client_contact_method: task.client_contact_method,
         priority: task.priority,
         participants: task.participants,
         scheduled_at: newScheduledAt,
