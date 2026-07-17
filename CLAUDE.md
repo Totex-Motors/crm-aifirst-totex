@@ -347,14 +347,31 @@ equivalente estava ao lado:
 
 ### Tabelas que o codigo consulta e que NAO existem
 
-Verificar antes de confiar. Em jul/2026 ainda faltavam, entre outras:
-`content_agent_config`, `ceo_bot_config`, `agents_personas`, `cs_checkins`,
-`farming_reasons`, `instagram_profiles`, `instagram_stories`,
-`instagram_feed_posts`, `sales_activities`, `scheduled_messages`.
+Verificar antes de confiar. Em jul/2026 ainda faltavam: `farming_reasons` e
+`scheduled_messages` (ambas com botao vivo no `SalesLeadDetail`, que da erro ao
+clicar).
+
+Ja resolvidas: `content_agent_config`, `ceo_bot_config`, `agents_personas`,
+`cs_checkins`, `sales_activities`, `project_funnels`, `support_conversations` e
+o modulo Instagram — todas eram codigo morto e foram removidas.
 
 Colunas fantasma conhecidas: `leads.landing_page`, `leads.company`,
 `leads.dia_do_playbook`, `leads.partner_lead_id`, `organizations.health_score`,
-`call_history.call_session_id`, `instagram_messages.metadata`.
+`call_history.call_session_id`.
+
+### O modulo Instagram foi removido (jul/2026)
+
+O front tinha `components/sales/instagram/` (11 arquivos), `useInstagram` e
+`useInstagramProfile`, e um seletor WhatsApp/Instagram no `SalesLeadDetail` —
+mas `instagram_profiles`, `instagram_stories` e `instagram_feed_posts` nunca
+existiram, entao o painel so dava erro. O `cleanup_unused_tables.sql` ja mandava
+dropar o modulo; o front e que nao tinha acompanhado.
+
+Sobraram no banco (nao sao fantasma): `leads.instagram`, `leads.instagram_id` e
+`instagram_messages`. As duas colunas de lead seguem em uso no formulario.
+`instagram_messages` ficou orfa — o `cleanup_unused_tables.sql` a dropa.
+
+**Nao reintroduzir Instagram sem criar as tabelas antes.**
 
 ### Nome de migration: SEMPRE timestamp de 14 digitos
 

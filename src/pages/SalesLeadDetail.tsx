@@ -72,8 +72,6 @@ import { useContactDeals, useDeleteDeal } from "@/hooks/useNegociacoes";
 import { useLeadNegociacoes, useLinkedContacts, useUnlinkContact, type LinkedContact } from "@/hooks/useNegociacaoContacts";
 import { useLeadTransactions, useClientLTV, convertTransactionAmount } from "@/hooks/useTransactions";
 import { useClientTimeline } from "@/hooks/useClientTimeline";
-import { useInstagramProfile, useInstagramPosts, useInstagramStories } from "@/hooks/useInstagramProfile";
-import { LeadInstagramChat, InstagramStoriesCarousel, PostViewerModal } from "@/components/sales/instagram";
 import { useClientTasks, useCreateTask, Task } from "@/hooks/useTasks";
 import { usePartnerLeadIds } from "@/hooks/usePartnerLeads";
 import { useLeadByPhone } from "@/hooks/useWhatsAppInbox";
@@ -150,7 +148,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [draftMessage, setDraftMessage] = useState<string | undefined>(undefined);
   const [timelineFilter, setTimelineFilter] = useState<"all" | "sales" | "cs">("all");
-  const [msgChannel, setMsgChannel] = useState<"whatsapp" | "instagram">("whatsapp");
   const [interacoesTab, setInteracoesTab] = useState<"calls" | "meetings">("calls");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isResponsavelPopoverOpen, setIsResponsavelPopoverOpen] = useState(false);
@@ -254,11 +251,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
   // Timeline
   const { data: timeline } = useClientTimeline(id, undefined);
 
-  // Instagram data
-  const instagramProfileId = lead?.instagram_profile_id;
-  const { data: instagramProfile } = useInstagramProfile(instagramProfileId);
-  const { data: instagramPosts } = useInstagramPosts(instagramProfileId);
-  const { data: instagramStories } = useInstagramStories(instagramProfileId);
 
   // Partner leads cluster (for mirroring tasks/calls/meetings)
   const { data: partnerLeadIds } = usePartnerLeadIds(id);
@@ -678,8 +670,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           const from = searchParams.get('from');
           if (from === 'inbox') {
             navigate('/comercial/inbox');
-          } else if (from === 'instagram') {
-            navigate('/comercial/instagram');
           } else if (from === 'dashboard') {
             navigate('/comercial');
           } else if (from === 'cockpit') {
@@ -710,13 +700,6 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row md:items-start gap-6">
               <Avatar className="h-20 w-20 ring-4 ring-background shadow-lg">
-                {instagramProfile?.stored_profile_picture_url || instagramProfile?.profile_picture_url_hd ? (
-                  <AvatarImage
-                    src={instagramProfile.stored_profile_picture_url || instagramProfile.profile_picture_url_hd}
-                    alt={lead.name}
-                    className="object-cover"
-                  />
-                ) : null}
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
                   {getInitials(lead.name)}
                 </AvatarFallback>
@@ -1606,35 +1589,10 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                 <NotesList leadId={id} showAllFromLead maxHeight="600px" />
               </TabsContent>
 
-              {/* Mensagens Tab (WhatsApp + Instagram) */}
+              {/* Mensagens Tab (WhatsApp) */}
               <TabsContent value="mensagens">
                 <div className="space-y-4">
-                  {/* Channel Toggle */}
                   <div className="flex items-center gap-2">
-                    <div className="flex rounded-lg border p-0.5 bg-muted/50">
-                      <button
-                        onClick={() => setMsgChannel("whatsapp")}
-                        className={cn(
-                          "px-3 py-1.5 text-sm rounded-md transition-colors",
-                          msgChannel === "whatsapp" ? "bg-white shadow-sm font-medium text-green-700" : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <MessageSquare className="h-3.5 w-3.5 inline mr-1.5" />
-                        WhatsApp
-                      </button>
-                      <button
-                        onClick={() => setMsgChannel("instagram")}
-                        className={cn(
-                          "px-3 py-1.5 text-sm rounded-md transition-colors",
-                          msgChannel === "instagram" ? "bg-white shadow-sm font-medium text-pink-700" : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <Instagram className="h-3.5 w-3.5 inline mr-1.5" />
-                        Instagram
-                      </button>
-                    </div>
-                    {msgChannel === "whatsapp" && (
-                      <>
                         <Button
                           variant="outline"
                           size="sm"
@@ -1667,145 +1625,17 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                         <div className="ml-auto">
                           <AIAgentBadge leadId={whatsappLead?.id || id!} />
                         </div>
-                      </>
-                    )}
                   </div>
 
-                  {/* WhatsApp Content */}
-                  {msgChannel === "whatsapp" && (
-                    <WhatsAppChat
-                      contactName={lead.name}
-                      contactPhone={lead.phone}
-                      leadId={whatsappLead?.id || id}
-                      instanceId={undefined}
-                      className="h-[500px]"
-                      initialMessage={draftMessage}
-                      availableInstances={commercialInstances}
-                    />
-                  )}
-
-                  {/* Instagram Content */}
-                  {msgChannel === "instagram" && (
-                    <>
-                      <LeadInstagramChat
-                        leadId={lead.id}
-                        instagramUsername={lead.instagram?.replace(/^@/, '')}
-                        instagramId={lead.instagram_id}
-                      />
-
-                      {instagramProfile ? (
-                        <Card>
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
-                              <img
-                                src={instagramProfile.stored_profile_picture_url || instagramProfile.profile_picture_url_hd}
-                                alt={instagramProfile.username}
-                                className="w-14 h-14 rounded-full object-cover border-2 border-pink-500 flex-shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-sm">@{instagramProfile.username}</span>
-                                  {instagramProfile.is_verified && (
-                                    <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">Verificado</Badge>
-                                  )}
-                                  <a
-                                    href={`https://instagram.com/${instagramProfile.username}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-pink-500 hover:text-pink-600 ml-auto"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </a>
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate">{instagramProfile.full_name}</p>
-                                <div className="flex gap-4 mt-1.5 text-xs">
-                                  <span><strong>{(instagramProfile.media_count || 0).toLocaleString()}</strong> Posts</span>
-                                  <span><strong>{(instagramProfile.follower_count || 0).toLocaleString()}</strong> Seg</span>
-                                  <span><strong>{(instagramProfile.following_count || 0).toLocaleString()}</strong> Seg</span>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        <Card>
-                          <CardContent className="p-6">
-                            <div className="text-center py-4 text-muted-foreground">
-                              <Instagram className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                              <p className="text-sm font-medium">Perfil do Instagram não vinculado</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {instagramStories && instagramStories.length > 0 && (
-                        <Card>
-                          <CardHeader className="pb-2 pt-3 px-4">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                              <Instagram className="h-4 w-4" />
-                              Stories
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="px-4 pb-3">
-                            <InstagramStoriesCarousel stories={instagramStories} />
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {instagramPosts && instagramPosts.length > 0 && (
-                        <Card>
-                          <CardHeader className="pb-2 pt-3 px-4">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                              <Hash className="h-4 w-4" />
-                              Posts Recentes
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="px-4 pb-3">
-                            <div className="space-y-3">
-                              {instagramPosts.map((post: any, index: number) => (
-                                <button
-                                  key={post.id}
-                                  onClick={() => {
-                                    setPostViewerIndex(index);
-                                    setPostViewerOpen(true);
-                                  }}
-                                  className="flex gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors w-full text-left"
-                                >
-                                  <img
-                                    src={post.stored_thumbnail_url || post.thumbnail_url}
-                                    alt={post.caption?.substring(0, 50) || 'Post'}
-                                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    {post.caption && (
-                                      <p className="text-xs text-foreground line-clamp-2">
-                                        {post.caption}
-                                      </p>
-                                    )}
-                                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                                      <span>{format(new Date(post.taken_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                      <span>❤️ {(post.like_count || 0).toLocaleString()}</span>
-                                      <span>💬 {(post.comment_count || 0).toLocaleString()}</span>
-                                      {post.play_count > 0 && <span>▶️ {post.play_count.toLocaleString()}</span>}
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-
-                            <PostViewerModal
-                              posts={instagramPosts}
-                              initialIndex={postViewerIndex}
-                              open={postViewerOpen}
-                              onClose={() => setPostViewerOpen(false)}
-                            />
-                          </CardContent>
-                        </Card>
-                      )}
-                    </>
-                  )}
+                  <WhatsAppChat
+                    contactName={lead.name}
+                    contactPhone={lead.phone}
+                    leadId={whatsappLead?.id || id}
+                    instanceId={undefined}
+                    className="h-[500px]"
+                    initialMessage={draftMessage}
+                    availableInstances={commercialInstances}
+                  />
                 </div>
               </TabsContent>
 
