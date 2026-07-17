@@ -25,7 +25,7 @@ export const useCampaignTemplates = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('campaign_templates' as any)
+        .from('campaign_templates')
         .select('*')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -45,7 +45,7 @@ export const useCreateCampaignTemplate = () => {
   return useMutation({
     mutationFn: async (template: { name: string; content: string; variables?: string[]; category?: string }) => {
       const { data, error } = await supabase
-        .from('campaign_templates' as any)
+        .from('campaign_templates')
         .insert({
           ...template,
           // MULTI-TENANT: tenant_id obrigatório no insert
@@ -70,7 +70,7 @@ export const useUpdateCampaignTemplate = () => {
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; name?: string; content?: string; variables?: string[]; is_active?: boolean }) => {
       const { data, error } = await supabase
-        .from('campaign_templates' as any)
+        .from('campaign_templates')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -93,7 +93,7 @@ export const useDeleteCampaignTemplate = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('campaign_templates' as any)
+        .from('campaign_templates')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -119,7 +119,7 @@ export const useCampaigns = (statusFilter?: CampaignStatus) => {
     enabled: !!tenantId,
     queryFn: async () => {
       let query = supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .select('*, created_by_member:team_members!campaigns_created_by_fkey(id, name)')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -144,7 +144,7 @@ export const useCampaign = (id: string | undefined) => {
     queryKey: ['campaign', tenantId, id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .select('*, created_by_member:team_members!campaigns_created_by_fkey(id, name), template:campaign_templates(id, name, content, variables)')
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -171,7 +171,7 @@ export const useCreateCampaign = () => {
   return useMutation({
     mutationFn: async (campaign: Partial<Campaign>) => {
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .insert({
           ...campaign,
           // MULTI-TENANT: tenant_id obrigatório
@@ -196,7 +196,7 @@ export const useUpdateCampaign = () => {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Campaign> & { id: string }) => {
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -229,7 +229,7 @@ export const useStartCampaign = () => {
 
       // 1b. Remove excluded leads
       const { data: camp } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .select('audience_filters')
         .eq('id', campaignId)
         // MULTI-TENANT: filtro defensivo
@@ -238,7 +238,7 @@ export const useStartCampaign = () => {
       const excludeIds = (camp?.audience_filters as AudienceFilters)?.exclude_lead_ids;
       if (excludeIds?.length) {
         await supabase
-          .from('campaign_leads' as any)
+          .from('campaign_leads')
           .delete()
           .eq('campaign_id', campaignId)
           .in('lead_id', excludeIds);
@@ -249,7 +249,7 @@ export const useStartCampaign = () => {
 
       // 2. Update status to sending
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .update({
           status: 'sending',
           started_at: new Date().toISOString(),
@@ -286,7 +286,7 @@ export const useScheduleCampaign = () => {
 
       // Remove excluded leads
       const { data: scheduleCamp } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .select('audience_filters')
         .eq('id', campaignId)
         // MULTI-TENANT: filtro defensivo
@@ -295,14 +295,14 @@ export const useScheduleCampaign = () => {
       const schedExcludeIds = (scheduleCamp?.audience_filters as AudienceFilters)?.exclude_lead_ids;
       if (schedExcludeIds?.length) {
         await supabase
-          .from('campaign_leads' as any)
+          .from('campaign_leads')
           .delete()
           .eq('campaign_id', campaignId)
           .in('lead_id', schedExcludeIds);
       }
 
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .update({
           status: 'scheduled',
           scheduled_at: scheduledAt,
@@ -330,7 +330,7 @@ export const usePauseCampaign = () => {
   return useMutation({
     mutationFn: async ({ campaignId, reason }: { campaignId: string; reason?: string }) => {
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .update({
           status: 'paused',
           paused_at: new Date().toISOString(),
@@ -359,7 +359,7 @@ export const useResumeCampaign = () => {
   return useMutation({
     mutationFn: async (campaignId: string) => {
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .update({
           status: 'sending',
           paused_at: null,
@@ -389,13 +389,13 @@ export const useCancelCampaign = () => {
     mutationFn: async (campaignId: string) => {
       // Cancel pending leads
       await supabase
-        .from('campaign_leads' as any)
+        .from('campaign_leads')
         .update({ status: 'skipped', updated_at: new Date().toISOString() })
         .eq('campaign_id', campaignId)
         .eq('status', 'pending');
 
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .update({
           status: 'cancelled',
           completed_at: new Date().toISOString(),
@@ -466,7 +466,7 @@ export const useAudienceSample = (filters: AudienceFilters, limit = 3) => {
       const explicitIds = (filters as any).lead_ids as string[] | undefined;
       if (explicitIds && explicitIds.length > 0) {
         const { data, error } = await supabase
-          .from('leads' as any)
+          .from('leads')
           .select('id, name, phone, email, city_name, state, company_name, sales_rep_id')
           // MULTI-TENANT: filtra leads do tenant
           .eq('tenant_id', tenantId)
@@ -476,7 +476,7 @@ export const useAudienceSample = (filters: AudienceFilters, limit = 3) => {
       }
 
       let query = supabase
-        .from('leads' as any)
+        .from('leads')
         .select('id, name, phone, email, city_name, state, company_name, sales_rep_id')
         // MULTI-TENANT: filtra leads do tenant
         .eq('tenant_id', tenantId)
@@ -512,7 +512,7 @@ export const useCampaignLeads = (campaignId: string | undefined, statusFilter?: 
     queryKey: ['campaign-leads', tenantId, campaignId, statusFilter, page],
     queryFn: async () => {
       let query = supabase
-        .from('campaign_leads' as any)
+        .from('campaign_leads')
         .select('*, lead:leads(id, name, phone, email, city_name, state, sales_rep_id), assigned_member:team_members!campaign_leads_assigned_to_fkey(id, name)', { count: 'exact' })
         .eq('campaign_id', campaignId)
         // MULTI-TENANT: filtro defensivo (campaign_leads geralmente tem tenant_id; RLS já cobre)
@@ -546,7 +546,7 @@ export const useCampaignMetrics = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('campaigns' as any)
+        .from('campaigns')
         .select('status, total_leads, sent_count, responded_count, blocked_count')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId);
@@ -584,7 +584,7 @@ export const usePipelineStages = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('sales_pipeline_stages' as any)
+        .from('sales_pipeline_stages')
         .select('id, name, pipeline_id, position, sales_pipelines(id, name)')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -604,7 +604,7 @@ export const useDistinctCities = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('leads' as any)
+        .from('leads')
         .select('city_name')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -627,7 +627,7 @@ export const useDistinctStates = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('leads' as any)
+        .from('leads')
         .select('state')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -650,7 +650,7 @@ export const useDistinctUtmSources = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('leads' as any)
+        .from('leads')
         .select('utm_source')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -673,7 +673,7 @@ export const useDistinctUtmCampaigns = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('leads' as any)
+        .from('leads')
         .select('utm_campaign')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -704,7 +704,7 @@ export const useWhatsAppInstances = (provider?: 'uazapi' | 'cloud_api') => {
     enabled: !!tenantId,
     queryFn: async () => {
       let q = supabase
-        .from('whatsapp_instances' as any)
+        .from('whatsapp_instances')
         .select('id, name, status, provider, phone_number_id')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -749,7 +749,7 @@ export const useCampaignInstanceStats = (instanceIds: string[]) => {
       if (statsErr) throw statsErr;
 
       const { data: instances, error: instErr } = await supabase
-        .from('whatsapp_instances' as any)
+        .from('whatsapp_instances')
         .select('id, name, status, phone_number, api_key, api_url')
         // MULTI-TENANT: filtro defensivo
         .eq('tenant_id', tenantId)
@@ -801,7 +801,7 @@ export const useCampaignInstances = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('whatsapp_instances' as any)
+        .from('whatsapp_instances')
         .select('*')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -863,7 +863,7 @@ export const useUpdateCampaignInstance = () => {
         data.webhook_url = updates.api_url || null;
       }
       const { error } = await supabase
-        .from('whatsapp_instances' as any)
+        .from('whatsapp_instances')
         .update(data)
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -884,7 +884,7 @@ export const useDeleteCampaignInstance = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('whatsapp_instances' as any)
+        .from('whatsapp_instances')
         .delete()
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
