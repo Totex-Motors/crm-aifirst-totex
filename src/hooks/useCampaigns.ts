@@ -740,7 +740,7 @@ export const useCampaignInstanceStats = (instanceIds: string[]) => {
     queryFn: async () => {
       // Buscar stats de hoje + info da instância
       const { data: stats, error: statsErr } = await supabase
-        .from('campaign_instance_stats' as any)
+        .from('campaign_instance_stats')
         .select('*')
         // MULTI-TENANT: filtro defensivo
         .eq('tenant_id', tenantId)

@@ -27,7 +27,7 @@ export const useBrevoSettings = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('integration_settings' as any)
+        .from('integration_settings')
         .select('*')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -47,7 +47,7 @@ export const useSaveBrevoSettings = () => {
   return useMutation({
     mutationFn: async (settings: BrevoSettings) => {
       const { data: existing } = await supabase
-        .from('integration_settings' as any)
+        .from('integration_settings')
         .select('id')
         // MULTI-TENANT: filtro por tenant (busca a config DO tenant atual)
         .eq('tenant_id', tenantId)
@@ -56,7 +56,7 @@ export const useSaveBrevoSettings = () => {
 
       if (existing) {
         const { error } = await supabase
-          .from('integration_settings' as any)
+          .from('integration_settings')
           .update({ settings, is_active: true, updated_at: new Date().toISOString() })
           .eq('id', existing.id)
           // MULTI-TENANT: filtro defensivo
@@ -64,7 +64,7 @@ export const useSaveBrevoSettings = () => {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('integration_settings' as any)
+          .from('integration_settings')
           .insert({
             // MULTI-TENANT: insert com tenant_id
             tenant_id: tenantId,
@@ -94,7 +94,7 @@ export const useEmailTemplates = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('email_templates' as any)
+        .from('email_templates')
         .select('*')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -115,7 +115,7 @@ export const useEmailTemplate = (id: string | undefined) => {
     enabled: !!id && !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('email_templates' as any)
+        .from('email_templates')
         .select('*')
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -135,7 +135,7 @@ export const useCreateEmailTemplate = () => {
   return useMutation({
     mutationFn: async (template: Partial<EmailTemplate>) => {
       const { data, error } = await supabase
-        .from('email_templates' as any)
+        .from('email_templates')
         .insert({
           ...template,
           // MULTI-TENANT: tenant_id obrigatório
@@ -160,7 +160,7 @@ export const useUpdateEmailTemplate = () => {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<EmailTemplate> & { id: string }) => {
       const { data, error } = await supabase
-        .from('email_templates' as any)
+        .from('email_templates')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -187,7 +187,7 @@ export const useDeleteEmailTemplate = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('email_templates' as any)
+        .from('email_templates')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -215,7 +215,7 @@ export const useEmailCampaigns = (statusFilter?: EmailCampaignStatus, sourceType
     enabled: !!tenantId,
     queryFn: async () => {
       let query = supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .select('*, created_by_member:team_members!email_campaigns_created_by_fkey(id, name)')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -238,7 +238,7 @@ export const useEmailCampaign = (id: string | undefined) => {
     enabled: !!id && !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .select('*, created_by_member:team_members!email_campaigns_created_by_fkey(id, name), template:email_templates(id, name, subject)')
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -263,7 +263,7 @@ export const useCreateEmailCampaign = () => {
   return useMutation({
     mutationFn: async (campaign: Partial<EmailCampaign>) => {
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .insert({
           ...campaign,
           // MULTI-TENANT: tenant_id obrigatório
@@ -288,7 +288,7 @@ export const useUpdateEmailCampaign = () => {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<EmailCampaign> & { id: string }) => {
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
         // MULTI-TENANT: filtro defensivo
@@ -340,7 +340,7 @@ export const useStartEmailCampaign = () => {
 
       // 1b. Remove excluded leads
       const { data: camp } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .select('audience_filters, html_content')
         .eq('id', campaignId)
         // MULTI-TENANT: filtro defensivo
@@ -349,7 +349,7 @@ export const useStartEmailCampaign = () => {
       const excludeIds = (camp?.audience_filters as EmailAudienceFilters)?.exclude_lead_ids;
       if (excludeIds?.length) {
         await supabase
-          .from('email_campaign_leads' as any)
+          .from('email_campaign_leads')
           .delete()
           .eq('campaign_id', campaignId)
           .in('lead_id', excludeIds);
@@ -359,7 +359,7 @@ export const useStartEmailCampaign = () => {
 
       // 2. Update status to sending
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .update({
           status: 'sending',
           started_at: new Date().toISOString(),
@@ -399,7 +399,7 @@ export const useScheduleEmailCampaign = () => {
       if (popError) throw popError;
 
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .update({
           status: 'scheduled',
           scheduled_at: scheduledAt,
@@ -427,7 +427,7 @@ export const usePauseEmailCampaign = () => {
   return useMutation({
     mutationFn: async ({ campaignId, reason }: { campaignId: string; reason?: string }) => {
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .update({
           status: 'paused',
           paused_at: new Date().toISOString(),
@@ -456,7 +456,7 @@ export const useResumeEmailCampaign = () => {
   return useMutation({
     mutationFn: async (campaignId: string) => {
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .update({
           status: 'sending',
           paused_at: null,
@@ -485,13 +485,13 @@ export const useCancelEmailCampaign = () => {
   return useMutation({
     mutationFn: async (campaignId: string) => {
       await supabase
-        .from('email_campaign_leads' as any)
+        .from('email_campaign_leads')
         .update({ status: 'skipped', updated_at: new Date().toISOString() })
         .eq('campaign_id', campaignId)
         .eq('status', 'pending');
 
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .update({
           status: 'cancelled',
           completed_at: new Date().toISOString(),
@@ -531,7 +531,7 @@ export const useEmailCampaignLeads = (
     enabled: !!campaignId && !!tenantId,
     queryFn: async () => {
       let query = supabase
-        .from('email_campaign_leads' as any)
+        .from('email_campaign_leads')
         .select('*, lead:leads(id, name, phone, email, city_name, state, sales_rep_id)', { count: 'exact' })
         .eq('campaign_id', campaignId)
         // MULTI-TENANT: filtro defensivo
@@ -594,7 +594,7 @@ export const useEmailMetrics = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .select('status, total_leads, sent_count, delivered_count, opened_count, clicked_count, bounced_count, unsubscribed_count')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId);
@@ -638,7 +638,7 @@ export const useEmailUnsubscribes = (page = 0, pageSize = 50) => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error, count } = await supabase
-        .from('email_unsubscribes' as any)
+        .from('email_unsubscribes')
         .select('*', { count: 'exact' })
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -657,7 +657,7 @@ export const useManualUnsubscribe = () => {
   return useMutation({
     mutationFn: async ({ email, reason }: { email: string; reason?: string }) => {
       const { error } = await supabase
-        .from('email_unsubscribes' as any)
+        .from('email_unsubscribes')
         .insert({
           // MULTI-TENANT: tenant_id obrigatório
           tenant_id: tenantId,
@@ -669,7 +669,7 @@ export const useManualUnsubscribe = () => {
 
       // Update lead
       await supabase
-        .from('leads' as any)
+        .from('leads')
         .update({ email_opted_out: true, updated_at: new Date().toISOString() })
         // MULTI-TENANT: filtro defensivo (não opt-out de lead com mesmo email em outro tenant)
         .eq('tenant_id', tenantId)
@@ -774,7 +774,7 @@ export const useEmailSendsLog = (filters: EmailSendsFilters = {}) => {
     enabled: !!tenantId,
     queryFn: async () => {
       let q = supabase
-        .from('email_sends' as any)
+        .from('email_sends')
         .select(
           '*, campaign:email_campaigns(id, name, subject, source_type, automation_id, from_name, from_email), lead:leads(id, name, email)',
           { count: 'exact' },
@@ -808,7 +808,7 @@ export const useEmailKpis = (period: EmailKpiPeriod = '30d') => {
     queryFn: async () => {
       const sinceIso = periodToISO(period);
       let q = supabase
-        .from('email_sends' as any)
+        .from('email_sends')
         .select('status, opened_at, clicked_at, bounced_at, delivered_at')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId);
@@ -843,7 +843,7 @@ export const useEmailSendsTimeseries = (days: number = 30) => {
       const since = new Date();
       since.setDate(since.getDate() - days);
       const { data, error } = await supabase
-        .from('email_sends' as any)
+        .from('email_sends')
         .select('sent_at, opened_at, clicked_at')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -881,7 +881,7 @@ export const useAutomationSends = (automationId: string | undefined, page = 0, p
     queryFn: async () => {
       if (!automationId) return { rows: [] as EmailSendLogRow[], total: 0 };
       const { data: shells } = await supabase
-        .from('email_campaigns' as any)
+        .from('email_campaigns')
         .select('id')
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
@@ -890,7 +890,7 @@ export const useAutomationSends = (automationId: string | undefined, page = 0, p
       const ids = (shells || []).map((c: any) => c.id);
       if (ids.length === 0) return { rows: [], total: 0 };
       const { data, count, error } = await supabase
-        .from('email_sends' as any)
+        .from('email_sends')
         .select(
           '*, campaign:email_campaigns(id, name, subject, source_type, automation_id), lead:leads(id, name, email)',
           { count: 'exact' },
@@ -916,7 +916,7 @@ export const useAutomationRuns = (automationId: string | undefined, page = 0, pa
     queryFn: async () => {
       if (!automationId) return { rows: [] as any[], total: 0 };
       const { data, count, error } = await supabase
-        .from('email_automation_runs' as any)
+        .from('email_automation_runs')
         .select('*, lead:leads(id, name, email)', { count: 'exact' })
         // MULTI-TENANT: filtro por tenant
         .eq('tenant_id', tenantId)
