@@ -100,7 +100,7 @@ export const useLeadById = (leadId: string | undefined) => {
 
       const { data, error } = await supabase
         .from('leads')
-        .select('*, pipeline_stage:sales_pipeline_stages(name, color), instagram_profile:instagram_profiles(biography, follower_count, following_count, full_name, profile_picture_url_hd)')
+        .select('*, pipeline_stage:sales_pipeline_stages(name, color)')
         .eq('id', leadId)
         .single();
 

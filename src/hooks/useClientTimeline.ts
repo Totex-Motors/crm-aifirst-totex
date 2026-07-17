@@ -1236,30 +1236,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         }
       });
 
-      // 10. Instagram profile
-      if (lead?.instagram_profile_id) {
-        const { data: igProfile } = await (supabase
-          .from('instagram_profiles' as any)
-          .select('*')
-          .eq('id', lead.instagram_profile_id)
-          .single() as any);
-
-        if (igProfile) {
-          events.push({
-            id: `ig-${igProfile.id}`,
-            date: igProfile.created_at,
-            time: new Date(igProfile.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            type: 'instagram',
-            team: 'sales',
-            title: 'Perfil Instagram Processado',
-            description: `@${igProfile.username} - ${igProfile.full_name}`,
-            details: `${igProfile.profile_data?.followersCount || 0} seguidores • ${igProfile.profile_data?.postsCount || 0} posts`,
-            metadata: igProfile
-          });
-        }
-      }
-
-      // 10b. Instagram DM messages (grouped by day, same pattern as WhatsApp)
+      // 10. Instagram DM messages (grouped by day, same pattern as WhatsApp)
       if (leadId) {
         // Find conversations linked to this lead
         const { data: igConversations } = await (supabase
