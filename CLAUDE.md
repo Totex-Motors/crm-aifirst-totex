@@ -316,6 +316,17 @@ Regras configuradas em **Configuracoes > Comercial > Automacoes**.
 Atualiza `deals.pipeline_stage_id` + `leads.pipeline_stage_id` + `leads.etapa_funil` + `leads.sales_stage`.
 Config: `target_stage_id` (obrigatorio), `only_if_position_less_than` (guard de posicao).
 
+## Gate de tipos (baseline)
+
+`npm run typecheck` roda `tsc --noEmit` e compara com uma baseline congelada
+(`.typecheck-baseline.json`): **falha so em erro NOVO**, fora da baseline. O CI
+(`.github/workflows/typecheck.yml`) roda isso em todo PR — a regressao de tipos
+trava a revisao, sem tocar no build de deploy do Vercel.
+
+Ha ~360 erros conhecidos na baseline (dividas herdadas: interfaces locais que
+divergem do schema, narrowing de `string` pra uniao da app). Ao corrigir alguns,
+rode `npm run typecheck:update` pra baseline **encolher** — ela nunca deve crescer.
+
 ## Schema vs codigo — LEIA ANTES DE MEXER EM QUERY
 
 O banco e o repositorio ja estiveram muito dessincronizados. Boa parte foi
@@ -523,7 +534,8 @@ Essas skills ja tem o fluxo completo — nao reinvente.
 - ❌ `supabase migration repair --status reverted` sem olhar antes → a coluna `statements` de
   `supabase_migrations.schema_migrations` pode ser a **unica copia** do SQL daquela migration.
   Extraia (`supabase db dump --data-only --schema supabase_migrations`, precisa de Docker) antes de apagar.
-- ❌ Assumir que `npm run build` valida tipos → ele roda so `vite build`. Rode `npx tsc --noEmit -p tsconfig.app.json` a parte.
+- ❌ Assumir que `npm run build` valida tipos → ele roda so `vite build`. Pra tipos,
+  `npm run typecheck` (gate com baseline) ou `npx tsc --noEmit -p tsconfig.app.json`.
 - ❌ Importar pagina estaticamente no `App.tsx` → todas sao `React.lazy` sob um `Suspense`.
   Import estatico volta a inchar o chunk de entrada (ja foi 5,7 MB).
 
