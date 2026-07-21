@@ -23,7 +23,6 @@ export interface Task {
   created_by_id: string | null;
   lead_id: string | null;
   organization_id: string | null;
-  event_id: string | null;
   date: string | null;
   due_datetime: string | null;
   end_datetime: string | null;
@@ -36,12 +35,14 @@ export interface Task {
   confirmed_by_client: boolean;
   client_contact_method: 'whatsapp' | 'phone' | 'zoom' | 'meet' | 'presencial' | null;
   meeting_link: string | null;
+  google_event_id: string | null;
+  google_calendar_synced: boolean | null;
+  product_id: string | null;
   participants: string[] | null;
   is_recurring: boolean;
   recurrence_interval_days: number | null;
   recurrence_count: number;
   is_critical: boolean;
-  critical_last_reminded_at: string | null;
   metadata: {
     call_analysis?: {
       resumo: string;
@@ -88,7 +89,9 @@ export interface CreateTaskInput {
   created_by_id?: string;
   lead_id?: string;
   organization_id?: string;
-  event_id?: string;
+  // A coluna e marketing_event_id; nao existe event_id em company_activities.
+  // useCreateTask faz .insert({ ...input }), entao um campo inexistente aqui
+  // quebraria a criacao de tarefa com PGRST204.
   marketing_event_id?: string;
   due_datetime?: string;
   end_datetime?: string;

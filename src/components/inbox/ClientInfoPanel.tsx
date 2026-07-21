@@ -594,7 +594,7 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
                 className="w-full h-8 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200"
                 onClick={() => {
                   unmarkAsHandled.mutate(
-                    { leadId: conversation.lead_id, groupJid: conversation.group_jid },
+                    { leadId: conversation.lead_id, groupJid: conversation.group_id },
                     {
                       onSuccess: () => toast({ title: "Conversa reaberta" }),
                       onError: () => toast({ title: "Erro ao reabrir", variant: "destructive" }),
@@ -615,7 +615,7 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
                   markAsHandled.mutate(
                     {
                       leadId: conversation.lead_id,
-                      groupJid: conversation.group_jid,
+                      groupJid: conversation.group_id,
                       handledBy: teamMember?.id,
                     },
                     {
@@ -1013,49 +1013,6 @@ export function ClientInfoPanel({ conversation, currentUserId, instanceId }: Cli
               );
             })()}
 
-            {/* Instagram */}
-            {lead?.instagram_profile && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5 uppercase tracking-wide">
-                    <Instagram className="h-3.5 w-3.5" />
-                    Instagram
-                  </h4>
-                  <div className="space-y-2">
-                    {/* Bio */}
-                    {lead.instagram_profile.biography && (
-                      <p className="text-xs text-muted-foreground leading-relaxed bg-muted/30 p-2.5 rounded-lg border border-muted-foreground/10 italic">
-                        "{lead.instagram_profile.biography}"
-                      </p>
-                    )}
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {lead.instagram_profile.follower_count != null && (
-                        <div className="p-2 bg-pink-50/50 rounded-lg border border-pink-200/60 text-center">
-                          <p className="text-sm font-bold text-pink-700">
-                            {lead.instagram_profile.follower_count >= 1000
-                              ? `${(lead.instagram_profile.follower_count / 1000).toFixed(1)}k`
-                              : lead.instagram_profile.follower_count}
-                          </p>
-                          <p className="text-[10px] text-pink-600">Seguidores</p>
-                        </div>
-                      )}
-                      {lead.instagram_profile.following_count != null && (
-                        <div className="p-2 bg-purple-50/50 rounded-lg border border-purple-200/60 text-center">
-                          <p className="text-sm font-bold text-purple-700">
-                            {lead.instagram_profile.following_count >= 1000
-                              ? `${(lead.instagram_profile.following_count / 1000).toFixed(1)}k`
-                              : lead.instagram_profile.following_count}
-                          </p>
-                          <p className="text-[10px] text-purple-600">Seguindo</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
 
             <Separator />
 

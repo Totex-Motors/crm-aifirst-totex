@@ -316,6 +316,17 @@ Regras configuradas em **Configuracoes > Comercial > Automacoes**.
 Atualiza `deals.pipeline_stage_id` + `leads.pipeline_stage_id` + `leads.etapa_funil` + `leads.sales_stage`.
 Config: `target_stage_id` (obrigatorio), `only_if_position_less_than` (guard de posicao).
 
+## Gate de tipos (baseline)
+
+`npm run typecheck` roda `tsc --noEmit` e compara com uma baseline congelada
+(`.typecheck-baseline.json`): **falha so em erro NOVO**, fora da baseline. O CI
+(`.github/workflows/typecheck.yml`) roda isso em todo PR — a regressao de tipos
+trava a revisao, sem tocar no build de deploy do Vercel.
+
+Ha ~360 erros conhecidos na baseline (dividas herdadas: interfaces locais que
+divergem do schema, narrowing de `string` pra uniao da app). Ao corrigir alguns,
+rode `npm run typecheck:update` pra baseline **encolher** — ela nunca deve crescer.
+
 ## Schema vs codigo — LEIA ANTES DE MEXER EM QUERY
 
 O banco e o repositorio ja estiveram muito dessincronizados. Boa parte foi
@@ -345,16 +356,48 @@ equivalente estava ao lado:
   via `src/lib/whatsappTemplate.ts`.
 - `sales_deals` **nao existe** — e `deals`.
 
-### Tabelas que o codigo consulta e que NAO existem
+### Tabelas fantasma: zeradas em jul/2026
 
-Verificar antes de confiar. Em jul/2026 ainda faltavam, entre outras:
-`content_agent_config`, `ceo_bot_config`, `agents_personas`, `cs_checkins`,
-`farming_reasons`, `instagram_profiles`, `instagram_stories`,
-`instagram_feed_posts`, `sales_activities`, `scheduled_messages`.
+Nenhuma tabela consultada pelo codigo esta faltando no banco. Foram removidas
+(codigo morto ou feature sem schema): `content_agent_config`, `ceo_bot_config`,
+`agents_personas`, `cs_checkins`, `sales_activities`, `project_funnels`,
+`support_conversations`, `farming_reasons`, `scheduled_messages` e o modulo
+Instagram. E foram criadas: `transactions`, `deal_payment_audit_log`,
+`deal_negotiation_details`, `roleplay_sessions`, `sales_training_cases`,
+`whatsapp_template_tags`.
 
-Colunas fantasma conhecidas: `leads.landing_page`, `leads.company`,
-`leads.dia_do_playbook`, `leads.partner_lead_id`, `organizations.health_score`,
-`call_history.call_session_id`, `instagram_messages.metadata`.
+**Antes de adicionar `.from('<tabela>')`, confirme que ela existe** nos tipos
+gerados. O padrao que se repetiu a sessao inteira: interface local declara campo
+que o banco nao tem, um `.insert({ ...input })` leva o campo junto, e o Postgrest
+recusa com PGRST204 — quebrando a feature toda.
+
+Colunas fantasma que ainda restam (legado B2B, no `leads`/`organizations`):
+`leads.landing_page`, `leads.company`, `leads.dia_do_playbook`,
+`leads.partner_lead_id`, `organizations.health_score`, `organizations.employee_count`,
+`organizations.challenges`, `call_history.call_session_id`.
+
+### `scheduled_messages` vs `wa_scheduled_messages`
+
+Nao sao a mesma coisa. `wa_scheduled_messages` **existe** e e a fila de
+campanhas/sequencias de comunidade (`target_jid`, `community_id`,
+`enrollment_id`, `scheduled_for`), consumida pelo cron de
+`process-scheduled-messages`. O `scheduled_messages` que o front usava era
+"agendar mensagem pra este lead" (`lead_id`, `phone`, `scheduled_at`) — outra
+feature, que nunca teve tabela e foi removida. **Nao confundir as duas.**
+
+### O modulo Instagram foi removido (jul/2026)
+
+O front tinha `components/sales/instagram/` (11 arquivos), `useInstagram` e
+`useInstagramProfile`, e um seletor WhatsApp/Instagram no `SalesLeadDetail` —
+mas `instagram_profiles`, `instagram_stories` e `instagram_feed_posts` nunca
+existiram, entao o painel so dava erro. O `cleanup_unused_tables.sql` ja mandava
+dropar o modulo; o front e que nao tinha acompanhado.
+
+Sobraram no banco (nao sao fantasma): `leads.instagram`, `leads.instagram_id` e
+`instagram_messages`. As duas colunas de lead seguem em uso no formulario.
+`instagram_messages` ficou orfa — o `cleanup_unused_tables.sql` a dropa.
+
+**Nao reintroduzir Instagram sem criar as tabelas antes.**
 
 ### Nome de migration: SEMPRE timestamp de 14 digitos
 
@@ -491,7 +534,8 @@ Essas skills ja tem o fluxo completo — nao reinvente.
 - ❌ `supabase migration repair --status reverted` sem olhar antes → a coluna `statements` de
   `supabase_migrations.schema_migrations` pode ser a **unica copia** do SQL daquela migration.
   Extraia (`supabase db dump --data-only --schema supabase_migrations`, precisa de Docker) antes de apagar.
-- ❌ Assumir que `npm run build` valida tipos → ele roda so `vite build`. Rode `npx tsc --noEmit -p tsconfig.app.json` a parte.
+- ❌ Assumir que `npm run build` valida tipos → ele roda so `vite build`. Pra tipos,
+  `npm run typecheck` (gate com baseline) ou `npx tsc --noEmit -p tsconfig.app.json`.
 - ❌ Importar pagina estaticamente no `App.tsx` → todas sao `React.lazy` sob um `Suspense`.
   Import estatico volta a inchar o chunk de entrada (ja foi 5,7 MB).
 

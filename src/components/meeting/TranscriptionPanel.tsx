@@ -1076,7 +1076,7 @@ export function TranscriptionPanel({
             organization_id: currentTask.organization_id,
             responsavel_id: currentTask.responsavel_id,
             meeting_link: currentTask.meeting_link,
-            contact_method: currentTask.contact_method,
+            client_contact_method: currentTask.client_contact_method,
             priority: currentTask.priority,
             participants: currentTask.participants,
             scheduled_at: newScheduledAt,

@@ -533,72 +533,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         });
       }
 
-      // 5. NPS Responses
-      const { data: npsResponses } = await (supabase
-        .from('nps_responses' as any)
-        .select('*, event:cs_events(*)')
-        .eq('lead_id', leadId) as any);
-
-      (npsResponses || []).forEach((nps: any) => {
-        // Classificar NPS
-        let npsCategory = '';
-        let npsColor = '';
-        if (nps.score >= 9) {
-          npsCategory = 'Promotor';
-          npsColor = 'bg-emerald-100 text-emerald-700';
-        } else if (nps.score >= 7) {
-          npsCategory = 'Neutro';
-          npsColor = 'bg-amber-100 text-amber-700';
-        } else {
-          npsCategory = 'Detrator';
-          npsColor = 'bg-red-100 text-red-700';
-        }
-
-        // Tags
-        const tags = [`Nota ${nps.score}`, npsCategory];
-        if (nps.days_attended) {
-          tags.push(`${nps.days_attended} dia${nps.days_attended > 1 ? 's' : ''}`);
-        }
-
-        // Descrição com feedbacks
-        let description = `Avaliou com nota ${nps.score}/10.`;
-        if (nps.total_minutes) {
-          const hours = Math.floor(nps.total_minutes / 60);
-          const mins = nps.total_minutes % 60;
-          const durationStr = hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}min` : ''}` : `${mins}min`;
-          description += ` Assistiu ${durationStr} no total.`;
-        }
-
-        // Detalhes com feedbacks
-        const detailsParts = [];
-        if (nps.liked_most) {
-          detailsParts.push(`👍 "${nps.liked_most}"`);
-        }
-        if (nps.liked_least) {
-          detailsParts.push(`👎 "${nps.liked_least}"`);
-        }
-
-        events.push({
-          id: `nps-${nps.id}`,
-          date: nps.created_at,
-          time: new Date(nps.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          type: 'support' as const,
-          team: 'cs',
-          title: `📊 NPS: ${nps.event?.name || 'Avaliação'}`,
-          description,
-          details: detailsParts.length > 0 ? detailsParts.join(' • ') : undefined,
-          tags,
-          metadata: {
-            score: nps.score,
-            category: npsCategory,
-            liked_most: nps.liked_most,
-            liked_least: nps.liked_least,
-            days_attended: nps.days_attended,
-            total_minutes: nps.total_minutes
-          }
-        });
-      });
-
       // 6. PAIN registrations
       const { data: painRegs } = await (supabase
         .from('pain_registrations' as any)
@@ -729,40 +663,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
           }
         });
       }
-
-      // 6. Alunos (onboarding)
-      const { data: alunos } = await (supabase
-        .from('alunos' as any)
-        .select('*')
-        .eq('lead_id', leadId) as any);
-
-      (alunos || []).forEach((aluno: any) => {
-        if (aluno.onboarding_inicio) {
-          events.push({
-            id: `onboard-start-${aluno.id}`,
-            date: aluno.onboarding_inicio,
-            time: new Date(aluno.onboarding_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            type: 'onboarding',
-            team: 'cs',
-            title: `Início Onboarding: ${aluno.produto_nome}`,
-            description: 'Cliente iniciou processo de onboarding.',
-            details: aluno.produto_nome
-          });
-        }
-        if (aluno.onboarding_conclusao) {
-          events.push({
-            id: `onboard-done-${aluno.id}`,
-            date: aluno.onboarding_conclusao,
-            time: new Date(aluno.onboarding_conclusao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            type: 'onboarding',
-            team: 'cs',
-            title: `Onboarding Concluído: ${aluno.produto_nome}`,
-            description: 'Cliente completou todos os módulos iniciais.',
-            details: `${aluno.produto_nome} • 100% completo`,
-            tags: ['Sucesso']
-          });
-        }
-      });
 
       // 6.1 Tarefas/Atividades (company_activities) - Para leads E organizations
       // Buscar activity_ids que já têm meeting vinculada (para deduplicar)
@@ -1236,30 +1136,7 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         }
       });
 
-      // 10. Instagram profile
-      if (lead?.instagram_profile_id) {
-        const { data: igProfile } = await (supabase
-          .from('instagram_profiles' as any)
-          .select('*')
-          .eq('id', lead.instagram_profile_id)
-          .single() as any);
-
-        if (igProfile) {
-          events.push({
-            id: `ig-${igProfile.id}`,
-            date: igProfile.created_at,
-            time: new Date(igProfile.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            type: 'instagram',
-            team: 'sales',
-            title: 'Perfil Instagram Processado',
-            description: `@${igProfile.username} - ${igProfile.full_name}`,
-            details: `${igProfile.profile_data?.followersCount || 0} seguidores • ${igProfile.profile_data?.postsCount || 0} posts`,
-            metadata: igProfile
-          });
-        }
-      }
-
-      // 10b. Instagram DM messages (grouped by day, same pattern as WhatsApp)
+      // 10. Instagram DM messages (grouped by day, same pattern as WhatsApp)
       if (leadId) {
         // Find conversations linked to this lead
         const { data: igConversations } = await (supabase
@@ -1672,73 +1549,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         });
       });
 
-      // 17. Palestras (formulário de interesse em palestra)
-      if (lead?.phone) {
-        const normalizedPhone = lead.phone.replace(/[^0-9+]/g, '');
-        const { data: palestras } = await (supabase
-          .from('palestras' as any)
-          .select('*')
-          .order('created_at', { ascending: false }) as any);
-
-        (palestras || []).forEach((p: any) => {
-          const pPhone = (p.whatsapp || '').replace(/[^0-9+]/g, '');
-          if (pPhone === normalizedPhone) {
-            const detailsParts = [];
-            if (p.nome) detailsParts.push(`👤 ${p.nome}`);
-            if (p.empresa) detailsParts.push(`🏢 ${p.empresa}`);
-            if (p.whatsapp) detailsParts.push(`📱 ${p.whatsapp}`);
-            if (p.email) detailsParts.push(`📧 ${p.email}`);
-            if (p.detalhes) detailsParts.push(`📋 ${p.detalhes}`);
-
-            events.push({
-              id: `palestra-${p.id}`,
-              date: p.created_at,
-              time: new Date(p.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-              type: 'palestra',
-              team: 'sales',
-              title: '🎤 Interesse em Palestra',
-              description: `${p.nome} — ${p.empresa}`,
-              details: detailsParts.join(' • '),
-              tags: ['Palestra'],
-              metadata: {
-                palestra: p,
-                nome: p.nome,
-                empresa: p.empresa,
-                whatsapp: p.whatsapp,
-                email: p.email,
-                detalhes: p.detalhes,
-              }
-            });
-          }
-        });
-      }
-
-      // Testimonials (depoimentos do cliente)
-      if (resolvedOrgId) {
-        const { data: testimonials } = await (supabase
-          .from('testimonials' as any)
-          .select('id, content, rating, video_url, image_url, tags, contact_name, collected_at, created_at')
-          .eq('organization_id', resolvedOrgId)
-          .eq('is_active', true) as any);
-
-        testimonials?.forEach((t: any) => {
-          const date = t.collected_at || t.created_at;
-          const mediaType = t.video_url ? '🎬 Vídeo' : t.image_url ? '📸 Print' : t.tags?.includes('audio') ? '🎤 Áudio' : '💬 Texto';
-          events.push({
-            id: `testimonial-${t.id}`,
-            date,
-            time: new Date(date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            type: 'testimonial' as any,
-            team: 'cs',
-            title: `Depoimento — ${mediaType}`,
-            description: t.content || 'Depoimento registrado',
-            tags: ['⭐ Depoimento', ...(t.rating ? [`${t.rating}/5`] : [])],
-            metadata: { image_url: t.image_url, video_url: t.video_url },
-          });
-        });
-      }
-
-      // Prioridade para desempate quando timestamps são idênticos
       // Número MENOR = aconteceu PRIMEIRO cronologicamente
       const typeOrder: Record<string, number> = {
         'lead': 1,         // Lead é sempre o primeiro evento
@@ -1758,8 +1568,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         'lesson': 14,
         'whatsapp': 15,
         'support': 16,
-        'testimonial': 17,
-        'palestra': 3.5,
       };
 
       // Ordenar por data/hora (mais RECENTE primeiro - aparece no topo)

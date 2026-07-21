@@ -21,16 +21,11 @@ interface BillingConfig {
 export function useBillingReminderTemplate() {
   return useQuery({
     queryKey: ['billing-reminder-template'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fiscal_config' as any)
-        .select('billing_reminder_template')
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      return (data as any)?.billing_reminder_template as string | null;
-    },
+    // fiscal_config foi removida (modulo Financeiro/NFSe — ver
+    // cleanup_unused_tables.sql). O template customizado vivia nela; sem a
+    // tabela, os consumidores caem em getDefaultTemplate(). Antes esta query
+    // dava throw no 404.
+    queryFn: async (): Promise<string | null> => null,
   });
 }
 
@@ -94,12 +89,10 @@ export function useSendBillingReminder() {
 
       if (instError || !instance) throw new Error('Instancia CAROL nao encontrada ou desconectada');
 
-      // 3. Fetch PIX config
-      const { data: pixConfig } = await supabase
-        .from('fiscal_config' as any)
-        .select('pix_key, pix_type, pix_name')
-        .limit(1)
-        .maybeSingle();
+      // 3. PIX config vinha de fiscal_config, tabela removida (ver
+      // cleanup_unused_tables.sql). Sem ela, o botão de PIX abaixo é pulado —
+      // era o que ja acontecia, porque a query 404 caia em null.
+      const pixConfig: { pix_key?: string; pix_type?: string; pix_name?: string } | null = null;
 
       // 4. Format phone number
       let phone = lead.phone.replace(/\D/g, '');

@@ -1,0 +1,24 @@
+name: Typecheck
+
+# Roda o gate de tipos (scripts/typecheck-baseline.mjs) em PRs e pushes.
+# Falha só se aparecer um erro de tipo NOVO, fora da baseline congelada.
+# Não toca no build de deploy do Vercel — a regressão trava a revisão, não a
+# publicação de emergência.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Typecheck (baseline gate)
+        run: npm run typecheck

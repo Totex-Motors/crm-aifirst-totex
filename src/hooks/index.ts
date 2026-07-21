@@ -11,4 +11,3 @@ export * from './useProducts';
 export * from './useOnboardings';
 
 // Check-ins (telefonia / notes)
-export * from './useCheckins';

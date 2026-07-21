@@ -135,6 +135,9 @@ export interface Onboarding {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  tenant_id: string;
+  early_access_at: string | null;
+  early_access_granted: boolean | null;
   // Joins
   organization?: { id: string; name: string; slug: string };
   meeting?: { id: string; title: string; transcriptions: any[] };
@@ -495,22 +498,8 @@ export const useApproveOnboarding = () => {
       const additionalMembers = onboarding.additional_members || [];
       const primaryContact = onboarding.organization?.primary_contact;
 
-      // 2.1 Buscar foto do Instagram
-      let photoUrl: string | null = null;
-      
-      if (primaryContact?.instagram) {
-        // Buscar foto do perfil do Instagram
-        const instagramUsername = primaryContact.instagram.replace('@', '').trim();
-        const { data: instagramProfile } = await (supabase as any)
-          .from('instagram_profiles')
-          .select('stored_profile_picture_url, profile_picture_url_hd')
-          .eq('username', instagramUsername)
-          .single();
-        
-        if (instagramProfile) {
-          photoUrl = instagramProfile.stored_profile_picture_url || instagramProfile.profile_picture_url_hd || null;
-        }
-      }
+      // Modulo Instagram removido (instagram_profiles nunca existiu no banco).
+      const photoUrl: string | null = null;
 
       // Extrair primeiro nome do nome completo
       const fullName = confirmedData.contact_name || primaryContact?.name || '';

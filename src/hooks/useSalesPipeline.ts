@@ -171,10 +171,6 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
 
       // Preparar IDs para queries paralelas (disponíveis antes do Promise.all)
       const dealIds = (deals || []).map((d: any) => d.id);
-      const instagramProfileIds = (deals || [])
-        .map((d: any) => d.lead?.instagram_profile_id)
-        .filter(Boolean);
-      const profilePictures = new Map<string, string>();
       const contactsByDeal = new Map<string, Array<{ id: string; deal_id: string; lead_id: string; role: string | null; is_primary: boolean; lead?: { id: string; name: string; phone: string | null; company_name: string | null } }>>();
 
       if (leadIds.length > 0) {
@@ -197,7 +193,6 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
           unreadData,
           handledData,
           pendingTasksData,
-          instagramResult,
           dealContactsResult,
         ] = await Promise.all([
           // Diagnósticos filtrados por leadIds
@@ -218,19 +213,6 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
             .in('lead_id', ids)
             .eq('completed', false)
             .order('scheduled_at', { ascending: true, nullsFirst: false })),
-          // Fotos de perfil Instagram
-          instagramProfileIds.length > 0
-            ? (async () => {
-                const results = await Promise.all(
-                  chunks(instagramProfileIds).map(ids =>
-                    supabase.from('instagram_profiles')
-                      .select('id, stored_profile_picture_url, profile_picture_url_hd')
-                      .in('id', ids)
-                  )
-                );
-                return { data: results.flatMap(r => r.data || []) };
-              })()
-            : Promise.resolve({ data: [] }),
           // Negociacao contacts em batch
           dealIds.length > 0
             ? (async () => {
@@ -358,14 +340,6 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
           }
         });
 
-        // Processar fotos de perfil Instagram (resultado do Promise.all)
-        (instagramResult?.data || []).forEach((profile: any) => {
-          const pictureUrl = profile.stored_profile_picture_url || profile.profile_picture_url_hd;
-          if (pictureUrl) {
-            profilePictures.set(profile.id, pictureUrl);
-          }
-        });
-
         // Processar deal_contacts (resultado do Promise.all)
         const allDealContacts = dealContactsResult?.data;
 
@@ -413,8 +387,6 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
         const referenceDate = lastInteraction || new Date(deal.created_at);
 
         // Buscar foto do Instagram do lead
-        const instagramProfileId = deal.lead?.instagram_profile_id;
-        const profilePictureUrl = instagramProfileId ? profilePictures.get(instagramProfileId) : null;
 
         // Calcular tempo desde última interação em minutos e dias corridos
         const msSinceInteraction = now.getTime() - referenceDate.getTime();
@@ -447,7 +419,6 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
           has_overdue_task: deal.lead_id ? hasOverdueTask.has(deal.lead_id) : false,
           has_pending_call_or_meeting: deal.lead_id ? hasPendingCallOrMeeting.has(deal.lead_id) : false,
           days_in_stage: daysInStage,
-          profile_picture_url: profilePictureUrl,
           unread_messages_count: unread?.count || 0,
           last_unread_message_at: unread?.lastMessageAt?.toISOString() || null,
           last_message_content: lastMsgData?.content || null,

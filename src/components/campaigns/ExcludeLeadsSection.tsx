@@ -36,7 +36,7 @@ export default function ExcludeLeadsSection({ excludeLeadIds, onChange }: Props)
       try {
         const q = `%${query.trim()}%`;
         const { data, error } = await supabase
-          .from('leads' as any)
+          .from('leads')
           .select('id, name, phone, email')
           .or(`name.ilike.${q},phone.ilike.${q},email.ilike.${q}`)
           .limit(20);
@@ -66,7 +66,7 @@ export default function ExcludeLeadsSection({ excludeLeadIds, onChange }: Props)
 
     (async () => {
       const { data } = await supabase
-        .from('leads' as any)
+        .from('leads')
         .select('id, name, phone, email')
         .in('id', missingIds);
       if (data) {
