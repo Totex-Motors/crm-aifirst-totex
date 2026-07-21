@@ -39,14 +39,24 @@ try {
 // path(line,col): error TSxxxx: message
 const RE = /^(.+?)\((\d+),(\d+)\):\s+error\s+(TS\d+):\s+(.*)$/;
 
+// Remove qualquer caminho absoluto do repo, deixando só o trecho relativo.
+// Necessário porque o tsc embute caminho absoluto DENTRO da mensagem (ex.:
+// import("/home/runner/.../crm-aifirst-totex/src/hooks/useWavoip")) — e esse
+// caminho difere entre local (Windows) e CI (Linux). Sem isso, a mesma
+// assinatura não casa entre as duas máquinas. O `*` é greedy: consome até a
+// ÚLTIMA ocorrência de crm-aifirst-totex/, cobrindo o path duplicado do CI.
+function normalizePaths(s) {
+  return s.replace(/\\/g, "/").replace(/[^\s"'(]*crm-aifirst-totex\//g, "");
+}
+
 function signatures(text) {
   const sigs = [];
   for (const raw of text.split(/\r?\n/)) {
     const m = raw.match(RE);
     if (!m) continue;
-    const file = m[1].replace(/\\/g, "/").replace(`${root.replace(/\\/g, "/")}/`, "");
+    const file = normalizePaths(m[1]);
     // Sem line:col — mudar linhas acima do erro não deve churn a baseline.
-    sigs.push(`${file}|${m[4]}|${m[5].trim()}`);
+    sigs.push(`${file}|${m[4]}|${normalizePaths(m[5].trim())}`);
   }
   return sigs;
 }
