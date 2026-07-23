@@ -32,8 +32,8 @@ import { WeeklyMeetingPerformance } from './WeeklyMeetingPerformance';
 
 const DAILY_TARGETS = {
   calls: 15,
-  followups: 10,
-  meetings: 3,
+  tasks: 10,
+  deals: 3,
 };
 
 interface Props {
@@ -275,25 +275,25 @@ export function DashboardTabVendas({ filters, teamMemberId, dateRange }: Props) 
               <div className="space-y-3">
                 <ActivityProgressBar
                   label="Ligações"
-                  current={Number(myActivity.calls_made)}
+                  current={Number(myActivity.calls_count)}
                   target={DAILY_TARGETS.calls}
                   icon={<Phone className="h-3.5 w-3.5 text-blue-500" />}
                 />
                 <ActivityProgressBar
-                  label="Follow-ups"
-                  current={Number(myActivity.followups_done)}
-                  target={DAILY_TARGETS.followups}
+                  label="Tarefas concluídas"
+                  current={Number(myActivity.tasks_completed)}
+                  target={DAILY_TARGETS.tasks}
                   icon={<MessageSquare className="h-3.5 w-3.5 text-violet-500" />}
                 />
                 <ActivityProgressBar
-                  label="Reuniões"
-                  current={Number(myActivity.meetings_done)}
-                  target={DAILY_TARGETS.meetings}
+                  label="Negociações criadas"
+                  current={Number(myActivity.deals_created)}
+                  target={DAILY_TARGETS.deals}
                   icon={<CalendarCheck className="h-3.5 w-3.5 text-emerald-500" />}
                 />
                 <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
-                  <span>Leads contatados</span>
-                  <span className="font-bold text-foreground">{Number(myActivity.leads_contacted)}</span>
+                  <span>Novos leads</span>
+                  <span className="font-bold text-foreground">{Number(myActivity.leads_created)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Mensagens enviadas</span>

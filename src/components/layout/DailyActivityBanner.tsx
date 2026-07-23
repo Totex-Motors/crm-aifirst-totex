@@ -8,10 +8,8 @@ import { cn } from "@/lib/utils";
 import {
   Phone,
   PhoneIncoming,
-  MessageSquare,
   Users,
   Send,
-  Video,
   FileText,
   ChevronDown,
   ChevronUp,
@@ -104,18 +102,18 @@ export function DailyActivityBanner() {
   // Stats config by role
   const statItems = isSDR
     ? [
-        { icon: Phone, label: "Ligações", value: stats?.calls_made ?? 0 },
-        { icon: PhoneIncoming, label: "Atendidas", value: stats?.calls_connected ?? 0 },
-        { icon: MessageSquare, label: "Follow-ups", value: stats?.followups_done ?? 0 },
-        { icon: Users, label: "Contatados", value: stats?.leads_contacted ?? 0 },
-        { icon: Send, label: "Msgs", value: stats?.messages_sent ?? 0 },
+        { icon: Phone, label: "Ligações", value: stats?.calls_count ?? 0 },
+        { icon: Send, label: "Msgs env.", value: stats?.messages_sent ?? 0 },
+        { icon: PhoneIncoming, label: "Msgs rec.", value: stats?.messages_received ?? 0 },
+        { icon: ListChecks, label: "Tarefas", value: stats?.tasks_completed ?? 0 },
+        { icon: Users, label: "Novos leads", value: stats?.leads_created ?? 0 },
       ]
     : [
-        { icon: Phone, label: "Ligações", value: stats?.calls_made ?? 0 },
-        { icon: Video, label: "Calls", value: stats?.meetings_done ?? 0 },
-        { icon: FileText, label: "Propostas", value: stats?.proposals_sent ?? 0 },
-        { icon: Users, label: "Contatados", value: stats?.leads_contacted ?? 0 },
-        { icon: Video, label: "Reuniões", value: stats?.meetings_scheduled ?? 0 },
+        { icon: Phone, label: "Ligações", value: stats?.calls_count ?? 0 },
+        { icon: FileText, label: "Negociações", value: stats?.deals_created ?? 0 },
+        { icon: ListChecks, label: "Tarefas", value: stats?.tasks_completed ?? 0 },
+        { icon: Users, label: "Novos leads", value: stats?.leads_created ?? 0 },
+        { icon: Send, label: "Msgs", value: stats?.messages_sent ?? 0 },
       ];
 
   return (

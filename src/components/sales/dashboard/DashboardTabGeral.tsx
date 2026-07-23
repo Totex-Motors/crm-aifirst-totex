@@ -28,7 +28,7 @@ import {
   type DashboardFilters,
 } from '@/hooks/useSalesDashboardV2';
 import { useSalesPerformance } from '@/hooks/useSalesPerformance';
-import { useDailyActivityTotals, useDailyActivitySummary } from '@/hooks/useDailyActivitySummary';
+import { useDailyActivityTotals } from '@/hooks/useDailyActivitySummary';
 import { useLeadsWithoutAction } from '@/hooks/useLeadsWithoutAction';
 import {
   KPICard, HorizontalFunnel, ActivityProgressBar, TrafficLightBadge,
@@ -37,12 +37,12 @@ import {
 } from './shared';
 import { useSessionState } from './shared';
 
-// Activity targets (hardcoded phase 1)
+// Metas diarias do time (hardcoded fase 1)
 const DAILY_TARGETS = {
   calls: 15,
-  followups: 10,
-  meetings: 3,
   messages: 20,
+  tasks: 10,
+  leads: 5,
 };
 
 // Hook to fetch won deals for the ticket medio drill-down
@@ -102,7 +102,7 @@ export function DashboardTabGeral({ filters, dateRange }: Props) {
 
   // Activity summary (today)
   const today = useMemo(() => new Date(), []);
-  const { data: activityTotals, rows: activityRows, isLoading: activityLoading } = useDailyActivityTotals(today);
+  const { data: activityTotals, isLoading: activityLoading } = useDailyActivityTotals(today);
 
   // Leads without action
   const { data: leadsNoAction, isLoading: leadsNoActionLoading } = useLeadsWithoutAction(filters.salesRepId);
@@ -345,24 +345,30 @@ export function DashboardTabGeral({ filters, dateRange }: Props) {
             ) : performanceData && performanceData.length > 0 ? (
               <div className="space-y-1.5">
                 {performanceData.map((member) => {
-                  const goalPct = kpis?.goal
-                    ? Math.min(100, (member.deals_won_value / (kpis.goal / performanceData.length)) * 100)
-                    : member.completion_rate;
+                  // Meta por vendedor = meta do mes dividida pelo time. Sem meta,
+                  // usa a taxa de conversao (ganhas / total de negociacoes).
+                  const goalShare = kpis?.goal ? kpis.goal / performanceData.length : 0;
+                  const winRate = member.deals_count > 0
+                    ? (member.won_count / member.deals_count) * 100
+                    : 0;
+                  const goalPct = goalShare > 0
+                    ? Math.min(100, (member.total_revenue / goalShare) * 100)
+                    : winRate;
                   return (
                     <div
-                      key={member.sales_rep_id}
+                      key={member.team_member_id}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-muted/40 transition-all cursor-pointer"
-                      onClick={(e) => navigateTo(e, `/comercial?rep=${member.sales_rep_id}`, navigate)}
+                      onClick={(e) => navigateTo(e, `/comercial?rep=${member.team_member_id}`, navigate)}
                     >
                       <div className={cn(
                         'w-3 h-3 rounded-full shrink-0',
                         goalPct >= 80 ? 'bg-emerald-500' : goalPct >= 50 ? 'bg-amber-500' : 'bg-red-500'
                       )} />
-                      <span className="text-xs font-medium flex-1 min-w-0 truncate">{member.sales_rep_name}</span>
+                      <span className="text-xs font-medium flex-1 min-w-0 truncate">{member.team_member_name}</span>
                       <div className="flex items-center gap-3 shrink-0 text-[10px] text-muted-foreground">
-                        <span>{member.deals_won}v</span>
-                        <span>{formatCurrency(dv(member.deals_won_value, dm))}</span>
-                        <span>{member.calls_connected} calls</span>
+                        <span>{member.won_count}v</span>
+                        <span>{formatCurrency(dv(member.total_revenue, dm))}</span>
+                        <span>{member.deals_count} neg.</span>
                       </div>
                       <TrafficLightBadge percent={goalPct} />
                     </div>
@@ -390,21 +396,9 @@ export function DashboardTabGeral({ filters, dateRange }: Props) {
               <div className="space-y-3">
                 <ActivityProgressBar
                   label="Ligacoes"
-                  current={activityTotals.calls_made}
+                  current={activityTotals.calls_count}
                   target={DAILY_TARGETS.calls}
                   icon={<Phone className="h-3.5 w-3.5 text-blue-500" />}
-                />
-                <ActivityProgressBar
-                  label="Follow-ups"
-                  current={activityTotals.followups_done}
-                  target={DAILY_TARGETS.followups}
-                  icon={<MessageSquare className="h-3.5 w-3.5 text-violet-500" />}
-                />
-                <ActivityProgressBar
-                  label="Reunioes"
-                  current={activityTotals.meetings_done}
-                  target={DAILY_TARGETS.meetings}
-                  icon={<CalendarCheck className="h-3.5 w-3.5 text-emerald-500" />}
                 />
                 <ActivityProgressBar
                   label="Mensagens"
@@ -412,23 +406,28 @@ export function DashboardTabGeral({ filters, dateRange }: Props) {
                   target={DAILY_TARGETS.messages}
                   icon={<MessageSquare className="h-3.5 w-3.5 text-cyan-500" />}
                 />
-                {/* Per-member breakdown */}
-                {activityRows && activityRows.length > 1 && (
-                  <div className="pt-2 border-t space-y-1">
-                    <p className="text-[10px] font-medium text-muted-foreground mb-1">Por vendedor</p>
-                    {activityRows.map(row => (
-                      <div key={row.team_member_id} className="flex items-center justify-between text-[10px]">
-                        <span className="truncate flex-1 min-w-0">{row.team_member_name}</span>
-                        <div className="flex items-center gap-2 shrink-0 text-muted-foreground">
-                          <span>{Number(row.calls_made)}c</span>
-                          <span>{Number(row.followups_done)}f</span>
-                          <span>{Number(row.meetings_done)}r</span>
-                          <span>{Number(row.messages_sent)}m</span>
-                        </div>
-                      </div>
-                    ))}
+                <ActivityProgressBar
+                  label="Tarefas concluidas"
+                  current={activityTotals.tasks_completed}
+                  target={DAILY_TARGETS.tasks}
+                  icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                />
+                <ActivityProgressBar
+                  label="Novos leads"
+                  current={activityTotals.leads_created}
+                  target={DAILY_TARGETS.leads}
+                  icon={<Users className="h-3.5 w-3.5 text-violet-500" />}
+                />
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Negociacoes criadas</span>
+                    <span className="font-bold text-foreground">{activityTotals.deals_created}</span>
                   </div>
-                )}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Msgs recebidas</span>
+                    <span className="font-bold text-foreground">{activityTotals.messages_received}</span>
+                  </div>
+                </div>
               </div>
             ) : null}
           </CardContent>

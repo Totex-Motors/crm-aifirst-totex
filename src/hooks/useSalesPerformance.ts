@@ -1,27 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
+// Shape real do RPC get_sales_performance (fonte da verdade:
+// src/types/database.types.ts). Agrega negociacoes por vendedor no periodo.
+// Os campos B2B antigos (tasks/completion_rate/noshow/followups/streak) nunca
+// existiram no RPC e geravam NaN no dashboard.
 export interface SalesPerformanceRow {
-  sales_rep_id: string;
-  sales_rep_name: string;
-  total_tasks: number;
-  completed_tasks: number;
-  overdue_tasks: number;
-  completion_rate: number;
-  meetings_total: number;
-  meetings_done: number;
-  meetings_noshow: number;
-  noshow_rate: number;
-  followups_total: number;
-  followups_done: number;
-  calls_total: number;
-  calls_connected: number;
-  calls_duration_min: number;
-  deals_moved: number;
-  deals_won: number;
-  deals_won_value: number;
-  new_contacts: number;
-  streak_days: number;
+  team_member_id: string;
+  team_member_name: string;
+  deals_count: number;
+  total_revenue: number;
+  won_count: number;
+  lost_count: number;
 }
 
 export function useSalesPerformance(filters: { dateFrom: Date; dateTo: Date }) {

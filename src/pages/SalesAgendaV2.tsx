@@ -757,7 +757,7 @@ export function AgendaViewContent() {
           </div>
           <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium", "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300")}>
             <Phone className="h-3.5 w-3.5" />
-            <span>{activitySummary?.calls_made ?? 0} calls</span>
+            <span>{activitySummary?.calls_count ?? 0} calls</span>
           </div>
         </div>
 
