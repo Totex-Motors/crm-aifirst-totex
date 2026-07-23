@@ -124,7 +124,7 @@ export function CockpitTabMeuDia() {
         <SummaryBadge icon={Video} label="reuniões" count={todayTasks.filter(t => isAppointment(t)).length} color="bg-indigo-100 text-indigo-700" />
         <SummaryBadge icon={Clock} label="follow-ups" count={todayTasks.filter(t => t.task_type === 'follow_up' || t.task_type === 'whatsapp').length} color="bg-yellow-100 text-yellow-700" />
         <SummaryBadge icon={AlertTriangle} label="atrasadas" count={overdue.length} color={overdue.length > 0 ? "bg-red-100 text-red-700" : "bg-muted text-muted-foreground"} />
-        <SummaryBadge icon={Phone} label="calls" count={activity?.calls_made ?? 0} color="bg-blue-100 text-blue-700" />
+        <SummaryBadge icon={Phone} label="calls" count={activity?.calls_count ?? 0} color="bg-blue-100 text-blue-700" />
       </div>
 
       {/* Main content: 2 columns */}

@@ -2,18 +2,17 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 
+// Shape real do RPC get_daily_activity_summary (fonte da verdade:
+// src/types/database.types.ts). O RPC devolve UMA linha agregada por dia —
+// nao ha quebra por vendedor, entao nao existem campos calls_connected /
+// followups_done / meetings_* etc. (isso era resquicio do template B2B).
 export interface ActivitySummaryRow {
-  team_member_id: string;
-  team_member_name: string;
-  calls_made: number;
-  calls_connected: number;
-  calls_avg_duration_sec: number;
-  followups_done: number;
-  meetings_scheduled: number;
-  meetings_done: number;
-  proposals_sent: number;
+  calls_count: number;
   messages_sent: number;
-  leads_contacted: number;
+  messages_received: number;
+  tasks_completed: number;
+  deals_created: number;
+  leads_created: number;
 }
 
 export function useDailyActivitySummary(date: Date, teamMemberId?: string) {
@@ -31,27 +30,19 @@ export function useDailyActivitySummary(date: Date, teamMemberId?: string) {
   });
 }
 
-/** Aggregated totals across all members */
+/** Totais do dia (o RPC ja retorna agregado; normalizamos para numeros). */
 export function useDailyActivityTotals(date: Date) {
   const { data, ...rest } = useDailyActivitySummary(date);
 
-  const totals = data?.reduce(
-    (acc, row) => ({
-      calls_made: acc.calls_made + Number(row.calls_made),
-      calls_connected: acc.calls_connected + Number(row.calls_connected),
-      followups_done: acc.followups_done + Number(row.followups_done),
-      meetings_scheduled: acc.meetings_scheduled + Number(row.meetings_scheduled),
-      meetings_done: acc.meetings_done + Number(row.meetings_done),
-      proposals_sent: acc.proposals_sent + Number(row.proposals_sent),
-      messages_sent: acc.messages_sent + Number(row.messages_sent),
-      leads_contacted: acc.leads_contacted + Number(row.leads_contacted),
-    }),
-    {
-      calls_made: 0, calls_connected: 0, followups_done: 0,
-      meetings_scheduled: 0, meetings_done: 0, proposals_sent: 0,
-      messages_sent: 0, leads_contacted: 0,
-    }
-  );
+  const row = data?.[0];
+  const totals: ActivitySummaryRow = {
+    calls_count: Number(row?.calls_count ?? 0),
+    messages_sent: Number(row?.messages_sent ?? 0),
+    messages_received: Number(row?.messages_received ?? 0),
+    tasks_completed: Number(row?.tasks_completed ?? 0),
+    deals_created: Number(row?.deals_created ?? 0),
+    leads_created: Number(row?.leads_created ?? 0),
+  };
 
-  return { data: totals, rows: data, ...rest };
+  return { data: row ? totals : undefined, rows: data, ...rest };
 }

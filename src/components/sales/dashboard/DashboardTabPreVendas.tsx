@@ -205,9 +205,10 @@ function useMeetingLeadLastCalls(leadIds: string[], enabled: boolean) {
 
 const SDR_TARGETS = {
   calls: 30,
-  meetings: 4,
-  followups: 10,
+  leads: 8,
+  tasks: 10,
   messages: 20,
+  meetings: 4,
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -297,34 +298,13 @@ export function DashboardTabPreVendas({ filters, dateRange, teamMemberId }: Prop
   const today = useMemo(() => new Date(), []);
   const { data: activityRows, isLoading: activityLoading } = useDailyActivitySummary(today, teamMemberId);
 
-  const activity = useMemo(() => {
-    if (!activityRows || activityRows.length === 0) return null;
-    if (activityRows.length === 1) return activityRows[0];
-    return activityRows.reduce(
-      (acc, row) => ({
-        ...acc,
-        calls_made: acc.calls_made + Number(row.calls_made),
-        calls_connected: acc.calls_connected + Number(row.calls_connected),
-        followups_done: acc.followups_done + Number(row.followups_done),
-        meetings_scheduled: acc.meetings_scheduled + Number(row.meetings_scheduled),
-        meetings_done: acc.meetings_done + Number(row.meetings_done),
-        proposals_sent: acc.proposals_sent + Number(row.proposals_sent),
-        messages_sent: acc.messages_sent + Number(row.messages_sent),
-        leads_contacted: acc.leads_contacted + Number(row.leads_contacted),
-      }),
-      {
-        team_member_id: '', team_member_name: 'Todos',
-        calls_made: 0, calls_connected: 0, calls_avg_duration_sec: 0,
-        followups_done: 0, meetings_scheduled: 0, meetings_done: 0,
-        proposals_sent: 0, messages_sent: 0, leads_contacted: 0,
-      }
-    );
-  }, [activityRows]);
+  // O RPC ja devolve UMA linha agregada por dia (ver useDailyActivitySummary).
+  const activity = useMemo(() => activityRows?.[0] ?? null, [activityRows]);
 
   // Derived
   const totalCalls = callStats?.total || 0;
   const connectedCalls = callStats?.connected || 0;
-  const followupsDone = Number(activity?.followups_done || 0);
+  const tasksDone = Number(activity?.tasks_completed || 0);
   const messagesSent = Number(activity?.messages_sent || 0);
   const newLeadsCount = newLeads?.length || 0;
 
@@ -368,9 +348,9 @@ export function DashboardTabPreVendas({ filters, dateRange, teamMemberId }: Prop
               onClick={() => setDrillDown('leads')}
             />
             <KPICard
-              title="Follow-ups"
-              value={String(followupsDone)}
-              subtitle={`meta: ${SDR_TARGETS.followups}/dia`}
+              title="Tarefas"
+              value={String(tasksDone)}
+              subtitle={`meta: ${SDR_TARGETS.tasks}/dia`}
               icon={<Target className="h-5 w-5 text-white" />}
               gradient="bg-gradient-to-br from-amber-500 to-amber-700"
             />
@@ -400,7 +380,7 @@ export function DashboardTabPreVendas({ filters, dateRange, teamMemberId }: Prop
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Zap className="h-4 w-4 text-blue-500" />
               Atividades Hoje
-              {!teamMemberId && activityRows && activityRows.length > 1 && (
+              {!teamMemberId && (
                 <Badge variant="secondary" className="text-[9px] ml-1">Todos</Badge>
               )}
             </CardTitle>
@@ -412,20 +392,20 @@ export function DashboardTabPreVendas({ filters, dateRange, teamMemberId }: Prop
               <div className="space-y-3">
                 <ActivityProgressBar
                   label="Ligacoes"
-                  current={Number(activity.calls_made)}
+                  current={Number(activity.calls_count)}
                   target={SDR_TARGETS.calls}
                   icon={<Phone className="h-3.5 w-3.5 text-blue-500" />}
                 />
                 <ActivityProgressBar
-                  label="Reunioes agendadas"
-                  current={Number(activity.meetings_scheduled)}
-                  target={SDR_TARGETS.meetings}
-                  icon={<CalendarCheck className="h-3.5 w-3.5 text-emerald-500" />}
+                  label="Novos leads"
+                  current={Number(activity.leads_created)}
+                  target={SDR_TARGETS.leads}
+                  icon={<UserPlus className="h-3.5 w-3.5 text-emerald-500" />}
                 />
                 <ActivityProgressBar
-                  label="Follow-ups"
-                  current={followupsDone}
-                  target={SDR_TARGETS.followups}
+                  label="Tarefas concluidas"
+                  current={tasksDone}
+                  target={SDR_TARGETS.tasks}
                   icon={<Target className="h-3.5 w-3.5 text-amber-500" />}
                 />
                 <ActivityProgressBar
@@ -436,12 +416,12 @@ export function DashboardTabPreVendas({ filters, dateRange, teamMemberId }: Prop
                 />
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Leads contatados</span>
-                    <span className="font-bold text-foreground">{Number(activity.leads_contacted)}</span>
+                    <span>Negociacoes criadas</span>
+                    <span className="font-bold text-foreground">{Number(activity.deals_created)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Calls conectadas</span>
-                    <span className="font-bold text-foreground">{Number(activity.calls_connected)}</span>
+                    <span>Msgs recebidas</span>
+                    <span className="font-bold text-foreground">{Number(activity.messages_received)}</span>
                   </div>
                 </div>
               </div>
