@@ -1299,9 +1299,6 @@ function formatToolArgs(actionType: string, args: Record<string, any>): string {
       parts.push('Lead confirmou presença na reunião');
       if (args.note) parts.push(`Nota: ${args.note}`);
       break;
-    case 'confirm_webinar':
-      parts.push('Lead inscrito no webinário semanal');
-      break;
     case 'reschedule_meeting':
       if (args.action === 'cancel') parts.push('Cancelou reunião');
       else {
@@ -3100,129 +3097,6 @@ async function executeTool(
             meeting_id: meetingToConfirm.id,
             scheduled_at: meetingToConfirm.scheduled_at,
             name: meetingToConfirm.name,
-          },
-        };
-      }
-
-      case 'confirm_webinar': {
-        // Confirmar inscrição do lead no webinário semanal (terça 20h BRT)
-        // Calcula a próxima terça-feira e cria enrollments com datas absolutas para lembretes
-
-        // Calcular próxima terça-feira 20h BRT (UTC-3 = 23h UTC)
-        const now = new Date();
-        const currentDay = now.getUTCDay(); // 0=dom, 1=seg, 2=ter, ...
-        // Dias até próxima terça: se hoje é terça e já passou das 23h UTC, vai pra próxima semana
-        let daysUntilTuesday = (2 - currentDay + 7) % 7;
-        if (daysUntilTuesday === 0) {
-          // Hoje é terça — verificar se já passou das 23h UTC (20h BRT)
-          if (now.getUTCHours() >= 23) {
-            daysUntilTuesday = 7; // próxima terça
-          }
-        }
-        if (daysUntilTuesday === 0) daysUntilTuesday = 7; // se é terça antes das 20h, ainda dá mas por segurança pega a próxima
-
-        const nextTuesday = new Date(now);
-        nextTuesday.setUTCDate(now.getUTCDate() + daysUntilTuesday);
-        nextTuesday.setUTCHours(23, 0, 0, 0); // 20h BRT = 23h UTC
-
-        // Segunda antes do webinário, 13h UTC (10h BRT) — lembrete D-1
-        const mondayReminder = new Date(nextTuesday);
-        mondayReminder.setUTCDate(nextTuesday.getUTCDate() - 1);
-        mondayReminder.setUTCHours(13, 0, 0, 0);
-
-        // Terça 22h UTC (19h BRT) — 1h antes
-        const oneHourBefore = new Date(nextTuesday);
-        oneHourBefore.setUTCHours(22, 0, 0, 0);
-
-        // Terça 23h UTC (20h BRT) — link do webinário
-        const webinarTime = nextTuesday;
-
-        const webinarDateStr = nextTuesday.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' });
-
-        // 1. Mover lead para estágio "Inscrito"
-        await moveLeadAndDealToStage(supabase, lead.id, lead.pipeline_stage_id, 'Inscrito');
-
-        // 2. Buscar o agente atual (para o agent_id nos enrollments)
-        // O agente é passado via contexto do executeTool — vamos usar o agent_id da conversa
-        const { data: currentConv } = await supabase
-          .from('ai_agent_conversations')
-          .select('agent_id')
-          .eq('lead_id', lead.id)
-          .in('status', ['active', 'paused_by_human', 'paused_by_schedule'])
-          .limit(1)
-          .maybeSingle();
-
-        const webinarAgentId = currentConv?.agent_id;
-
-        if (!webinarAgentId) {
-          return { success: false, error: 'Conversa ativa não encontrada para criar enrollments' };
-        }
-
-        // 3. Criar 3 enrollments com datas absolutas (lembrete D-1, 1h antes, link)
-        const enrollmentBase = {
-          lead_id: lead.id,
-          agent_id: webinarAgentId,
-          stage: 'Inscrito',
-          status: 'active',
-          enrolled_at: new Date().toISOString(),
-          metadata: { webinar_date: nextTuesday.toISOString(), type: 'webinar_reminder' },
-        };
-
-        // Step 0: Lembrete D-1 (segunda 10h BRT)
-        await supabase.from('ai_agent_cadence_enrollments').insert({
-          ...enrollmentBase,
-          current_step: 0,
-          next_action_at: mondayReminder.toISOString(),
-        });
-
-        // Step 1: "começa em 1h" (terça 19h BRT)
-        await supabase.from('ai_agent_cadence_enrollments').insert({
-          ...enrollmentBase,
-          current_step: 1,
-          next_action_at: oneHourBefore.toISOString(),
-        });
-
-        // Step 2: Link do webinário (terça 20h BRT) — este tem post_action move_stage
-        await supabase.from('ai_agent_cadence_enrollments').insert({
-          ...enrollmentBase,
-          current_step: 2,
-          next_action_at: webinarTime.toISOString(),
-        });
-
-        // 4. Disparar notificação
-        try {
-          await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/process-notification-event`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            },
-            body: JSON.stringify({
-              event_type: 'webinar_registered',
-              context: {
-                cliente: lead.name || '-',
-                cliente_telefone: lead.phone || '-',
-                cliente_empresa: lead.company_name || '-',
-                webinar_data: webinarDateStr,
-              },
-            }),
-          });
-          console.log(`🔔 Notificação webinar_registered disparada para ${lead.name}`);
-        } catch (notifErr) {
-          console.error('⚠️ Erro ao disparar notificação de webinário:', notifErr);
-        }
-
-        console.log(`✅ Lead ${lead.name} inscrito no webinário de ${webinarDateStr} — 3 enrollments criados`);
-        return {
-          success: true,
-          result: {
-            webinar_date: nextTuesday.toISOString(),
-            webinar_date_formatted: webinarDateStr,
-            reminders_scheduled: [
-              { step: 0, at: mondayReminder.toISOString(), description: 'Lembrete D-1' },
-              { step: 1, at: oneHourBefore.toISOString(), description: '1h antes' },
-              { step: 2, at: webinarTime.toISOString(), description: 'Link do webinário' },
-            ],
           },
         };
       }
