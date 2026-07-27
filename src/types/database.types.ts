@@ -6610,44 +6610,6 @@ export type Database = {
           },
         ]
       }
-      event_registrations: {
-        Row: {
-          attended: boolean | null
-          created_at: string | null
-          id: string
-          lead_id: string | null
-          tenant_id: string
-          total_duration_minutes: number | null
-          webinar_config_id: string | null
-        }
-        Insert: {
-          attended?: boolean | null
-          created_at?: string | null
-          id?: string
-          lead_id?: string | null
-          tenant_id?: string
-          total_duration_minutes?: number | null
-          webinar_config_id?: string | null
-        }
-        Update: {
-          attended?: boolean | null
-          created_at?: string | null
-          id?: string
-          lead_id?: string | null
-          tenant_id?: string
-          total_duration_minutes?: number | null
-          webinar_config_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_registrations_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       financial_accounts: {
         Row: {
           color: string | null
@@ -8121,62 +8083,6 @@ export type Database = {
           },
         ]
       }
-      lead_webinar_enrollments: {
-        Row: {
-          created_at: string | null
-          deal_id: string | null
-          id: string
-          lead_id: string | null
-          tenant_id: string
-          webinar_config_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          deal_id?: string | null
-          id?: string
-          lead_id?: string | null
-          tenant_id?: string
-          webinar_config_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          deal_id?: string | null
-          id?: string
-          lead_id?: string | null
-          tenant_id?: string
-          webinar_config_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_webinar_enrollments_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "deals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_webinar_enrollments_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "deals_with_vehicle"
-            referencedColumns: ["deal_id"]
-          },
-          {
-            foreignKeyName: "lead_webinar_enrollments_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_webinar_enrollments_webinar_config_id_fkey"
-            columns: ["webinar_config_id"]
-            isOneToOne: false
-            referencedRelation: "webinar_config"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       leads: {
         Row: {
           acao_de_hoje: string | null
@@ -8273,7 +8179,6 @@ export type Database = {
           utm_source: string | null
           utm_term: string | null
           vehicle_of_interest: Json | null
-          webinar_config_id: string | null
         }
         Insert: {
           acao_de_hoje?: string | null
@@ -8370,7 +8275,6 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           vehicle_of_interest?: Json | null
-          webinar_config_id?: string | null
         }
         Update: {
           acao_de_hoje?: string | null
@@ -8467,7 +8371,6 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           vehicle_of_interest?: Json | null
-          webinar_config_id?: string | null
         }
         Relationships: [
           {
@@ -12682,7 +12585,6 @@ export type Database = {
           slug: string
           total_clicks: number
           updated_at: string
-          webinar_config_id: string | null
         }
         Insert: {
           created_at?: string
@@ -12695,7 +12597,6 @@ export type Database = {
           slug: string
           total_clicks?: number
           updated_at?: string
-          webinar_config_id?: string | null
         }
         Update: {
           created_at?: string
@@ -12708,7 +12609,6 @@ export type Database = {
           slug?: string
           total_clicks?: number
           updated_at?: string
-          webinar_config_id?: string | null
         }
         Relationships: []
       }
@@ -13091,30 +12991,6 @@ export type Database = {
           },
         ]
       }
-      webinar_config: {
-        Row: {
-          created_at: string | null
-          event_date: string | null
-          id: string
-          tenant_id: string
-          title: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          event_date?: string | null
-          id?: string
-          tenant_id?: string
-          title?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          event_date?: string | null
-          id?: string
-          tenant_id?: string
-          title?: string | null
-        }
-        Relationships: []
-      }
       whatsapp_cloud_templates: {
         Row: {
           category: string
@@ -13458,6 +13334,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_rr_cursor: {
+        Row: {
+          counter: number
+          instance_id: string
+          updated_at: string
+        }
+        Insert: {
+          counter?: number
+          instance_id: string
+          updated_at?: string
+        }
+        Update: {
+          counter?: number
+          instance_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       whatsapp_task_bot_config: {
         Row: {
@@ -14772,6 +14666,7 @@ export type Database = {
         Returns: Json
       }
       normalize_phone_last8: { Args: { p_phone: string }; Returns: string }
+      pick_round_robin_rep: { Args: { p_instance_id: string }; Returns: string }
       pipeline_for_vehicle: { Args: { p_seller: string }; Returns: string }
       populate_campaign_leads:
         | { Args: { p_campaign_id: string }; Returns: number }
