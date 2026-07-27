@@ -30,9 +30,6 @@ verify_jwt = false
 [functions.whatsapp-cloud-webhook]
 verify_jwt = false
 
-[functions.webinar-webhook]
-verify_jwt = false
-
 [functions.instagram-webhook]
 verify_jwt = false
 
@@ -63,10 +60,6 @@ verify_jwt = false
 
 # Página pública de NPS (/nps/:token)
 [functions.submit-nps-response]
-verify_jwt = false
-
-# Página pública de confirmação de webinar
-[functions.send-webinar-confirmation]
 verify_jwt = false
 
 # Roleplay (usa client secret OpenAI, não auth CRM)

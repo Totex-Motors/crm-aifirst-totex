@@ -2146,14 +2146,12 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                selectedTimelineEvent?.type === 'nfse' ? 'bg-purple-100' : selectedTimelineEvent?.type === 'palestra' ? 'bg-teal-100' : selectedTimelineEvent?.type === 'webinar' ? 'bg-cyan-100' : 'bg-orange-100'
+                selectedTimelineEvent?.type === 'nfse' ? 'bg-purple-100' : selectedTimelineEvent?.type === 'palestra' ? 'bg-teal-100' : 'bg-orange-100'
               }`}>
                 {selectedTimelineEvent?.type === 'nfse' ? (
                   <Receipt className="h-5 w-5 text-purple-600" />
                 ) : selectedTimelineEvent?.type === 'palestra' ? (
                   <Mic className="h-5 w-5 text-teal-600" />
-                ) : selectedTimelineEvent?.type === 'webinar' ? (
-                  <Video className="h-5 w-5 text-cyan-600" />
                 ) : (
                   <Send className="h-5 w-5 text-orange-600" />
                 )}

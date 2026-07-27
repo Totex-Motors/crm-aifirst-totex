@@ -58,7 +58,6 @@ const getIcon = (type: string) => {
     case 'billing': return Send;
     case 'churn': case 'refund': return UserX;
     case 'palestra': return Mic;
-    case 'webinar': return Video;
     case 'touchpoint': return MessageSquare;
     case 'campaign': return Megaphone;
     default: return Activity;
@@ -84,7 +83,6 @@ const getColor = (type: string) => {
     case 'billing': return 'bg-orange-500';
     case 'churn': case 'refund': return 'bg-red-600';
     case 'palestra': return 'bg-teal-500';
-    case 'webinar': return 'bg-cyan-500';
     case 'touchpoint': return 'bg-teal-500';
     case 'campaign': return 'bg-violet-500';
     default: return 'bg-gray-500';

@@ -18,8 +18,6 @@ import { SalesAIChat } from "@/components/sales/ai";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { usePipelineDeals } from "@/hooks/useSalesPipeline";
 import { usePipelines } from "@/hooks/usePipelineConfig";
-// Webinar configs foi removido junto com o m\u00f3dulo de eventos.
-const useWebinarConfigs = () => ({ data: [] as Array<{ id: string; name: string }> });
 import { useMoveDealStage, useTransferDealPipeline, useDeleteDeal } from "@/hooks/useNegociacoes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -199,11 +197,9 @@ export function PipelineBoardContent() {
   const [loseDealTarget, setLoseDealTarget] = useState<{ dealId: string; deal: Negociacao } | null>(null);
   const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
-  const [webinarFilter, setWebinarFilter] = useSessionState<string | undefined>("pipeline_webinarFilter", undefined);
   const [portalFilter, setPortalFilter] = useSessionState<string>("pipeline_portalFilter", "all");
 
   const { data: pipelines } = usePipelines();
-  const { data: webinarConfigs = [] } = useWebinarConfigs();
 
   // Set default pipeline on load (fallback pro primeiro se n\u00e3o houver is_default)
   const activePipelineId =
@@ -212,8 +208,6 @@ export function PipelineBoardContent() {
       : selectedPipelineId ||
         pipelines?.find((p) => p.is_default)?.id ||
         pipelines?.[0]?.id;
-  const WEBINAR_PIPELINE_ID = '90b09d81-8282-4503-a869-1787baf8f736';
-  const isWebinarPipeline = activePipelineId === WEBINAR_PIPELINE_ID;
 
   const salesRepId = viewFilter === "mine" ? teamMember?.id : undefined;
 
@@ -221,7 +215,7 @@ export function PipelineBoardContent() {
     data: pipeline,
     isLoading,
     refetch,
-  } = usePipelineDeals(salesRepId, activePipelineId, isWebinarPipeline ? webinarFilter : undefined);
+  } = usePipelineDeals(salesRepId, activePipelineId);
 
   const moveDealMutation = useMoveDealStage();
   const transferMutation = useTransferDealPipeline();

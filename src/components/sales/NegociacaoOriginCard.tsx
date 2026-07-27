@@ -2,14 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Sparkles,
   Globe,
   Megaphone,
   Tag,
   Link2,
-  CheckCircle2,
-  XCircle,
-  Clock,
   Smartphone,
   Hash,
   FileText,
@@ -35,15 +31,6 @@ interface OriginData {
   referrer: string | null;
   context: string | null;
   source: string | null;
-  // Webinar (se este deal veio de webinario)
-  webinar?: {
-    id: string;
-    title: string;
-    event_date: string | null;
-    enrolled_at: string;
-    attended: boolean | null;
-    attended_duration: number | null;
-  } | null;
 }
 
 const SOURCE_LABELS: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -69,33 +56,6 @@ export function NegociacaoOriginCard({ dealId, leadId }: DealOriginCardProps) {
         .eq('id', leadId)
         .single();
 
-      // 2. Buscar enrollment de webinario vinculado a ESTE deal especifico
-      const { data: enrollment } = await supabase
-        .from('lead_webinar_enrollments')
-        .select('id, enrolled_at, webinar_config:webinar_config(id, title, event_date)')
-        .eq('deal_id', dealId)
-        .maybeSingle();
-
-      let webinarData: OriginData['webinar'] = null;
-      if (enrollment && (enrollment as any).webinar_config) {
-        const wc = (enrollment as any).webinar_config;
-        // Buscar atendencia via webinar_config_id (FK direta, sem match por nome)
-        const { data: reg } = await supabase
-          .from('event_registrations')
-          .select('attended, total_duration_minutes')
-          .eq('lead_id', leadId)
-          .eq('webinar_config_id', wc.id)
-          .maybeSingle();
-        webinarData = {
-          id: wc.id,
-          title: wc.title,
-          event_date: wc.event_date,
-          enrolled_at: (enrollment as any).enrolled_at,
-          attended: reg?.attended ?? null,
-          attended_duration: reg?.total_duration_minutes ?? null,
-        };
-      }
-
       return {
         utm_source: lead?.utm_source || null,
         utm_medium: lead?.utm_medium || null,
@@ -106,7 +66,6 @@ export function NegociacaoOriginCard({ dealId, leadId }: DealOriginCardProps) {
         referrer: lead?.referrer || null,
         context: lead?.context || null,
         source: (lead as any)?.source || null,
-        webinar: webinarData,
       };
     },
     enabled: !!leadId,

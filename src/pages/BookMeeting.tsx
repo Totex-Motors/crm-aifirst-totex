@@ -34,7 +34,7 @@ type FieldKey = typeof FIELDS[number];
 
 export default function BookMeeting() {
   const [searchParams] = useSearchParams();
-  const utmSource = searchParams.get("utm_source") || "webinar_pitch";
+  const utmSource = searchParams.get("utm_source") || "agendamento_publico";
   const utmCampaign = searchParams.get("utm_campaign") || "agendamento_0704";
   const utmContent = searchParams.get("utm_content") || null;
   const evento = searchParams.get("evento") || null;

@@ -164,50 +164,20 @@ export function NegociacaoCard({
                   ? contacts.map((c: any) => c.lead?.name || "?").join(", ")
                   : deal.organization?.name || productName}
               </p>
-              {/* Webinario badges + atendencia + fonte */}
+              {/* Badge de fonte (UTM) */}
               {(() => {
-                const enrollment = (deal as any).webinar_enrollment;
                 const utmSource = (deal.lead as any)?.utm_source;
-                if (!enrollment?.webinar_title && !utmSource) return null;
-
-                // Status atendencia (so se tem webinario)
-                let attendanceBadge: React.ReactNode = null;
-                if (enrollment?.webinar_title) {
-                  const eventDate = enrollment.event_date ? new Date(enrollment.event_date) : null;
-                  const eventHasHappened = eventDate ? eventDate <= new Date() : false;
-                  if (!eventHasHappened) {
-                    attendanceBadge = (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
-                        Aguardando
-                      </span>
-                    );
-                  } else if (enrollment.attended) {
-                    const mins = enrollment.attended_duration || 0;
-                    const dur = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60 > 0 ? `${mins % 60}m` : ''}` : mins > 0 ? `${mins}min` : '';
-                    attendanceBadge = (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-medium">
-                        ✓ {dur || 'Compareceu'}
-                      </span>
-                    );
-                  } else {
-                    attendanceBadge = (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-medium">
-                        Faltou
-                      </span>
-                    );
-                  }
-                }
+                if (!utmSource) return null;
 
                 // Source label compacto
                 const sourceMap: Record<string, string> = {
                   facebook: 'FB', instagram: 'IG', ig: 'IG', google: 'GG',
                   whatsapp: 'WA', organic: 'Org', direct: 'Direto',
                 };
-                const sourceShort = utmSource ? (sourceMap[utmSource.toLowerCase()] || utmSource) : null;
+                const sourceShort = sourceMap[utmSource.toLowerCase()] || utmSource;
 
                 return (
                   <div className="flex items-center gap-1 mt-1 flex-wrap">
-                    {attendanceBadge}
                     {sourceShort && (
                       <span
                         className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"

@@ -3539,14 +3539,7 @@ async function processLeadMessage(
   await enrichLeadWithStageName(supabase, lead);
 
   // 2.1 GUARD: Lead já é cliente? Agente não responde — deixa humano lidar
-  // Exceção: Webinário é gratuito, clientes participam normalmente
-  // Checar agent_id da fila pra saber se é Webinário ANTES do agent matching
-  let isWebinarPipeline = false;
-  if (queueItem.agent_id) {
-    const { data: preAgent } = await supabase.from('ai_sales_agents').select('pipeline_id').eq('id', queueItem.agent_id).maybeSingle();
-    isWebinarPipeline = preAgent?.pipeline_id === '90b09d81-8282-4503-a869-1787baf8f736';
-  }
-  if (!isWebinarPipeline && await isLeadAlreadyClient(supabase, lead_id)) {
+  if (await isLeadAlreadyClient(supabase, lead_id)) {
     console.log(`⏭️ Lead ${lead.name} já é cliente — agente não vai responder`);
     return { success: false, error: 'lead_is_client' };
   }
@@ -7192,10 +7185,8 @@ async function processCadence(supabase: any): Promise<{ processed: number; error
         continue;
       }
 
-      // GUARD: Lead já é cliente? Cancelar enrollment (apenas para prospecção, não para webinário)
-      // Webinário é gratuito — clientes também participam
-      const isClientGuardEnabled = !agent.pipeline_id || agent.pipeline_id !== '90b09d81-8282-4503-a869-1787baf8f736';
-      if (isClientGuardEnabled && await isLeadAlreadyClient(supabase, enrollment.lead_id)) {
+      // GUARD: Lead já é cliente? Cancelar enrollment (cadência é só de prospecção)
+      if (await isLeadAlreadyClient(supabase, enrollment.lead_id)) {
         console.log(`⏭️ Lead ${lead.name} já é cliente — cancelando cadência de prospecção`);
         await supabase
           .from('ai_agent_cadence_enrollments')

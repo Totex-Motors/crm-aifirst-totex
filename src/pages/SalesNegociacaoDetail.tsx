@@ -259,7 +259,7 @@ const SalesNegociacaoDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Origem da oportunidade — webinario, UTMs, landing page, contexto */}
+        {/* Origem da oportunidade — UTMs, landing page, contexto */}
         {id && <NegociacaoOriginCard dealId={id} leadId={deal.lead_id} />}
 
         {/* Negociacao Details */}

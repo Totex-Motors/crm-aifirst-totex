@@ -236,7 +236,6 @@ export function SalesConversationRow({
               <span className={cn(
                 "text-[10px] px-1.5 py-0.5 rounded font-medium",
                 pipelineName === 'Closer' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
-                : pipelineName === 'Webinário' ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
               )}>
                 {pipelineName}
