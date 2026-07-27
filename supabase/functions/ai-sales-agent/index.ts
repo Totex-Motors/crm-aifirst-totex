@@ -1940,13 +1940,6 @@ async function getFullLeadContext(supabase: any, lead: Lead, settings: AgentSett
     console.error('Meeting history context error (non-fatal):', meetErr);
   }
 
-  // 9. Informações B2B (empresa)
-  if (lead.company_name || lead.job_title) {
-    context += `\n## INFORMAÇÕES PROFISSIONAIS\n`;
-    if (lead.company_name) context += `- Empresa: ${lead.company_name}\n`;
-    if (lead.job_title) context += `- Cargo: ${lead.job_title}\n`;
-  }
-
   // 10. Origem do lead
   if (lead.source || lead.utm_source) {
     context += `\n## ORIGEM\n`;
@@ -2147,16 +2140,6 @@ async function buildAgentSystemPrompt(supabase: any, agent: AgentConfig, lead: L
 - Estágio no funil: ${lead.pipeline_stage_name || lead.sales_stage || ''}
 - Score de qualificação: ${lead.sales_score || 0}/100
 `;
-
-  if (lead.bant_budget !== undefined || lead.bant_authority !== undefined) {
-    leadContext += `
-## QUALIFICAÇÃO BANT
-- Budget (Orçamento): ${lead.bant_budget ? '✓ Confirmado' : '? Não confirmado'}
-- Authority (Decisor): ${lead.bant_authority ? '✓ Confirmado' : '? Não confirmado'}
-- Need (Necessidade): ${lead.bant_need ? '✓ Confirmado' : '? Não confirmado'}
-- Timeline (Prazo): ${lead.bant_timeline ? '✓ Confirmado' : '? Não confirmado'}
-`;
-  }
 
   // Qualificação automotiva (o que já sabemos sobre a intenção de compra do lead)
   const activeIntents = AUTOMOTIVE_INTENT_FIELDS.filter((f) => (lead as any)[f] === true);
@@ -5142,14 +5125,14 @@ async function executeCadenceStep(
           console.error('⚠️ Erro ao buscar contexto Instagram na cadencia:', igErr);
         }
 
-        // Buscar BANT e insights para contexto enriquecido (sequências no-show/reengajamento)
+        // Qualificação automotiva para contexto enriquecido (sequências no-show/reengajamento)
         let bantContext = '';
-        if (lead.bant_budget || lead.bant_authority || lead.bant_need || lead.bant_timeline) {
-          bantContext = '\n## BANT (QUALIFICACAO DO LEAD)';
-          if (lead.bant_budget) bantContext += `\n- Budget: ${lead.bant_budget}`;
-          if (lead.bant_authority) bantContext += `\n- Authority: ${lead.bant_authority}`;
-          if (lead.bant_need) bantContext += `\n- Need: ${lead.bant_need}`;
-          if (lead.bant_timeline) bantContext += `\n- Timeline: ${lead.bant_timeline}`;
+        const seqIntents = AUTOMOTIVE_INTENT_FIELDS.filter((f) => (lead as any)[f] === true);
+        if (seqIntents.length > 0 || hasVehicleInterest(lead) || lead.negotiation_type) {
+          bantContext = '\n## QUALIFICAÇÃO AUTOMOTIVA (já capturada)';
+          if (hasVehicleInterest(lead)) bantContext += `\n- Veículo de interesse: ${JSON.stringify(lead.vehicle_of_interest)}`;
+          if (lead.negotiation_type) bantContext += `\n- Tipo de negociação: ${lead.negotiation_type}`;
+          for (const f of seqIntents) bantContext += `\n- ✓ ${AUTOMOTIVE_INTENT_LABELS[f]}`;
         }
 
         let insightsContext = '';
