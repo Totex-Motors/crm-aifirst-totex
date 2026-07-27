@@ -42,7 +42,6 @@ function formatCurrency(value: number) {
 // IDs dos estágios "Reembolso" por pipeline
 const REFUND_STAGES: Record<string, string> = {
   "9c21bd06-a898-44a1-88db-ad3c6ec7140c": "2870a135-bce1-4920-9f1e-f8955147fa44", // Closer
-  "90b09d81-8282-4503-a869-1787baf8f736": "d39d2ff2-ba59-4e8e-bd70-fbfc6e40f0e6", // Webinário
 };
 
 export function RefundNegociacaoModal({ open, onOpenChange, deal }: RefundDealModalProps) {

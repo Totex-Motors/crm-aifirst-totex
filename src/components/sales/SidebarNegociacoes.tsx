@@ -19,7 +19,6 @@ import {
   ArrowRightCircle,
   UserPlus,
   Plus,
-  Sparkles,
   Trash2,
   RotateCcw,
 } from 'lucide-react';
@@ -100,14 +99,12 @@ export function SidebarNegociacoes({
             const value = Number(deal.negotiated_price) || 0;
             const isWon = deal.status === 'won';
             const isLost = deal.status === 'lost';
-            const webinarTitle = deal.webinar_enrollment?.webinar_title;
             const utmSource = deal.lead?.utm_source;
             const productName = deal.product?.name;
             const salesRepName = deal.sales_rep?.name;
 
-            const isWebinar = pipelineName.toLowerCase().includes('webinár') || pipelineName.toLowerCase().includes('webinar');
-            const PipelineIcon = isWebinar ? Sparkles : Briefcase;
-            const pipelineColor = isWebinar ? 'text-violet-500' : 'text-blue-500';
+            const PipelineIcon = Briefcase;
+            const pipelineColor = 'text-blue-500';
 
             const sourceMap: Record<string, string> = {
               facebook: 'FB', instagram: 'IG', ig: 'IG', google: 'GG',
@@ -185,18 +182,13 @@ export function SidebarNegociacoes({
                   )}
                 </div>
 
-                {/* Row 3: Badges compactos (responsavel · origem · webinar) */}
+                {/* Row 3: Badges compactos (responsavel · origem) */}
                 <div className="flex items-center gap-1.5 mt-1 flex-wrap text-[10px] text-muted-foreground">
                   {salesRepName && <span>{salesRepName}</span>}
                   {salesRepName && sourceShort && <span className="opacity-40">·</span>}
                   {sourceShort && (
                     <span className="px-1 py-0 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium text-[9px]">
                       {sourceShort}
-                    </span>
-                  )}
-                  {webinarTitle && (
-                    <span className="px-1 py-0 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-medium text-[9px] inline-flex items-center gap-0.5">
-                      <Sparkles className="h-2 w-2" />{webinarTitle}
                     </span>
                   )}
                   {isWon && <span className="px-1 py-0 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold text-[9px]">GANHO</span>}

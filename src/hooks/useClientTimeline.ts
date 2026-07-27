@@ -198,7 +198,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
       });
 
       // 3.5 Negociacoes (negociações)
-      const WEBINAR_PIPELINE_ID = '90b09d81-8282-4503-a869-1787baf8f736';
       const { data: deals } = await (supabase
         .from('deals' as any)
         .select('*, metadata, pipeline_id, product:products(name), pipeline_stage:sales_pipeline_stages(name), sales_rep:team_members!deals_sales_rep_id_fkey(name)')
@@ -208,24 +207,21 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
       (deals || []).forEach((deal: any) => {
         const dealValue = Number(deal.negotiated_price) || 0;
         const stageName = deal.pipeline_stage?.name || 'Em Negociação';
-        const isWebinarPipeline = deal.pipeline_id === WEBINAR_PIPELINE_ID;
 
-        // Negociacao criado — pula se for pipeline Webinario (ja tem evento de inscricao)
-        if (!isWebinarPipeline) {
-          events.push({
-            id: `deal-created-${deal.id}`,
-            date: deal.created_at,
-            time: new Date(deal.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            type: 'checkout',
-            team: 'sales',
-            title: `💼 Nova Negociação: ${deal.product?.name || deal.title || 'Negociação'}`,
-            description: `Negociação iniciada no valor de R$ ${dealValue.toLocaleString('pt-BR')}.`,
-            details: `Estágio: ${stageName} • Produto: ${deal.product?.name || 'N/A'}`,
-            amount: dealValue,
-            tags: ['Oportunidade'],
-            metadata: { deal_id: deal.id }
-          });
-        }
+        // Negociacao criado
+        events.push({
+          id: `deal-created-${deal.id}`,
+          date: deal.created_at,
+          time: new Date(deal.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          type: 'checkout',
+          team: 'sales',
+          title: `💼 Nova Negociação: ${deal.product?.name || deal.title || 'Negociação'}`,
+          description: `Negociação iniciada no valor de R$ ${dealValue.toLocaleString('pt-BR')}.`,
+          details: `Estágio: ${stageName} • Produto: ${deal.product?.name || 'N/A'}`,
+          amount: dealValue,
+          tags: ['Oportunidade'],
+          metadata: { deal_id: deal.id }
+        });
 
         // Negociacao fechado (won) — mostra mesmo se deal depois virou lost (churn/reembolso)
         if (deal.won_at) {
@@ -293,108 +289,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
             });
           });
         }
-      });
-
-      // 3.7 Webinar enrollments (inscricoes em webinarios — fonte canonica)
-      const { data: webinarEnrollments } = await (supabase
-        .from('lead_webinar_enrollments' as any)
-        .select('id, enrolled_at, webinar_config_id, deal_id, source, metadata, webinar_config:webinar_config(id, title, event_date)')
-        .eq('lead_id', leadId)
-        .order('enrolled_at', { ascending: false }) as any);
-
-      (webinarEnrollments || []).forEach((enr: any) => {
-        const wTitle = enr.webinar_config?.title || 'Webinario';
-        events.push({
-          id: `webinar-enroll-${enr.id}`,
-          date: enr.enrolled_at,
-          time: new Date(enr.enrolled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          type: 'registration',
-          team: 'sales',
-          title: `🎯 Inscrito no Webinario: ${wTitle}`,
-          description: `Lead se inscreveu no webinario "${wTitle}".`,
-          details: enr.source ? `Origem: ${enr.source}` : undefined,
-          tags: ['Webinario', wTitle],
-          metadata: {
-            enrollment_id: enr.id,
-            webinar_config_id: enr.webinar_config_id,
-            webinar_title: wTitle,
-            deal_id: enr.deal_id,
-          }
-        });
-      });
-
-      // 4. Event registrations — atendencia ao webinario (so renderiza apos data do evento)
-      const { data: eventRegs } = await (supabase
-        .from('event_registrations' as any)
-        .select('*, event:events(*)')
-        .eq('lead_id', leadId) as any);
-
-      (eventRegs || []).forEach((reg: any) => {
-        const eventName = reg.event?.name || 'Evento';
-        const eventDate = reg.event?.start_date || reg.event?.event_date || null;
-        const eventHasHappened = eventDate ? new Date(eventDate) <= new Date() : false;
-
-        // Antes do evento acontecer: nao renderiza atendencia (ja tem evento de inscricao)
-        if (!eventHasHappened) return;
-
-        // Apos o evento: renderiza atendencia
-        const tags: string[] = [];
-        let title = '';
-        let description = '';
-
-        if (reg.attended) {
-          tags.push('Participou');
-          if (reg.total_duration_minutes) {
-            const hours = Math.floor(reg.total_duration_minutes / 60);
-            const mins = reg.total_duration_minutes % 60;
-            const durationStr = hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}min` : ''}` : `${mins} minutos`;
-            tags.push(durationStr);
-            description = `Participou por ${durationStr}.`;
-            if (reg.total_sessions && reg.total_sessions > 1) {
-              description += ` Entrou ${reg.total_sessions}x.`;
-            }
-          } else {
-            description = `Compareceu ao webinario.`;
-          }
-          title = `📺 Compareceu: ${eventName}`;
-        } else {
-          tags.push('Faltou');
-          title = `🚫 Faltou: ${eventName}`;
-          description = `Nao compareceu ao webinario.`;
-        }
-
-        // Detalhes adicionais
-        const detailsParts: string[] = [];
-        if (reg.first_join_time) {
-          const joinTime = new Date(reg.first_join_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          detailsParts.push(`Entrou: ${joinTime}`);
-        }
-        if (reg.last_leave_time) {
-          const leaveTime = new Date(reg.last_leave_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          detailsParts.push(`Saiu: ${leaveTime}`);
-        }
-
-        events.push({
-          id: `event-reg-${reg.id}`,
-          // Usa a data do evento (nao da inscricao) pra timeline
-          date: eventDate || reg.registration_date,
-          time: new Date(eventDate || reg.registration_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          type: 'registration',
-          team: 'sales',
-          title,
-          description,
-          details: detailsParts.join(' • ') || undefined,
-          tags: tags.length > 0 ? tags : undefined,
-          metadata: {
-            attended: reg.attended,
-            total_duration_minutes: reg.total_duration_minutes,
-            first_join_time: reg.first_join_time,
-            last_leave_time: reg.last_leave_time,
-            total_sessions: reg.total_sessions,
-            qa_questions: reg.qa_questions,
-            event_name: eventName,
-          }
-        });
       });
 
       // 4.5 Event RSVPs (eventos presenciais - cs_event_rsvps)
@@ -703,27 +597,6 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
             nfse: '🧾 NFSe',
             billing: '💰 Cobrança',
           };
-
-          // Webinar events get special card
-          if (activity.task_type === 'webinar') {
-            const meta = activity.metadata || {};
-            const eventDateStr = meta.event_date
-              ? new Date(meta.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
-              : null;
-            events.push({
-              id: `webinar-${activity.id}`,
-              date: activity.created_at,
-              time: new Date(activity.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
-              type: 'webinar',
-              team: 'marketing',
-              title: activity.name || 'Inscreveu no Webinário',
-              description: meta.event_topic || meta.quiz_name || 'Inscrição via quiz',
-              details: eventDateStr ? `Data: ${eventDateStr}` : (meta.landing_page || ''),
-              tags: ['Webinário', ...(meta.utm_source ? [meta.utm_source] : [])],
-              metadata: meta,
-            });
-            return;
-          }
 
           // Stage change events (movimentacao de etapa)
           if (activity.task_type === 'stage_change') {

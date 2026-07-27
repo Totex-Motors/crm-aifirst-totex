@@ -958,9 +958,8 @@ function NegociacaoCard({
           </Tooltip>
         </div>
 
-        {/* Webinario badges + atendencia + fonte + portal */}
+        {/* Badges de origem: portal + fonte UTM */}
         {(() => {
-          const enrollment = (deal as any).webinar_enrollment;
           const utmSource = (deal.lead as any)?.utm_source;
           const leadSource = ((deal.lead as any)?.source || "").toLowerCase();
           const PORTAL_MAP: Record<string, { label: string; cls: string }> = {
@@ -969,34 +968,7 @@ function NegociacaoCard({
             stand: { label: "IA de Qualificação", cls: "bg-teal-100 text-teal-700" },
           };
           const portal = PORTAL_MAP[leadSource];
-          if (!enrollment?.webinar_title && !utmSource && !portal) return null;
-
-          let attendanceBadge: React.ReactNode = null;
-          if (enrollment?.webinar_title) {
-            const eventDate = enrollment.event_date ? new Date(enrollment.event_date) : null;
-            const eventHasHappened = eventDate ? eventDate <= new Date() : false;
-            if (!eventHasHappened) {
-              attendanceBadge = (
-                <span className="inline-flex items-center text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold">
-                  Aguardando
-                </span>
-              );
-            } else if (enrollment.attended) {
-              const mins = enrollment.attended_duration || 0;
-              const dur = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60 > 0 ? `${mins % 60}m` : ''}` : mins > 0 ? `${mins}min` : '';
-              attendanceBadge = (
-                <span className="inline-flex items-center text-[9px] px-1 py-0.5 rounded bg-green-100 text-green-700 font-semibold">
-                  ✓ {dur || 'Compareceu'}
-                </span>
-              );
-            } else {
-              attendanceBadge = (
-                <span className="inline-flex items-center text-[9px] px-1 py-0.5 rounded bg-red-100 text-red-700 font-semibold">
-                  Faltou
-                </span>
-              );
-            }
-          }
+          if (!utmSource && !portal) return null;
 
           const sourceMap: Record<string, string> = {
             facebook: 'FB', instagram: 'IG', ig: 'IG', google: 'GG',
@@ -1011,7 +983,6 @@ function NegociacaoCard({
                   {portal.label}
                 </span>
               )}
-              {attendanceBadge}
               {sourceShort && (
                 <span className="inline-flex items-center text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold" title={`Origem: ${utmSource}`}>
                   {sourceShort}

@@ -7,7 +7,6 @@
  *  - config.match.lead_is_new      (true | false | null=ignora)
  *  - config.match.pipeline_id      (uuid do funil)
  *  - config.match.stage_id         (uuid da etapa)
- *  - config.match.from_webinar     (boolean)
  *  - config.match.custom_jsonpath  (avançado — string livre)
  *
  * Filosofia: AND lógico — só atende se TODAS condições preenchidas baterem.
@@ -174,19 +173,6 @@ export function MatchRulesEditor({ config, setField }: Props) {
                 ))}
               </select>
             </div>
-          </div>
-
-          {/* Match: from_webinar */}
-          <div>
-            <Label className="text-[11px] flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={match.from_webinar === true}
-                onChange={(e) => setMatchField('from_webinar', e.target.checked ? true : null)}
-                className="h-3.5 w-3.5"
-              />
-              Veio de webinário
-            </Label>
           </div>
 
           {/* Avançado: custom JSON path */}

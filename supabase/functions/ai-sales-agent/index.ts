@@ -1299,9 +1299,6 @@ function formatToolArgs(actionType: string, args: Record<string, any>): string {
       parts.push('Lead confirmou presença na reunião');
       if (args.note) parts.push(`Nota: ${args.note}`);
       break;
-    case 'confirm_webinar':
-      parts.push('Lead inscrito no webinário semanal');
-      break;
     case 'reschedule_meeting':
       if (args.action === 'cancel') parts.push('Cancelou reunião');
       else {
@@ -1940,13 +1937,6 @@ async function getFullLeadContext(supabase: any, lead: Lead, settings: AgentSett
     console.error('Meeting history context error (non-fatal):', meetErr);
   }
 
-  // 9. Informações B2B (empresa)
-  if (lead.company_name || lead.job_title) {
-    context += `\n## INFORMAÇÕES PROFISSIONAIS\n`;
-    if (lead.company_name) context += `- Empresa: ${lead.company_name}\n`;
-    if (lead.job_title) context += `- Cargo: ${lead.job_title}\n`;
-  }
-
   // 10. Origem do lead
   if (lead.source || lead.utm_source) {
     context += `\n## ORIGEM\n`;
@@ -2147,16 +2137,6 @@ async function buildAgentSystemPrompt(supabase: any, agent: AgentConfig, lead: L
 - Estágio no funil: ${lead.pipeline_stage_name || lead.sales_stage || ''}
 - Score de qualificação: ${lead.sales_score || 0}/100
 `;
-
-  if (lead.bant_budget !== undefined || lead.bant_authority !== undefined) {
-    leadContext += `
-## QUALIFICAÇÃO BANT
-- Budget (Orçamento): ${lead.bant_budget ? '✓ Confirmado' : '? Não confirmado'}
-- Authority (Decisor): ${lead.bant_authority ? '✓ Confirmado' : '? Não confirmado'}
-- Need (Necessidade): ${lead.bant_need ? '✓ Confirmado' : '? Não confirmado'}
-- Timeline (Prazo): ${lead.bant_timeline ? '✓ Confirmado' : '? Não confirmado'}
-`;
-  }
 
   // Qualificação automotiva (o que já sabemos sobre a intenção de compra do lead)
   const activeIntents = AUTOMOTIVE_INTENT_FIELDS.filter((f) => (lead as any)[f] === true);
@@ -3121,129 +3101,6 @@ async function executeTool(
         };
       }
 
-      case 'confirm_webinar': {
-        // Confirmar inscrição do lead no webinário semanal (terça 20h BRT)
-        // Calcula a próxima terça-feira e cria enrollments com datas absolutas para lembretes
-
-        // Calcular próxima terça-feira 20h BRT (UTC-3 = 23h UTC)
-        const now = new Date();
-        const currentDay = now.getUTCDay(); // 0=dom, 1=seg, 2=ter, ...
-        // Dias até próxima terça: se hoje é terça e já passou das 23h UTC, vai pra próxima semana
-        let daysUntilTuesday = (2 - currentDay + 7) % 7;
-        if (daysUntilTuesday === 0) {
-          // Hoje é terça — verificar se já passou das 23h UTC (20h BRT)
-          if (now.getUTCHours() >= 23) {
-            daysUntilTuesday = 7; // próxima terça
-          }
-        }
-        if (daysUntilTuesday === 0) daysUntilTuesday = 7; // se é terça antes das 20h, ainda dá mas por segurança pega a próxima
-
-        const nextTuesday = new Date(now);
-        nextTuesday.setUTCDate(now.getUTCDate() + daysUntilTuesday);
-        nextTuesday.setUTCHours(23, 0, 0, 0); // 20h BRT = 23h UTC
-
-        // Segunda antes do webinário, 13h UTC (10h BRT) — lembrete D-1
-        const mondayReminder = new Date(nextTuesday);
-        mondayReminder.setUTCDate(nextTuesday.getUTCDate() - 1);
-        mondayReminder.setUTCHours(13, 0, 0, 0);
-
-        // Terça 22h UTC (19h BRT) — 1h antes
-        const oneHourBefore = new Date(nextTuesday);
-        oneHourBefore.setUTCHours(22, 0, 0, 0);
-
-        // Terça 23h UTC (20h BRT) — link do webinário
-        const webinarTime = nextTuesday;
-
-        const webinarDateStr = nextTuesday.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' });
-
-        // 1. Mover lead para estágio "Inscrito"
-        await moveLeadAndDealToStage(supabase, lead.id, lead.pipeline_stage_id, 'Inscrito');
-
-        // 2. Buscar o agente atual (para o agent_id nos enrollments)
-        // O agente é passado via contexto do executeTool — vamos usar o agent_id da conversa
-        const { data: currentConv } = await supabase
-          .from('ai_agent_conversations')
-          .select('agent_id')
-          .eq('lead_id', lead.id)
-          .in('status', ['active', 'paused_by_human', 'paused_by_schedule'])
-          .limit(1)
-          .maybeSingle();
-
-        const webinarAgentId = currentConv?.agent_id;
-
-        if (!webinarAgentId) {
-          return { success: false, error: 'Conversa ativa não encontrada para criar enrollments' };
-        }
-
-        // 3. Criar 3 enrollments com datas absolutas (lembrete D-1, 1h antes, link)
-        const enrollmentBase = {
-          lead_id: lead.id,
-          agent_id: webinarAgentId,
-          stage: 'Inscrito',
-          status: 'active',
-          enrolled_at: new Date().toISOString(),
-          metadata: { webinar_date: nextTuesday.toISOString(), type: 'webinar_reminder' },
-        };
-
-        // Step 0: Lembrete D-1 (segunda 10h BRT)
-        await supabase.from('ai_agent_cadence_enrollments').insert({
-          ...enrollmentBase,
-          current_step: 0,
-          next_action_at: mondayReminder.toISOString(),
-        });
-
-        // Step 1: "começa em 1h" (terça 19h BRT)
-        await supabase.from('ai_agent_cadence_enrollments').insert({
-          ...enrollmentBase,
-          current_step: 1,
-          next_action_at: oneHourBefore.toISOString(),
-        });
-
-        // Step 2: Link do webinário (terça 20h BRT) — este tem post_action move_stage
-        await supabase.from('ai_agent_cadence_enrollments').insert({
-          ...enrollmentBase,
-          current_step: 2,
-          next_action_at: webinarTime.toISOString(),
-        });
-
-        // 4. Disparar notificação
-        try {
-          await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/process-notification-event`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            },
-            body: JSON.stringify({
-              event_type: 'webinar_registered',
-              context: {
-                cliente: lead.name || '-',
-                cliente_telefone: lead.phone || '-',
-                cliente_empresa: lead.company_name || '-',
-                webinar_data: webinarDateStr,
-              },
-            }),
-          });
-          console.log(`🔔 Notificação webinar_registered disparada para ${lead.name}`);
-        } catch (notifErr) {
-          console.error('⚠️ Erro ao disparar notificação de webinário:', notifErr);
-        }
-
-        console.log(`✅ Lead ${lead.name} inscrito no webinário de ${webinarDateStr} — 3 enrollments criados`);
-        return {
-          success: true,
-          result: {
-            webinar_date: nextTuesday.toISOString(),
-            webinar_date_formatted: webinarDateStr,
-            reminders_scheduled: [
-              { step: 0, at: mondayReminder.toISOString(), description: 'Lembrete D-1' },
-              { step: 1, at: oneHourBefore.toISOString(), description: '1h antes' },
-              { step: 2, at: webinarTime.toISOString(), description: 'Link do webinário' },
-            ],
-          },
-        };
-      }
-
       case 'reschedule_meeting': {
         // Buscar reunião ativa mais recente do lead
         const { data: existingMeeting } = await supabase
@@ -3682,14 +3539,7 @@ async function processLeadMessage(
   await enrichLeadWithStageName(supabase, lead);
 
   // 2.1 GUARD: Lead já é cliente? Agente não responde — deixa humano lidar
-  // Exceção: Webinário é gratuito, clientes participam normalmente
-  // Checar agent_id da fila pra saber se é Webinário ANTES do agent matching
-  let isWebinarPipeline = false;
-  if (queueItem.agent_id) {
-    const { data: preAgent } = await supabase.from('ai_sales_agents').select('pipeline_id').eq('id', queueItem.agent_id).maybeSingle();
-    isWebinarPipeline = preAgent?.pipeline_id === '90b09d81-8282-4503-a869-1787baf8f736';
-  }
-  if (!isWebinarPipeline && await isLeadAlreadyClient(supabase, lead_id)) {
+  if (await isLeadAlreadyClient(supabase, lead_id)) {
     console.log(`⏭️ Lead ${lead.name} já é cliente — agente não vai responder`);
     return { success: false, error: 'lead_is_client' };
   }
@@ -5142,14 +4992,14 @@ async function executeCadenceStep(
           console.error('⚠️ Erro ao buscar contexto Instagram na cadencia:', igErr);
         }
 
-        // Buscar BANT e insights para contexto enriquecido (sequências no-show/reengajamento)
+        // Qualificação automotiva para contexto enriquecido (sequências no-show/reengajamento)
         let bantContext = '';
-        if (lead.bant_budget || lead.bant_authority || lead.bant_need || lead.bant_timeline) {
-          bantContext = '\n## BANT (QUALIFICACAO DO LEAD)';
-          if (lead.bant_budget) bantContext += `\n- Budget: ${lead.bant_budget}`;
-          if (lead.bant_authority) bantContext += `\n- Authority: ${lead.bant_authority}`;
-          if (lead.bant_need) bantContext += `\n- Need: ${lead.bant_need}`;
-          if (lead.bant_timeline) bantContext += `\n- Timeline: ${lead.bant_timeline}`;
+        const seqIntents = AUTOMOTIVE_INTENT_FIELDS.filter((f) => (lead as any)[f] === true);
+        if (seqIntents.length > 0 || hasVehicleInterest(lead) || lead.negotiation_type) {
+          bantContext = '\n## QUALIFICAÇÃO AUTOMOTIVA (já capturada)';
+          if (hasVehicleInterest(lead)) bantContext += `\n- Veículo de interesse: ${JSON.stringify(lead.vehicle_of_interest)}`;
+          if (lead.negotiation_type) bantContext += `\n- Tipo de negociação: ${lead.negotiation_type}`;
+          for (const f of seqIntents) bantContext += `\n- ✓ ${AUTOMOTIVE_INTENT_LABELS[f]}`;
         }
 
         let insightsContext = '';
@@ -7335,10 +7185,8 @@ async function processCadence(supabase: any): Promise<{ processed: number; error
         continue;
       }
 
-      // GUARD: Lead já é cliente? Cancelar enrollment (apenas para prospecção, não para webinário)
-      // Webinário é gratuito — clientes também participam
-      const isClientGuardEnabled = !agent.pipeline_id || agent.pipeline_id !== '90b09d81-8282-4503-a869-1787baf8f736';
-      if (isClientGuardEnabled && await isLeadAlreadyClient(supabase, enrollment.lead_id)) {
+      // GUARD: Lead já é cliente? Cancelar enrollment (cadência é só de prospecção)
+      if (await isLeadAlreadyClient(supabase, enrollment.lead_id)) {
         console.log(`⏭️ Lead ${lead.name} já é cliente — cancelando cadência de prospecção`);
         await supabase
           .from('ai_agent_cadence_enrollments')

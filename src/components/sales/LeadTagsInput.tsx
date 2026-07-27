@@ -8,14 +8,12 @@ import { useQuery } from "@tanstack/react-query";
 
 const PREDEFINED_TAGS = [
   "Evento Presencial",
-  "Webinário",
   "Instagram",
   "Indicação",
 ];
 
 const TAG_COLORS: Record<string, string> = {
   "Evento Presencial": "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700",
-  "Webinário": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700",
   "Instagram": "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-700",
   "Indicação": "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700",
 };

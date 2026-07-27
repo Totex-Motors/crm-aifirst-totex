@@ -167,53 +167,6 @@ export const useContactDeals = (leadId: string | undefined) => {
         }
       }
 
-      // 4. Enriquecer com webinar enrollment + atendencia
-      if (allDeals.length > 0) {
-        const allDealIds = allDeals.map(d => d.id);
-        const { data: enrollments } = await supabase
-          .from('lead_webinar_enrollments')
-          .select('deal_id, lead_id, webinar_config_id, webinar_config:webinar_config!lead_webinar_enrollments_webinar_config_id_fkey(id, title, event_date)')
-          .in('deal_id', allDealIds);
-
-        // Buscar atendencia em event_registrations via webinar_config_id (FK direta)
-        const enrollmentLeadIds = [...new Set((enrollments || []).map((e: any) => e.lead_id).filter(Boolean))];
-        const attendanceByLeadAndConfig = new Map<string, { attended: boolean | null; total_duration_minutes: number | null }>();
-        if (enrollmentLeadIds.length > 0) {
-          const { data: regs } = await supabase
-            .from('event_registrations')
-            .select('lead_id, webinar_config_id, attended, total_duration_minutes')
-            .in('lead_id', enrollmentLeadIds)
-            .not('webinar_config_id', 'is', null);
-          (regs || []).forEach((r: any) => {
-            if (r.lead_id && r.webinar_config_id) {
-              attendanceByLeadAndConfig.set(`${r.lead_id}::${r.webinar_config_id}`, {
-                attended: r.attended,
-                total_duration_minutes: r.total_duration_minutes,
-              });
-            }
-          });
-        }
-
-        const enrollmentByDealId = new Map<string, any>();
-        (enrollments || []).forEach((e: any) => {
-          if (e.deal_id && e.webinar_config) {
-            const key = `${e.lead_id}::${e.webinar_config_id}`;
-            const att = attendanceByLeadAndConfig.get(key);
-            enrollmentByDealId.set(e.deal_id, {
-              webinar_config_id: e.webinar_config_id,
-              webinar_title: e.webinar_config.title,
-              event_date: e.webinar_config.event_date,
-              attended: att?.attended ?? null,
-              attended_duration: att?.total_duration_minutes ?? null,
-            });
-          }
-        });
-
-        for (const deal of allDeals) {
-          (deal as any).webinar_enrollment = enrollmentByDealId.get(deal.id) || null;
-        }
-      }
-
       return allDeals as Negociacao[];
     },
     enabled: !!leadId,

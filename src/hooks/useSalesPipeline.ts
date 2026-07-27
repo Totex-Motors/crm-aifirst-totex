@@ -45,10 +45,9 @@ export const usePipelineStage = (stageId: string | undefined) => {
 };
 
 // Fetch complete pipeline with deals (for Kanban view)
-// webinarConfigId: filtra por inscricao em um webinario especifico (via lead_webinar_enrollments)
-export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webinarConfigId?: string) => {
+export const usePipelineDeals = (salesRepId?: string, pipelineId?: string) => {
   return useQuery({
-    queryKey: ['pipeline-deals', salesRepId, pipelineId, webinarConfigId],
+    queryKey: ['pipeline-deals', salesRepId, pipelineId],
     staleTime: 3 * 60 * 1000,  // 3 min — evita refetch ao trocar abas no cockpit
     gcTime: 10 * 60 * 1000,    // 10 min no garbage collector
     queryFn: async () => {
@@ -74,7 +73,7 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
           lead:leads!deals_lead_id_fkey(
             id, name, phone, email, sales_score,
             utm_source, utm_campaign, utm_content, sales_rep_id,
-            company_name, webinar_config_id, source
+            company_name, source
           ),
           product:products!deals_product_id_fkey(id, name),
           sales_rep:team_members!deals_sales_rep_id_fkey(id, name)
@@ -90,74 +89,10 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
         dealsQuery = dealsQuery.or(`sales_rep_id.eq.${salesRepId},sdr_id.eq.${salesRepId}`);
       }
 
-      // Filtro por webinario: pega deal_ids dos enrollments do webinario antes da query principal
-      if (webinarConfigId) {
-        const { data: enrollments } = await supabase
-          .from('lead_webinar_enrollments')
-          .select('deal_id')
-          .eq('webinar_config_id', webinarConfigId)
-          .not('deal_id', 'is', null);
-        const dealIdsFiltered = (enrollments || []).map((e: any) => e.deal_id);
-        if (dealIdsFiltered.length === 0) {
-          // Sem deals nesse webinario — retorna estrutura vazia mas mantem stages
-          return (stages || []).map((stage) => ({ stage, deals: [], total_value: 0, count: 0 }));
-        }
-        dealsQuery = dealsQuery.in('id', dealIdsFiltered);
-      }
-
       const { data: deals, error: dealsError } = await dealsQuery.limit(1000);
       if (dealsError) throw dealsError;
 
       const leadIds = [...new Set((deals || []).map((d: any) => d.lead_id).filter(Boolean))] as string[];
-
-      // Buscar enrollments + nome + data do webinario pra cada deal (pra mostrar no card)
-      const enrollmentByDeal = new Map<string, {
-        webinar_config_id: string;
-        webinar_title: string;
-        event_date: string | null;
-        attended: boolean | null;
-        attended_duration: number | null;
-      }>();
-      if (deals && deals.length > 0) {
-        const allDealIds = deals.map((d: any) => d.id);
-        const { data: enrollments } = await supabase
-          .from('lead_webinar_enrollments')
-          .select('deal_id, lead_id, webinar_config_id, webinar_config:webinar_config!lead_webinar_enrollments_webinar_config_id_fkey(id, title, event_date)')
-          .in('deal_id', allDealIds);
-
-        // Buscar atendencia em event_registrations via webinar_config_id (FK direta, sem match por nome)
-        const enrollmentLeadIds = [...new Set((enrollments || []).map((e: any) => e.lead_id).filter(Boolean))];
-        const attendanceByLeadAndConfig = new Map<string, { attended: boolean | null; total_duration_minutes: number | null }>();
-        if (enrollmentLeadIds.length > 0) {
-          const { data: regs } = await supabase
-            .from('event_registrations')
-            .select('lead_id, webinar_config_id, attended, total_duration_minutes')
-            .in('lead_id', enrollmentLeadIds)
-            .not('webinar_config_id', 'is', null);
-          (regs || []).forEach((r: any) => {
-            if (r.lead_id && r.webinar_config_id) {
-              attendanceByLeadAndConfig.set(`${r.lead_id}::${r.webinar_config_id}`, {
-                attended: r.attended,
-                total_duration_minutes: r.total_duration_minutes,
-              });
-            }
-          });
-        }
-
-        (enrollments || []).forEach((e: any) => {
-          if (e.deal_id && e.webinar_config) {
-            const key = `${e.lead_id}::${e.webinar_config_id}`;
-            const att = attendanceByLeadAndConfig.get(key);
-            enrollmentByDeal.set(e.deal_id, {
-              webinar_config_id: e.webinar_config_id,
-              webinar_title: e.webinar_config.title,
-              event_date: e.webinar_config.event_date,
-              attended: att?.attended ?? null,
-              attended_duration: att?.total_duration_minutes ?? null,
-            });
-          }
-        });
-      }
 
       // === FASE PARALELA: Buscar diagnósticos, interações, unreads, tasks e handled em paralelo ===
       const diagnosticsByLead = new Map<string, { qualification_score: number; monthly_revenue: string }>();
@@ -424,7 +359,6 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
           last_message_content: lastMsgData?.content || null,
           last_message_is_from_me: lastMsgData?.isFromMe ?? null,
           contacts: contactsByDeal.get(deal.id) || [],
-          webinar_enrollment: enrollmentByDeal.get(deal.id) || null,
         };
       });
 

@@ -219,9 +219,6 @@ export interface SalesLead {
   utm_term?: string;
   utm_content?: string;
 
-  // Webinar tracking (carimbado pela quiz-api no momento do cadastro)
-  webinar_config_id?: string | null;
-
   // Related
   organization_id?: string;
   organization?: {

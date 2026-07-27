@@ -163,8 +163,6 @@
   "src/hooks/useCampaigns.ts|TS2769|No overload matches this call.",
   "src/hooks/useClientTimeline.ts|TS2322|Type '\"campaign\"' is not assignable to type '\"note\" | \"call\" | \"meeting\" | \"support\" | \"whatsapp\" | \"onboarding\" | \"lead\" | \"instagram\" | \"payment\" | \"billing\" | \"visit\" | \"access\" | \"lesson\" | \"checkout\" | \"purchase\" | \"registration\" | ... 5 more ... | \"testimonial\"'.",
   "src/hooks/useClientTimeline.ts|TS2322|Type '\"marketing\"' is not assignable to type '\"cs\" | \"sales\"'.",
-  "src/hooks/useClientTimeline.ts|TS2322|Type '\"marketing\"' is not assignable to type '\"cs\" | \"sales\"'.",
-  "src/hooks/useClientTimeline.ts|TS2322|Type '\"webinar\"' is not assignable to type '\"note\" | \"call\" | \"meeting\" | \"support\" | \"whatsapp\" | \"onboarding\" | \"lead\" | \"instagram\" | \"payment\" | \"billing\" | \"visit\" | \"access\" | \"lesson\" | \"checkout\" | \"purchase\" | \"registration\" | ... 5 more ... | \"testimonial\"'.",
   "src/hooks/useClientTimeline.ts|TS2339|Property 'participant_username' does not exist on type 'unknown'.",
   "src/hooks/useClientTimeline.ts|TS2589|Type instantiation is excessively deep and possibly infinite.",
   "src/hooks/useCoachPlaybooks.ts|TS2345|Argument of type 'Partial<{ current_phase_index: number; checklist_state: Record<string, string>; events: CoachSessionEvent[]; phases_completed: number; alerts_triggered: number; suggestions_shown: number; briefing: string; }>' is not assignable to parameter of type '{ alerts_triggered?: number; briefing?: string; call_id?: string; checklist_state?: Json; created_at?: string; current_phase_index?: number; ended_at?: string; events?: Json; id?: string; ... 6 more ...; tenant_id?: string; }'.",

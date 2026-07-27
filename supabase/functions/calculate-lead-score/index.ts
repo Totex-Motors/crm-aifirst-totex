@@ -88,40 +88,21 @@ Deno.serve(async (req: Request) => {
       .order("created_at", { ascending: false })
       .limit(10);
 
-    // 5. Buscar checkouts abandonados
-    const { data: checkouts } = await supabase
-      .from("checkouts")
-      .select("*")
-      .eq("lead_id", resolvedLeadId)
-      .eq("status", "abandoned")
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    // 6. Buscar dados do Instagram (se disponível)
-    let instagramData = null;
-    if (lead.instagram_profile_id) {
-      const { data: profile } = await supabase
-        .from("instagram_profiles")
-        .select("*")
-        .eq("id", lead.instagram_profile_id)
-        .single();
-      instagramData = profile;
-    }
-
-    // 7. Buscar deals anteriores (para entender histórico de negociação)
+    // 5. Buscar deals anteriores (para entender histórico de negociação)
     const { data: deals } = await supabase
       .from("deals")
-      .select("id, status, product_id, negotiated_price, lost_reason, created_at")
+      .select("id, status, vehicle_id, negotiated_price, lost_reason, created_at")
       .eq("lead_id", resolvedLeadId)
       .order("created_at", { ascending: false })
       .limit(5);
 
-    // 8. Buscar produtos disponíveis para contexto
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, name, price")
-      .eq("active", true)
-      .limit(10);
+    // 6. Buscar veículos em estoque para contexto (match com o interesse do lead)
+    const { data: vehicles } = await supabase
+      .from("vehicles")
+      .select("id, title, make, model, version, year, price, condition")
+      .eq("is_active", true)
+      .eq("is_sold", false)
+      .limit(15);
 
     // Preparar dados AutoConf se disponível (normalizado para reduzir tokens no prompt)
     const autoconfMeta = lead.metadata?.autoconf ?? null;
@@ -189,7 +170,6 @@ Deno.serve(async (req: Request) => {
         email: lead.email,
         phone: lead.phone,
         instagram: lead.instagram,
-        company_name: lead.company_name,
         region: lead.region,
         utm_source: lead.utm_source,
         utm_medium: lead.utm_medium,
@@ -219,8 +199,6 @@ Deno.serve(async (req: Request) => {
       })),
       purchase_attempts: {
         transactions: transactions?.length || 0,
-        abandoned_checkouts: checkouts?.length || 0,
-        last_checkout: checkouts?.[0]?.created_at || null,
         last_transaction: transactions?.[0] ? {
           status: transactions[0].status,
           amount: transactions[0].amount,
@@ -229,20 +207,20 @@ Deno.serve(async (req: Request) => {
       },
       deals_history: (deals || []).map((d: any) => ({
         status: d.status,
-        product_id: d.product_id,
+        vehicle_id: d.vehicle_id,
         price: d.negotiated_price,
         lost_reason: d.lost_reason,
         date: d.created_at,
       })),
-      available_products: (products || []).map((p: any) => ({
-        name: p.name,
-        price: p.price,
+      available_vehicles: (vehicles || []).map((v: any) => ({
+        title: v.title,
+        make: v.make,
+        model: v.model,
+        version: v.version,
+        year: v.year,
+        price: v.price,
+        condition: v.condition,
       })),
-      instagram: instagramData ? {
-        followers: instagramData.followers_count,
-        engagement_rate: instagramData.engagement_rate,
-        is_business: instagramData.is_business_account,
-      } : null,
     };
 
     // Construir contexto do playbook se disponível
@@ -271,26 +249,25 @@ Analise TODOS os dados do lead e calcule um SCORE DE 0 A 100 baseado em:
 
 **FATORES DE PONTUAÇÃO:**
 1. **Engajamento (0-25)**: Frequência e qualidade das conversas, respostas rápidas, perguntas detalhadas, quantidade de mensagens, iniciativa do lead
-2. **Intenção de Compra (0-35)**: Menções a preço, timing, comparação com concorrentes, perguntas sobre produto, checkouts abandonados, transações anteriores, deals criados
-3. **Perfil (0-20)**: Origem (UTM), perfil Instagram, seguidores, se é empresa, região, dados da empresa
-4. **Timing (0-20)**: Urgência demonstrada, checkouts abandonados, data da última interação, timeline de eventos
+2. **Intenção de Compra (0-35)**: Menções a preço/FIPE, timing, veículo específico de interesse, intenção de troca ou financiamento, perguntas sobre o veículo, transações anteriores, negociações criadas
+3. **Perfil (0-20)**: Origem (UTM), região, tipo de negociação (compra/troca/financiamento), veículo avaliado para troca
+4. **Timing (0-20)**: Urgência demonstrada, prazo mencionado, data da última interação, timeline de eventos
 
 **DADOS DISPONÍVEIS PARA ANÁLISE:**
 - Conversas WhatsApp (mensagens do lead e do vendedor)
 - Timeline de eventos (visitas, interações, etc.)
-- Transações e checkouts abandonados
+- Transações anteriores
 - Histórico de deals/negociações
-- Produtos disponíveis e preços
-- Dados do Instagram (se disponível)
+- Veículos em estoque disponíveis (para match com o interesse do lead)
 - Dados AutoConf (veículo de interesse, troca, mensagem do cliente — se disponível)
 - Insights anteriores de IA (se existirem)
 
-**BANT QUALIFICATION:**
+**QUALIFICAÇÃO (nicho automotivo):**
 Identifique se o lead demonstrou:
-- Budget (Orçamento): Perguntou preço, parcelas, demonstrou capacidade financeira, mencionou valores, tem veículo para troca
-- Authority (Autoridade): É o decisor ou mencionou precisar consultar alguém, cargo/função
-- Need (Necessidade): Expressou claramente o problema/dor que quer resolver, interesse específico em produto/veículo
-- Timeline (Urgência): Mencionou prazo, demonstrou urgência, evento gatilho, tipo de negociação direta
+- Budget (Capacidade financeira): Perguntou preço/parcelas/FIPE, mencionou valores, tem veículo para troca, interesse em financiamento
+- Authority (Seriedade da negociação): Demonstrou decisão concreta de compra (não só curiosidade), agendou visita/test drive
+- Need (Necessidade): Interesse específico em um veículo, tipo de negociação claro (compra/troca/financiamento)
+- Timeline (Urgência): Mencionou prazo, demonstrou urgência, evento gatilho, negociação direta
 
 Responda APENAS em JSON válido:
 {
