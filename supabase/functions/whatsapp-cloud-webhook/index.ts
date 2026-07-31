@@ -45,8 +45,14 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 async function verifyMetaSignature(rawBody: Uint8Array, signatureHeader: string | null): Promise<boolean> {
+  // Fail-open COM alerta enquanto o app secret não estiver configurado: sem ele
+  // não há como validar a origem do POST, mas rejeitar tudo derrubaria a
+  // recepção de mensagens (Cloud API é o único canal em produção hoje). Então
+  // deixamos passar e logamos em nível crítico. Assim que WHATSAPP_CLOUD_APP_SECRET
+  // for setado, a verificação HMAC abaixo passa a valer e a trava fecha sozinha.
+  // TODO(segurança): remover este bypass quando o secret estiver setado em prod.
   if (!APP_SECRET) {
-    console.warn("[Cloud Webhook] WHATSAPP_CLOUD_APP_SECRET not set — skipping HMAC verification");
+    console.error("[Cloud Webhook] CRITICAL: WHATSAPP_CLOUD_APP_SECRET not set — accepting POST WITHOUT signature verification (fail-open). Set the secret to enforce HMAC validation.");
     return true;
   }
   const normalizedSignature = signatureHeader?.trim().toLowerCase() || "";
@@ -220,6 +226,11 @@ async function handleIncomingMessage(supabase: any, msg: any, contacts: any[], i
   const contactName = contacts?.find((c: any) => c.wa_id === from)?.profile?.name || from;
   const cleanPhone = from.replace(/\D/g, "");
 
+  // Referral CTWA (click-to-WhatsApp): Meta envia quando o lead veio de anúncio
+  // (Instagram/Facebook). Campos: source_type ('ad'|'post'), source_id (ad id),
+  // source_url, headline, body, media_type, ctwa_clid.
+  const referral = msg.referral || null;
+
   // Se tem mídia, baixar e armazenar no Storage
   let storedMediaUrl: string | null = null;
   if (mediaUrl) {
@@ -251,28 +262,69 @@ async function handleIncomingMessage(supabase: any, msg: any, contacts: any[], i
 
   // Buscar lead pelo telefone (últimos 8 dígitos)
   const last8 = cleanPhone.slice(-8);
-  const { data: lead } = await supabase
+  const { data: lead, error: leadLookupError } = await supabase
     .from("leads")
-    .select("id, name")
+    .select("id, name, source, utm_source, sales_rep_id")
     .ilike("phone", `%${last8}`)
     .limit(1)
     .maybeSingle();
 
+  if (leadLookupError) {
+    console.error(`[Cloud Webhook] Lead lookup error:`, leadLookupError.message);
+  }
+
   const leadId = lead?.id || null;
 
-  // Se não encontrou lead, criar um novo
+  // Campos de origem derivados do referral CTWA
+  const referralFields = referral
+    ? {
+        source: "whatsapp_ads",
+        utm_source: "meta_ads",
+        utm_medium: referral.source_type || "ad",
+        utm_campaign: referral.source_id || null,
+        utm_content: referral.headline || null,
+      }
+    : null;
+
+  // Se não encontrou lead, criar um novo (com origem e distribuição round-robin)
   let finalLeadId = leadId;
   if (!finalLeadId) {
-    const { data: newLead } = await supabase
+    const salesRepId = instanceId ? await pickNextSalesRep(supabase, instanceId) : null;
+    const { data: newLead, error: leadInsertError } = await supabase
       .from("leads")
       .insert({
         name: contactName !== cleanPhone ? contactName : cleanPhone,
         phone: cleanPhone,
+        sales_rep_id: salesRepId,
+        ...(referralFields || {}),
+        ...(referral ? { metadata: { ctwa_referral: referral } } : {}),
       })
       .select("id")
       .maybeSingle();
+    if (leadInsertError) {
+      console.error(`[Cloud Webhook] Lead insert error:`, leadInsertError.message);
+    }
     finalLeadId = newLead?.id || null;
-    console.log(`[Cloud Webhook] Created new lead: ${finalLeadId}`);
+    console.log(`[Cloud Webhook] Created new lead: ${finalLeadId}${salesRepId ? ` (rep: ${salesRepId})` : ""}${referral ? ` [CTWA ad: ${referral.source_id || "?"}]` : ""}`);
+  } else {
+    // Lead já existia: preencher origem do anúncio (só se ainda não tem) e
+    // distribuir se estiver sem dono
+    const updates: Record<string, any> = {};
+    if (referralFields && !lead.source && !lead.utm_source) {
+      Object.assign(updates, referralFields);
+    }
+    if (!lead.sales_rep_id && instanceId) {
+      const salesRepId = await pickNextSalesRep(supabase, instanceId);
+      if (salesRepId) updates.sales_rep_id = salesRepId;
+    }
+    if (Object.keys(updates).length > 0) {
+      const { error: leadUpdateError } = await supabase.from("leads").update(updates).eq("id", finalLeadId);
+      if (leadUpdateError) {
+        console.error(`[Cloud Webhook] Lead update error:`, leadUpdateError.message);
+      } else {
+        console.log(`[Cloud Webhook] Lead ${finalLeadId} updated:`, Object.keys(updates).join(", "));
+      }
+    }
   }
 
   // Salvar mensagem
@@ -290,7 +342,7 @@ async function handleIncomingMessage(supabase: any, msg: any, contacts: any[], i
     sender_phone: cleanPhone,
     lead_id: finalLeadId,
     media_url: storedMediaUrl || null,
-    metadata: { source: "cloud_api", original_type: msgType, cloud_media_id: mediaUrl || null },
+    metadata: { source: "cloud_api", original_type: msgType, cloud_media_id: mediaUrl || null, ...(referral ? { ctwa_referral: referral } : {}) },
   });
 
   if (error) {
@@ -300,6 +352,18 @@ async function handleIncomingMessage(supabase: any, msg: any, contacts: any[], i
     }
     console.error(`[Cloud Webhook] Error saving message:`, error.message);
     return;
+  }
+
+  // Disparar automações de pipeline (lead_replied) — mesmo mecanismo do webhook UAZAPI
+  if (finalLeadId) {
+    fetch(`${SUPABASE_URL}/functions/v1/process-automation-rules`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ trigger_type: "lead_replied", lead_id: finalLeadId }),
+    }).catch((err) => console.error("[Cloud Webhook] Automation rules dispatch error:", err));
   }
 
   // Enqueue pra AI agent (mesmo mecanismo do webhook UAZAPI)
@@ -458,6 +522,27 @@ async function downloadAndStoreMedia(supabase: any, mediaId: string, msgType: st
     return urlData.publicUrl;
   } catch (err: any) {
     console.error(`[Cloud Webhook] Error downloading media:`, err.message);
+    return null;
+  }
+}
+
+// Round-robin atômico: delega pra RPC `pick_round_robin_rep`, que serializa
+// invocações concorrentes via row lock num cursor por instância (evita a race
+// de duas mensagens simultâneas escolherem o mesmo vendedor). SDRs têm
+// prioridade; se não houver membro vinculado, devolve null e o lead entra sem
+// dono. Ver migration 20260722120000_whatsapp_round_robin.sql.
+async function pickNextSalesRep(supabase: any, instanceId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.rpc("pick_round_robin_rep", {
+      p_instance_id: instanceId,
+    });
+    if (error) {
+      console.error("[Cloud Webhook] pickNextSalesRep RPC error:", error.message);
+      return null;
+    }
+    return (data as string | null) || null;
+  } catch (err: any) {
+    console.error("[Cloud Webhook] pickNextSalesRep error:", err.message);
     return null;
   }
 }

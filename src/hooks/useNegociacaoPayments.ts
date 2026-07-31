@@ -150,7 +150,8 @@ async function generateInstallmentRows(paymentId: string, count: number, value: 
     });
   }
 
-  await supabase.from('deal_payment_installments').insert(rows);
+  const { error } = await supabase.from('deal_payment_installments').insert(rows);
+  if (error) throw error;
 }
 
 // Create multiple payments at once (for deal closing)
