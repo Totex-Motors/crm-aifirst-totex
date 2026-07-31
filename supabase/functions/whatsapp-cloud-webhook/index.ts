@@ -45,13 +45,15 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 async function verifyMetaSignature(rawBody: Uint8Array, signatureHeader: string | null): Promise<boolean> {
-  // Fail-closed: sem o app secret configurado não há como validar a origem do
-  // POST, então rejeitamos em vez de aceitar qualquer requisição. Isso para a
-  // recepção de mensagens até o secret ser setado — de propósito: melhor não
-  // receber do que aceitar webhook forjado.
+  // Fail-open COM alerta enquanto o app secret não estiver configurado: sem ele
+  // não há como validar a origem do POST, mas rejeitar tudo derrubaria a
+  // recepção de mensagens (Cloud API é o único canal em produção hoje). Então
+  // deixamos passar e logamos em nível crítico. Assim que WHATSAPP_CLOUD_APP_SECRET
+  // for setado, a verificação HMAC abaixo passa a valer e a trava fecha sozinha.
+  // TODO(segurança): remover este bypass quando o secret estiver setado em prod.
   if (!APP_SECRET) {
-    console.error("[Cloud Webhook] CRITICAL: WHATSAPP_CLOUD_APP_SECRET not set — rejecting all POST events. Configure the secret to enable message reception.");
-    return false;
+    console.error("[Cloud Webhook] CRITICAL: WHATSAPP_CLOUD_APP_SECRET not set — accepting POST WITHOUT signature verification (fail-open). Set the secret to enforce HMAC validation.");
+    return true;
   }
   const normalizedSignature = signatureHeader?.trim().toLowerCase() || "";
   if (!normalizedSignature.startsWith("sha256=")) return false;
