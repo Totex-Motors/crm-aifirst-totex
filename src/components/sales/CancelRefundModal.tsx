@@ -183,21 +183,28 @@ export function CancelRefundModal({
         // Modo refund: 1 deal específico
         const pipelineId = deal.pipeline_id || deal.pipeline_stage?.pipeline_id;
         const refundStageId = REFUND_STAGES[pipelineId];
-        await supabase.from("deals").update({
+        const { error: dealError } = await supabase.from("deals").update({
           status: "lost",
           lost_at: new Date().toISOString(),
           lost_reason: `${mode === "churn" ? "Churn" : "Reembolso"}: ${reasonLabel}`,
           pipeline_stage_id: refundStageId || undefined,
           updated_at: new Date().toISOString(),
         }).eq("id", deal.id);
+        if (dealError) throw dealError;
 
         if (cancelPending && payments) {
           const pendingIds = payments.filter((p: any) => p.status === "pending" || p.status === "link_generated").map((p: any) => p.id);
-          if (pendingIds.length > 0) await supabase.from("deal_payments").update({ status: "cancelled" }).in("id", pendingIds);
+          if (pendingIds.length > 0) {
+            const { error: cancelError } = await supabase.from("deal_payments").update({ status: "cancelled" }).in("id", pendingIds);
+            if (cancelError) throw cancelError;
+          }
         }
         if (refundReceived && payments) {
           const receivedIds = payments.filter((p: any) => p.status === "received" || p.status === "confirmed").map((p: any) => p.id);
-          if (receivedIds.length > 0) await supabase.from("deal_payments").update({ status: "refunded" }).in("id", receivedIds);
+          if (receivedIds.length > 0) {
+            const { error: refundError } = await supabase.from("deal_payments").update({ status: "refunded" }).in("id", receivedIds);
+            if (refundError) throw refundError;
+          }
         }
       } else if (resolvedLeadId) {
         // Modo churn sem deal: pegar todos os deals do lead

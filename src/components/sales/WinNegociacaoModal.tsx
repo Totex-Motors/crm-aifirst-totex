@@ -111,7 +111,8 @@ export function WinNegociacaoModal({ open, onOpenChange, deal }: WinDealModalPro
       if (priceJustification.trim()) updates.discount_reason = priceJustification.trim();
       if (Object.keys(updates).length > 0) {
         updates.updated_at = new Date().toISOString();
-        await supabase.from('deals').update(updates).eq('id', deal.id);
+        const { error: dealUpdateError } = await supabase.from('deals').update(updates).eq('id', deal.id);
+        if (dealUpdateError) throw dealUpdateError;
       }
 
       // Criar parcelas se configuradas (e não tem parcelas existentes)
