@@ -708,7 +708,7 @@ const SalesWhatsAppInbox = () => {
                 <div className="flex flex-col leading-tight min-w-0">
                   <div className="flex items-center gap-2">
                     <h1 className="text-[15px] font-semibold tracking-tight text-foreground truncate">
-                      Inbox
+                      Atendimentos
                     </h1>
                     <span className="hidden sm:inline text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
                       WhatsApp
