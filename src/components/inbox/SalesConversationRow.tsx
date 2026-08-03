@@ -325,14 +325,14 @@ export function SalesConversationRow({
 
           {/* Actions */}
           <div className="flex items-center gap-1">
-            {/* Mark as handled button */}
-            {awaitingYourReply && !isHandled && (
+            {/* Finalizar atendimento — sempre disponível em conversa aberta */}
+            {!isHandled && (
               <button
                 onClick={(e) => { e.stopPropagation(); onMarkHandled(); }}
                 className="text-[11px] px-2 py-1 rounded font-medium bg-gray-100 dark:bg-muted text-gray-600 dark:text-muted-foreground hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-700 dark:hover:text-green-300 transition-colors flex items-center gap-1 min-h-[32px]"
-                title="Marcar como resolvida"
+                title="Finalizar atendimento"
               >
-                <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
+                <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
               </button>
             )}
 

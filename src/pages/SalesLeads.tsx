@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ import {
   UserPlus,
   Zap,
   Car,
+  Bell,
 } from "lucide-react";
 import { cn, navigateTo } from "@/lib/utils";
 import type { SalesStage, SalesLead } from "@/types/sales.types";
@@ -82,6 +85,44 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
   const totalLeads = leadsData?.total || 0;
   const totalPages = leadsData?.totalPages || 0;
   const { data: countByStage } = useLeadsCountByStage();
+  const queryClient = useQueryClient();
+
+  // Aviso em tempo real: novo lead chegou (ex: entrada do Autoconf) e ainda
+  // não teve primeiro contato. Um lead recém-inserido não tem conversa ainda,
+  // então o INSERT em `leads` é o gatilho de "novo sem contato".
+  const [newLeadCount, setNewLeadCount] = useState(0);
+  useEffect(() => {
+    const channel = supabase
+      .channel("sales-leads-new")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "leads" },
+        (payload) => {
+          const nome = (payload.new as { name?: string } | null)?.name || "Novo lead";
+          setNewLeadCount((c) => c + 1);
+          queryClient.invalidateQueries({ queryKey: ["leads-count-by-stage"] });
+          toast({
+            title: "Novo lead chegou",
+            description: `${nome} entrou e ainda não teve contato.`,
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, toast]);
+
+  const handleShowNewLeads = () => {
+    setNewLeadCount(0);
+    setSelectedStage("new");
+    setSortBy("recent");
+    setPage(0);
+    searchParams.set("stage", "new");
+    setSearchParams(searchParams);
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["leads-count-by-stage"] });
+  };
 
   // Sort leads
   const sortedLeads = useMemo(() => {
@@ -214,6 +255,24 @@ const SalesLeads = ({ mode = "contacts" }: SalesLeadsProps) => {
             )}
           </div>
         </div>
+
+        {/* Aviso de novos leads chegando em tempo real */}
+        {newLeadCount > 0 && (
+          <button
+            onClick={handleShowNewLeads}
+            className="flex items-center gap-2 w-full sm:w-auto self-start rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100 transition-colors dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-900/40"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </span>
+            <Bell className="h-4 w-4" />
+            {newLeadCount === 1
+              ? "1 novo lead chegou"
+              : `${newLeadCount} novos leads chegaram`}
+            <span className="opacity-70">— ver agora</span>
+          </button>
+        )}
 
         {/* Stage Pills */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted -mx-1 px-1">

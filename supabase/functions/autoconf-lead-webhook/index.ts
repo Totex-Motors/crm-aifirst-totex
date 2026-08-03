@@ -82,6 +82,37 @@ function normalizeEventType(type: string): string {
   return t;
 }
 
+// Round-robin de distribuição: reaproveita a RPC atômica `pick_round_robin_rep`
+// (mesma usada pelo whatsapp-cloud-webhook). Como o lead do Autoconf não vem
+// amarrado a uma instância, escolhemos uma instância comercial (preferindo
+// conectada) para servir de cursor do rodízio da equipe comercial. Se não houver
+// instância/membro, devolve null e o lead entra sem dono (visível só p/ admin).
+// deno-lint-ignore no-explicit-any
+async function pickSalesRepForAutoconf(supabase: any): Promise<string | null> {
+  try {
+    const { data: instances } = await supabase
+      .from("whatsapp_instances")
+      .select("id, status")
+      .contains("teams", ["comercial"]);
+    if (!instances?.length) return null;
+    const instance =
+      instances.find((i: { status?: string }) =>
+        i.status === "connected" || i.status === "cloud_api"
+      ) || instances[0];
+    const { data, error } = await supabase.rpc("pick_round_robin_rep", {
+      p_instance_id: instance.id,
+    });
+    if (error) {
+      console.warn("[AutoConf] Round-robin falhou (não fatal):", error.message);
+      return null;
+    }
+    return (data as string | null) ?? null;
+  } catch (err) {
+    console.warn("[AutoConf] Round-robin exception (não fatal):", err);
+    return null;
+  }
+}
+
 const STAGE_MAP: Record<string, string> = {
   novo: "new",
   sucesso: "ganho",
@@ -199,6 +230,13 @@ Deno.serve(async (req: Request) => {
       : {}),
   };
 
+  // Tags automáticas de origem: "autoconf" sempre + slug do portal (ex: "webmotors")
+  // quando disponível. Cliente que fala no WhatsApp direto não passa por aqui,
+  // então não recebe estas tags — fica naturalmente distinguível.
+  const autoTags = Array.from(
+    new Set(["autoconf", sourceSlug || null].filter(Boolean) as string[]),
+  );
+
   const sharedFields: Record<string, unknown> = {
     external_id: externalId,
     negotiation_type: body.negotiation_type || null,
@@ -218,7 +256,7 @@ Deno.serve(async (req: Request) => {
   // 1. Find by external_id (primary dedup key — AutoConf lead_id)
   const { data: byExternalId } = await supabase
     .from("leads")
-    .select("id, metadata")
+    .select("id, metadata, tags, sales_rep_id")
     .eq("external_id", externalId)
     .maybeSingle();
 
@@ -227,6 +265,13 @@ Deno.serve(async (req: Request) => {
       .from("leads")
       .update({
         ...sharedFields,
+        // Só distribui se ainda não tem dono — não reatribui lead já em atendimento
+        ...(byExternalId.sales_rep_id
+          ? {}
+          : { sales_rep_id: await pickSalesRepForAutoconf(supabase) }),
+        tags: Array.from(
+          new Set([...(byExternalId.tags ?? []), ...autoTags]),
+        ),
         metadata: {
           ...(byExternalId.metadata ?? {}),
           autoconf: {
@@ -250,7 +295,7 @@ Deno.serve(async (req: Request) => {
     const last8 = phone.replace(/\D/g, "").slice(-8);
     const { data: byPhone } = await supabase
       .from("leads")
-      .select("id, metadata")
+      .select("id, metadata, tags, sales_rep_id")
       .ilike("phone", `%${last8}`)
       .limit(1)
       .maybeSingle();
@@ -261,6 +306,12 @@ Deno.serve(async (req: Request) => {
         .update({
           ...sharedFields,
           phone,
+          ...(byPhone.sales_rep_id
+            ? {}
+            : { sales_rep_id: await pickSalesRepForAutoconf(supabase) }),
+          tags: Array.from(
+            new Set([...(byPhone.tags ?? []), ...autoTags]),
+          ),
           metadata: {
             ...(byPhone.metadata ?? {}),
             autoconf: {
@@ -301,7 +352,8 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // 4. Create new lead
+  // 4. Create new lead (distribuído via round-robin da equipe comercial)
+  const assignedSalesRepId = await pickSalesRepForAutoconf(supabase);
   const { data: newLead, error } = await supabase
     .from("leads")
     .insert({
@@ -309,6 +361,8 @@ Deno.serve(async (req: Request) => {
       email: body.email || null,
       phone: phone || null,
       status: "new",
+      sales_rep_id: assignedSalesRepId,
+      tags: autoTags,
       metadata: {
         autoconf: autoconfMetadata,
       },

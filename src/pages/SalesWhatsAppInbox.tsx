@@ -108,7 +108,7 @@ function useSessionState<T>(key: string, defaultValue: T): [T, (value: T | ((pre
 }
 
 const SalesWhatsAppInbox = () => {
-  const { teamMember } = useAuth();
+  const { teamMember, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -304,6 +304,8 @@ const SalesWhatsAppInbox = () => {
   // Quando "Todas instâncias", usar teamFilter='comercial' pra RPC filtrar server-side (não client-side)
   // funnelFilter com UUID = stage_id (filtro por etapa via RPC)
   const isStageFilter = filters.funnelFilter?.includes('-');
+  // Aba de atendimento: "abertas" (não finalizadas) x "concluidas" (finalizadas)
+  const [inboxTab, setInboxTab] = useSessionState<"abertas" | "concluidas">("sales-inbox-tab", "abertas");
   const effectiveFilters = useMemo(() => ({
     ...filters,
     instanceId: instanceId || undefined,
@@ -311,7 +313,10 @@ const SalesWhatsAppInbox = () => {
     pipelineId: selectedPipelineId || undefined,
     stageId: isStageFilter ? filters.funnelFilter : undefined,
     funnelFilter: isStageFilter ? undefined : filters.funnelFilter,
-  }), [filters, instanceId, selectedPipelineId, isStageFilter]);
+    // Aba comanda o hideHandled: Abertas esconde finalizadas; Concluídas traz tudo
+    // e o filtro client-side abaixo mantém só as finalizadas.
+    hideHandled: inboxTab === "abertas",
+  }), [filters, instanceId, selectedPipelineId, isStageFilter, inboxTab]);
   const [conversationLimit, setConversationLimit] = useState(100);
   const { data: conversations, isLoading, isError, refetch: refetchConversations } = useInboxConversations(
     effectiveFilters,
@@ -336,6 +341,13 @@ const SalesWhatsAppInbox = () => {
   const [leadPipelineMap, setLeadPipelineMap] = useState<Record<string, string>>({});
   const [leadPipelineIdMap, setLeadPipelineIdMap] = useState<Record<string, string>>({});
   const [leadStageIdMap, setLeadStageIdMap] = useState<Record<string, string>>({});
+  // Dono de cada lead (leads.sales_rep_id) — base do filtro "meus atendimentos".
+  // É o campo que o round-robin (WhatsApp e Autoconf) popula.
+  const [leadOwnerMap, setLeadOwnerMap] = useState<Record<string, string | null>>({});
+  const [ownerMapLoaded, setOwnerMapLoaded] = useState(false);
+  // Fila do número compartilhado: "atendendo" (lead com dono) x "aguardando" (sem dono).
+  // Padrão "atendendo": o atendente vê só os que são dele; admin vê os de todos.
+  const [attendanceScope, setAttendanceScope] = useSessionState<"atendendo" | "aguardando">("sales-inbox-attendance-scope", "atendendo");
 
   // Buscar stages separadamente quando pipeline é selecionado (independente das conversations)
   useEffect(() => {
@@ -388,6 +400,23 @@ const SalesWhatsAppInbox = () => {
         setLeadPipelineIdMap(idMap);
       });
   }, [conversations, pipelines]);
+
+  // Buscar o dono (sales_rep_id) dos leads visíveis para o filtro "meus atendimentos"
+  useEffect(() => {
+    const leadIds = [...new Set((conversations || []).filter(c => c.lead_id).map(c => c.lead_id!))];
+    if (leadIds.length === 0) { setLeadOwnerMap({}); setOwnerMapLoaded(true); return; }
+    supabase
+      .from('leads')
+      .select('id, sales_rep_id')
+      .in('id', leadIds)
+      .then(({ data, error }) => {
+        if (error) { console.error('[Inbox] Erro ao buscar donos dos leads'); return; }
+        const ownerMap: Record<string, string | null> = {};
+        for (const l of data || []) ownerMap[l.id] = l.sales_rep_id ?? null;
+        setLeadOwnerMap(ownerMap);
+        setOwnerMapLoaded(true);
+      });
+  }, [conversations]);
 
   // Debounce realtime refetches to avoid hammering the RPC
   const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1029,6 +1058,59 @@ const SalesWhatsAppInbox = () => {
               })()}
             </div>
 
+            {/* Fila do número compartilhado: Atendendo x Aguardando */}
+            <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/40 shrink-0 text-[11px]">
+              <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
+              <button
+                onClick={() => setAttendanceScope("atendendo")}
+                className={cn(
+                  "px-2 py-0.5 rounded-md font-medium transition-colors",
+                  attendanceScope === "atendendo" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+                title={isAdmin ? "Leads com dono (toda a equipe)" : "Leads atribuídos a você"}
+              >
+                {isAdmin ? "Atendendo (equipe)" : "Atendendo"}
+              </button>
+              <button
+                onClick={() => setAttendanceScope("aguardando")}
+                className={cn(
+                  "px-2 py-0.5 rounded-md font-medium transition-colors",
+                  attendanceScope === "aguardando" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-muted-foreground hover:text-foreground"
+                )}
+                title="Leads sem dono — aguardando alguém assumir"
+              >
+                Aguardando
+              </button>
+            </div>
+
+            {/* Abas de atendimento: Abertas x Concluídas */}
+            <div className="flex items-stretch border-b border-border/60 px-2 pt-1 gap-1 shrink-0">
+              <button
+                onClick={() => setInboxTab("abertas")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-2 border-b-2 -mb-px transition-colors",
+                  inboxTab === "abertas"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Abertas
+              </button>
+              <button
+                onClick={() => setInboxTab("concluidas")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium py-2 border-b-2 -mb-px transition-colors",
+                  inboxTab === "concluidas"
+                    ? "border-green-500 text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Concluídas
+              </button>
+            </div>
+
             {/* List */}
             <ScrollArea className="flex-1" ref={scrollAreaRef}>
               {isError ? (
@@ -1046,6 +1128,21 @@ const SalesWhatsAppInbox = () => {
                 const filteredConversations = (conversations || []).filter(conv => {
                   // Filtrar grupos (inbox comercial é só individual)
                   if (conv.conversation_type === "grupo") return false;
+                  // Aba de atendimento: Abertas = não finalizadas; Concluídas = finalizadas
+                  if (inboxTab === "concluidas" && !conv.is_handled) return false;
+                  if (inboxTab === "abertas" && conv.is_handled) return false;
+                  // Fila do número compartilhado (por dono = leads.sales_rep_id):
+                  //  - "aguardando": sem dono (pool visível a todos p/ assumir)
+                  //  - "atendendo": com dono (atendente vê só os seus; admin vê os de todos)
+                  if (ownerMapLoaded) {
+                    const owner = conv.lead_id ? leadOwnerMap[conv.lead_id] : null;
+                    if (attendanceScope === "aguardando") {
+                      if (owner) return false;
+                    } else {
+                      if (!owner) return false;
+                      if (!isAdmin && owner !== teamMember?.id) return false;
+                    }
+                  }
                   // Quando "Todas instâncias", mostrar só conversas das instâncias comerciais
                   if (!instanceId && commercialInstanceIds.size > 0 && conv.instance_id && !commercialInstanceIds.has(conv.instance_id)) return false;
                   // Pipeline filter: agora filtrado no banco via RPC (p_pipeline_id / p_stage_id)
