@@ -76,10 +76,10 @@ const sections: NavSection[] = [
     items: [
       { title: "Cockpit", url: "/comercial/cockpit", icon: Headphones },
       { title: "Dashboard", url: "/comercial", icon: LayoutDashboard },
+      { title: "Atendimentos", url: "/comercial/inbox", icon: MessageSquare },
       { title: "Leads", url: "/comercial/leads", icon: Car },
       { title: "Contatos", url: "/comercial/contatos", icon: Users },
       { title: "Pipeline", url: "/comercial/pipeline", icon: Kanban },
-      { title: "Inbox", url: "/comercial/inbox", icon: MessageSquare },
       { title: "Estoque", url: "/comercial/produtos", icon: Car },
       { title: "Treinamento", url: "/comercial/treinamento", icon: BookOpen },
     ],

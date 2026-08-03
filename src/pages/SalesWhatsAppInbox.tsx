@@ -1264,66 +1264,76 @@ const SalesWhatsAppInbox = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {/* Botão Concluir - visível quando conversa pendente/urgente */}
+                      {/* Chip de espera - só quando pendente */}
                       {selectedConversation.pending_reply && !selectedConversation.is_handled && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1 border border-amber-500/20">
-                            <Clock className="h-3 w-3" />
-                            Aguardando {selectedConversation.wait_minutes < 60
-                              ? `${Math.floor(selectedConversation.wait_minutes)}min`
-                              : `${Math.floor(selectedConversation.wait_minutes / 60)}h${Math.floor(selectedConversation.wait_minutes % 60)}m`}
-                          </span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="outline" className="gap-1 h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950">
-                                <Check className="h-3.5 w-3.5" />
-                                Concluir
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {[
-                                { label: "Sem necessidade de ação", reason: "no_action_needed" },
-                                { label: "Já respondido por fora", reason: "replied_externally" },
-                                { label: "Outro", reason: "replied_manually" },
-                              ].map(({ label, reason }) => (
-                                <DropdownMenuItem key={reason} onClick={() => {
-                                  const conv = selectedConversation;
-                                  markAsHandled.mutate({
-                                    leadId: conv.lead_id || undefined,
-                                    groupId: conv.group_id || undefined,
-                                    handledBy: teamMember?.id,
-                                    reason,
-                                  }, {
-                                    onSuccess: () => {
-                                      setSelectedConversation({ ...conv, is_handled: true, pending_reply: false });
-                                      toast({
-                                        title: "Conversa concluída",
-                                        action: (
-                                          <ToastAction altText="Desfazer" onClick={() => {
-                                            unmarkAsHandled.mutate({
-                                              leadId: conv.lead_id || undefined,
-                                              groupId: conv.group_id || undefined,
-                                            }, {
-                                              onSuccess: () => {
-                                                setSelectedConversation({ ...conv, is_handled: false, pending_reply: true });
-                                                toast({ title: "Conversa voltou para pendentes" });
-                                              },
-                                            });
-                                          }}>
-                                            Desfazer
-                                          </ToastAction>
-                                        ),
+                        <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1 border border-amber-500/20">
+                          <Clock className="h-3 w-3" />
+                          Aguardando {selectedConversation.wait_minutes < 60
+                            ? `${Math.floor(selectedConversation.wait_minutes)}min`
+                            : `${Math.floor(selectedConversation.wait_minutes / 60)}h${Math.floor(selectedConversation.wait_minutes % 60)}m`}
+                        </span>
+                      )}
+                      {/* Finalizar / Reabrir atendimento — sempre no header, à esquerda de Ações */}
+                      {!selectedConversation.is_handled ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950"
+                          onClick={() => {
+                            const conv = selectedConversation;
+                            markAsHandled.mutate({
+                              leadId: conv.lead_id || undefined,
+                              groupId: conv.group_id || undefined,
+                              handledBy: teamMember?.id,
+                              reason: "resolved",
+                            }, {
+                              onSuccess: () => {
+                                setSelectedConversation({ ...conv, is_handled: true, pending_reply: false });
+                                toast({
+                                  title: "Atendimento finalizado",
+                                  action: (
+                                    <ToastAction altText="Desfazer" onClick={() => {
+                                      unmarkAsHandled.mutate({
+                                        leadId: conv.lead_id || undefined,
+                                        groupId: conv.group_id || undefined,
+                                      }, {
+                                        onSuccess: () => {
+                                          setSelectedConversation({ ...conv, is_handled: false });
+                                          toast({ title: "Atendimento reaberto" });
+                                        },
                                       });
-                                    },
-                                  });
-                                }}>
-                                  {label}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                                    }}>
+                                      Desfazer
+                                    </ToastAction>
+                                  ),
+                                });
+                              },
+                            });
+                          }}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Finalizar
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 h-7 text-xs"
+                          onClick={() => {
+                            const conv = selectedConversation;
+                            unmarkAsHandled.mutate({
+                              leadId: conv.lead_id || undefined,
+                              groupId: conv.group_id || undefined,
+                            }, {
+                              onSuccess: () => {
+                                setSelectedConversation({ ...conv, is_handled: false });
+                                toast({ title: "Atendimento reaberto" });
+                              },
+                            });
+                          }}
+                        >
+                          Reabrir
+                        </Button>
                       )}
                       {/* Ações Dropdown — Follow-up + Agendar Reunião */}
                       {selectedConversation.lead_id && (
