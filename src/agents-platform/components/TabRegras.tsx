@@ -213,6 +213,35 @@ export function TabRegras({ draft, setDraft }: Props) {
         )}
       </div>
 
+      {/* Atendimento híbrido — pausa quando um humano assume */}
+      <div className="border border-border rounded-xl bg-card p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium">Atendimento híbrido</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+              Quando um <strong>vendedor responde</strong> o lead no WhatsApp, a IA
+              fica em silêncio por um tempo pra não atropelar. Volta sozinha depois do cooldown.
+            </p>
+          </div>
+          <Switch
+            checked={settings.auto_pause_after_human_reply !== false}
+            onCheckedChange={(v) => updateSetting('auto_pause_after_human_reply', v)}
+          />
+        </div>
+        {settings.auto_pause_after_human_reply !== false && (
+          <div className="flex items-center gap-2 pt-1">
+            <Label className="text-[11px]">Cooldown após resposta humana (min)</Label>
+            <Input
+              type="number"
+              min={1}
+              value={settings.human_cooldown_minutes ?? 10}
+              onChange={(e) => updateSetting('human_cooldown_minutes', Number(e.target.value))}
+              className="h-8 text-sm w-20"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h3 className="text-sm font-medium">Regras de workflow</h3>

@@ -72,9 +72,38 @@ export async function tryHandleViaAgentPlatform(args: {
     const ok = authorized.some((a) => a && (senderDigits.endsWith(a) || a.endsWith(senderDigits)));
     if (!ok) {
       // Não autorizado: manda msg padrão (se configurada) e marca como TRATADO (não cai no legado)
-      if (cfg.unauthorized_message) await sendUazapi(inst, senderDigits, String(cfg.unauthorized_message));
+      if (cfg.unauthorized_message) await sendUazapi(supabase, inst, leadId, senderDigits, String(cfg.unauthorized_message));
       console.log(`[wpp-v2] número ${senderDigits} não autorizado (agente ${match.agent_slug}, modo private)`);
       return true;
+    }
+  }
+
+  // Config do agente (settings) — usada pelos gates de humano e de horário
+  const { data: agentCfg } = await supabase
+    .from("agents_registry").select("settings").eq("id", match.agent_id).maybeSingle();
+  const aSettings = (agentCfg?.settings || {}) as Record<string, any>;
+
+  // GATE 1: atendimento híbrido — se um HUMANO respondeu recentemente, a IA não
+  // atropela (espelha o v1). Auto-retoma sozinho: a janela olha só os últimos N min.
+  // Mensagens da própria IA são marcadas com metadata.sent_by='ai_agent' (ver sendUazapi),
+  // então não disparam o guard.
+  if (leadId && aSettings.auto_pause_after_human_reply !== false) {
+    const cooldownMin = Number(aSettings.human_cooldown_minutes) || 10;
+    const cutoff = new Date(Date.now() - cooldownMin * 60 * 1000).toISOString();
+    const { data: humanMsg } = await supabase
+      .from("whatsapp_messages")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("is_from_me", true)
+      .is("group_id", null)
+      .gte("sent_at", cutoff)
+      .not("metadata->>sent_by", "eq", "ai_agent")
+      .order("sent_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (humanMsg) {
+      console.log(`[wpp-v2] humano ativo no lead ${leadId} — agente v2 pausado (cooldown ${cooldownMin}min)`);
+      return true; // suprimido — não responde nem cai no legado
     }
   }
 
@@ -97,13 +126,9 @@ export async function tryHandleViaAgentPlatform(args: {
     sessionId = ns?.id;
   }
 
-  // 4.5 GATE de horário de atendimento (por agente, configurável em Regras).
-  // Só bloqueia se o agente ativou working_hours_enabled. Fora do horário: NÃO
-  // chama o runner (não responde) e retorna true (não cai no legado). Opcional:
-  // manda uma mensagem de fora-de-expediente, com cooldown pra não repetir.
-  const { data: agentCfg } = await supabase
-    .from("agents_registry").select("settings").eq("id", match.agent_id).maybeSingle();
-  const aSettings = (agentCfg?.settings || {}) as Record<string, any>;
+  // GATE 2: horário de atendimento (por agente, configurável em Regras).
+  // Só bloqueia se working_hours_enabled. Fora do horário: NÃO chama o runner e
+  // retorna true (não cai no legado). Opcional: manda out_of_office_message com cooldown.
   if (aSettings.working_hours_enabled === true && !isWithinWorkingHours(aSettings)) {
     const ooMsg = typeof aSettings.out_of_office_message === "string"
       ? aSettings.out_of_office_message.trim() : "";
@@ -115,7 +140,7 @@ export async function tryHandleViaAgentPlatform(args: {
       const ps = (sess?.provider_state || {}) as Record<string, any>;
       const lastOoo = ps.last_ooo_at ? new Date(ps.last_ooo_at).getTime() : 0;
       if (Date.now() - lastOoo > COOLDOWN_MS) {
-        await sendUazapi(inst, senderDigits, ooMsg);
+        await sendUazapi(supabase, inst, leadId, senderDigits, ooMsg);
         await supabase.from("agents_sessions")
           .update({ provider_state: { ...ps, last_ooo_at: new Date().toISOString() } })
           .eq("id", sessionId);
@@ -165,14 +190,14 @@ export async function tryHandleViaAgentPlatform(args: {
     }
   } catch (e) {
     console.error("[wpp-v2] agent-runner err:", (e as Error).message);
-    await sendUazapi(inst, senderDigits, "⚠️ Tive um problema técnico. Tenta de novo daqui a pouco?");
+    await sendUazapi(supabase, inst, leadId, senderDigits, "⚠️ Tive um problema técnico. Tenta de novo daqui a pouco?");
     return true;
   }
 
   // 6. Envia resposta via UAZAPI (split em ~4000 chars respeitando parágrafos)
   const finalText = fullText.trim() || "Desculpa, não consegui processar agora.";
   for (const chunk of splitText(finalText, 4000)) {
-    await sendUazapi(inst, senderDigits, chunk);
+    await sendUazapi(supabase, inst, leadId, senderDigits, chunk);
   }
   return true;
 }
@@ -191,7 +216,13 @@ function isWithinWorkingHours(s: Record<string, any>): boolean {
   return cur >= start && cur <= end;
 }
 
-async function sendUazapi(instance: InstanceLike, number: string, text: string): Promise<void> {
+async function sendUazapi(
+  supabase: any,
+  instance: InstanceLike,
+  leadId: string | null | undefined,
+  number: string,
+  text: string,
+): Promise<void> {
   // api_url vem da tabela de instâncias — NUNCA hardcode de URL UAZAPI (regra do projeto)
   const base = (instance.api_url || "").replace(/\/$/, "");
   if (!base) {
@@ -204,7 +235,24 @@ async function sendUazapi(instance: InstanceLike, number: string, text: string):
       headers: { "Content-Type": "application/json", "token": instance.api_key || "" },
       body: JSON.stringify({ number: onlyDigits(number), text }),
     });
-  } catch (e) { console.error("[wpp-v2] sendUazapi err:", (e as Error).message); }
+  } catch (e) { console.error("[wpp-v2] sendUazapi err:", (e as Error).message); return; }
+
+  // Registra a saída marcada como IA: (a) o guard de humano não se auto-pausa e
+  // (b) a mensagem aparece no inbox atribuída à IA. A echo do UAZAPI reconcilia
+  // via dedup por conteúdo do webhook (janela 60s), preservando o sent_by.
+  try {
+    await supabase.from("whatsapp_messages").insert({
+      instance_id: instance.id,
+      lead_id: leadId || null,
+      message_id: `v2-${crypto.randomUUID()}`,
+      content: text,
+      message_type: "text",
+      sender_phone: onlyDigits(number),
+      is_from_me: true,
+      sent_at: new Date().toISOString(),
+      metadata: { sent_by: "ai_agent", sent_by_name: "Agente IA" },
+    });
+  } catch (e) { console.error("[wpp-v2] record out msg err:", (e as Error).message); }
 }
 
 function splitText(text: string, max: number): string[] {
