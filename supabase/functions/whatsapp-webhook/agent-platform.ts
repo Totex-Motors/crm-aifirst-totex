@@ -103,6 +103,8 @@ export async function tryHandleViaAgentPlatform(args: {
       .maybeSingle();
     if (humanMsg) {
       console.log(`[wpp-v2] humano ativo no lead ${leadId} — agente v2 pausado (cooldown ${cooldownMin}min)`);
+      await setV2AgentStatus(supabase, leadId, "paused_by_human", `Humano ativo — cooldown ${cooldownMin}min`);
+      await logV2Event(supabase, leadId, "paused", "human_active_cooldown", `Vendedor respondeu — agente v2 pausado por ${cooldownMin}min.`);
       return true; // suprimido — não responde nem cai no legado
     }
   }
@@ -147,6 +149,8 @@ export async function tryHandleViaAgentPlatform(args: {
       }
     }
     console.log(`[wpp-v2] fora do horário do agente ${match.agent_slug} — suprimido (sem responder)`);
+    await setV2AgentStatus(supabase, leadId, "paused_by_schedule", "Fora do horário de atendimento");
+    await logV2Event(supabase, leadId, "skipped_out_of_hours", "out_of_hours", "Mensagem fora do horário de atendimento do agente v2.");
     return true; // tratado (suprimido) — não chama runner nem cai no legado
   }
 
@@ -211,10 +215,52 @@ export async function tryHandleViaAgentPlatform(args: {
   for (const chunk of splitText(finalText, 4000)) {
     await sendUazapi(supabase, inst, leadId, senderDigits, chunk);
   }
+  await setV2AgentStatus(supabase, leadId, "active", null);
+  await logV2Event(supabase, leadId, "replied", "replied", "Agente v2 respondeu o lead.");
   return true;
 }
 
 function onlyDigits(s: string): string { return String(s).replace(/\D/g, ""); }
+
+// #4 Visibilidade: v2 escreve nas MESMAS tabelas do v1 pra herdar as superfícies
+// já existentes (detalhe do lead, AITransferAlertOverlay, log de eventos).
+// Status em ai_agent_conversations (select-then-update/insert, sem depender de
+// unique constraint). agent_id fica null (o FK aponta pro agente v1).
+async function setV2AgentStatus(
+  supabase: any, leadId: string | null | undefined, status: string, reason?: string | null,
+): Promise<void> {
+  if (!leadId) return;
+  const isPausedOrTransferred = status.startsWith("paused") || status === "transferred";
+  const pausedAt = isPausedOrTransferred ? new Date().toISOString() : null;
+  try {
+    const { data: existing } = await supabase
+      .from("ai_agent_conversations").select("id").eq("lead_id", leadId).maybeSingle();
+    if (existing) {
+      await supabase.from("ai_agent_conversations").update({
+        status, pause_reason: reason ?? null, paused_at: pausedAt, updated_at: new Date().toISOString(),
+      }).eq("id", existing.id);
+    } else {
+      const { data: lead } = await supabase.from("leads").select("tenant_id").eq("id", leadId).maybeSingle();
+      await supabase.from("ai_agent_conversations").insert({
+        lead_id: leadId, status, pause_reason: reason ?? null, paused_at: pausedAt,
+        tenant_id: lead?.tenant_id ?? null,
+      });
+    }
+  } catch (e) { console.error("[wpp-v2] setV2AgentStatus err:", (e as Error).message); }
+}
+
+// Loga no ai_agent_chat_events (mesma RPC do v1) — alimenta o "por que respondeu/
+// não respondeu" no chat interno.
+async function logV2Event(
+  supabase: any, leadId: string | null | undefined, eventType: string, reason: string, message: string,
+): Promise<void> {
+  if (!leadId) return;
+  try {
+    await supabase.rpc("log_ai_agent_event", {
+      p_lead_id: leadId, p_event_type: eventType, p_reason: reason, p_message: message,
+    });
+  } catch (e) { console.error("[wpp-v2] logV2Event err:", (e as Error).message); }
+}
 
 // Placeholders que o webhook gera quando a mídia NÃO virou texto (falha ou sem
 // chave de transcrição/descrição). Retorna uma resposta graciosa, ou null se o
