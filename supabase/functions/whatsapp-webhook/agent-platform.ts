@@ -30,8 +30,8 @@ export async function tryHandleViaAgentPlatform(args: {
 }): Promise<boolean> {
   const { supabase, instance, senderPhone, text, messageId, leadId } = args;
   if (!text || !text.trim()) return false;
-  // Ignora placeholders de mídia que não viraram texto/transcrição
-  if (text === "[Mídia]") return false;
+  // Placeholders de mídia (transcrição/descrição falhou ou sem chave) são tratados
+  // graciosamente mais abaixo, DEPOIS dos gates — não abortamos aqui.
 
   // 1. Flag global — off = legado (config.value é TEXT neste CRM: JSON serializado)
   const { data: cfgRow } = await supabase
@@ -150,7 +150,19 @@ export async function tryHandleViaAgentPlatform(args: {
     return true; // tratado (suprimido) — não chama runner nem cai no legado
   }
 
+  // 4.6 MÍDIA sem texto: se a transcrição/descrição falhou (ou faltou chave),
+  // o content chega como placeholder. Em vez de mandar "[Áudio]" pro LLM (que
+  // alucina "não consigo ouvir"), respondemos de forma graciosa pedindo texto.
+  const mediaMsg = mediaFallbackMessage(text);
+  if (mediaMsg) {
+    await sendUazapi(supabase, inst, leadId, senderDigits, mediaMsg);
+    console.log(`[wpp-v2] mídia sem texto (${text}) — resposta graciosa enviada`);
+    return true;
+  }
+
   // 5. Chama agent-runner e lê o SSE (igual telegram-webhook)
+  // Limpa prefixo de emoji de mídia (transcrição real vem como "🎤 texto")
+  const runnerMessage = text.replace(/^(?:🎤|📷|🎥|📄|🏷️)\s*/u, "").trim() || text;
   let fullText = "";
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/agent-runner`, {
@@ -160,7 +172,7 @@ export async function tryHandleViaAgentPlatform(args: {
         agent_slug: match.agent_slug,
         channel: "whatsapp",
         session_id: sessionId,
-        message: text,
+        message: runnerMessage,
         user_id: null,
         context: {
           instance_id: instance.id,
@@ -203,6 +215,17 @@ export async function tryHandleViaAgentPlatform(args: {
 }
 
 function onlyDigits(s: string): string { return String(s).replace(/\D/g, ""); }
+
+// Placeholders que o webhook gera quando a mídia NÃO virou texto (falha ou sem
+// chave de transcrição/descrição). Retorna uma resposta graciosa, ou null se o
+// texto é conteúdo real (transcrição de áudio "🎤 ..." / descrição de imagem etc).
+function mediaFallbackMessage(text: string): string | null {
+  const t = text.trim();
+  if (t === "🎤 [Áudio]") return "Recebi seu áudio, mas não consegui ouvir por aqui 😅 Consegue me mandar por texto?";
+  if (t === "📷 [Imagem]" || t === "🎥 [Vídeo]") return "Recebi sua mídia, mas não consegui abrir por aqui. Pode me mandar por texto o que você precisa? 🙏";
+  if (t === "📄 [Documento]" || t === "[Mídia]") return "Recebi seu arquivo, mas não consegui abrir por aqui. Pode me mandar as informações por texto? 🙏";
+  return null;
+}
 
 // Horário de atendimento do agente (fuso America/Sao_Paulo), espelha a lógica do
 // ai-sales-agent v1. days: 0=Dom..6=Sab. Padrão aberto se campos ausentes.
