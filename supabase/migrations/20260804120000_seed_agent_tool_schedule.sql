@@ -3,6 +3,17 @@
 -- traduz o contrato v2 pro da book-meeting e deriva o lead pela sessão.
 -- Idempotente: ON CONFLICT (slug) atualiza.
 
+-- provider é FK pra agents_integration_providers — cria o provider "crm" (tools
+-- internas do CRM, sem credencial externa) antes de semear a skill.
+INSERT INTO public.agents_integration_providers (
+  slug, display_name, description, icon, category, credential_type, setup_url, required_env_vars, is_active
+) VALUES (
+  'crm', 'CRM (interno)', 'Ferramentas internas do CRM (agendamento, pipeline, qualificação).',
+  '🏢', 'crm', NULL, NULL, '{}'::text[], true
+)
+ON CONFLICT (slug) DO UPDATE SET
+  display_name = EXCLUDED.display_name, description = EXCLUDED.description;
+
 INSERT INTO public.agents_skill_catalog (
   slug, display_name, description, category, emoji, provider,
   parameters_schema, action_type, action_config, default_usage_mode, is_recommended
