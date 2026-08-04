@@ -83,6 +83,17 @@ export async function tryHandleViaAgentPlatform(args: {
     .from("agents_registry").select("settings").eq("id", match.agent_id).maybeSingle();
   const aSettings = (agentCfg?.settings || {}) as Record<string, any>;
 
+  // GATE 0: handoff/pausa persistente por regra — se a conversa foi transferida
+  // ou pausada por uma workflow_rule, o humano assume até reativar o agente na UI.
+  if (leadId) {
+    const { data: convState } = await supabase
+      .from("ai_agent_conversations").select("status").eq("lead_id", leadId).maybeSingle();
+    if (convState?.status === "transferred" || convState?.status === "paused_by_rule") {
+      console.log(`[wpp-v2] conversa ${convState.status} — humano assume, v2 não responde`);
+      return true;
+    }
+  }
+
   // GATE 1: atendimento híbrido — se um HUMANO respondeu recentemente, a IA não
   // atropela (espelha o v1). Auto-retoma sozinho: a janela olha só os últimos N min.
   // Mensagens da própria IA são marcadas com metadata.sent_by='ai_agent' (ver sendUazapi),
@@ -162,6 +173,34 @@ export async function tryHandleViaAgentPlatform(args: {
     await sendUazapi(supabase, inst, leadId, senderDigits, mediaMsg);
     console.log(`[wpp-v2] mídia sem texto (${text}) — resposta graciosa enviada`);
     return true;
+  }
+
+  // 4.7 WORKFLOW RULES (essenciais): message_received → notify_human / pause_agent.
+  // Handoff/pausa por palavra-chave. Ações persistentes ficam sticky via GATE 0.
+  const rules = Array.isArray(aSettings.workflow_rules) ? aSettings.workflow_rules : [];
+  for (const rule of rules) {
+    if (!rule?.is_active || rule?.trigger?.event !== "message_received") continue;
+    const kw = rule.trigger?.keyword_match;
+    if (kw) {
+      let re: RegExp;
+      try { re = new RegExp(kw, "i"); } catch { continue; }
+      if (!re.test(text)) continue;
+    }
+    const actionType = rule.action?.type;
+    if (actionType === "notify_human") {
+      await setV2AgentStatus(supabase, leadId, "transferred", `Regra: ${rule.name || "handoff"}`);
+      await logV2Event(supabase, leadId, "transferred", "workflow_rule", `Handoff por regra "${rule.name || ""}".`);
+      const msg = typeof rule.action?.config?.message === "string" ? rule.action.config.message.trim() : "";
+      if (msg) await sendUazapi(supabase, inst, leadId, senderDigits, msg);
+      console.log(`[wpp-v2] regra notify_human "${rule.name}" — transferido pra humano`);
+      return true; // handoff: humano assume, agente não responde
+    }
+    if (actionType === "pause_agent") {
+      await setV2AgentStatus(supabase, leadId, "paused_by_rule", `Regra: ${rule.name || "pausa"}`);
+      await logV2Event(supabase, leadId, "paused", "workflow_rule", `Pausado por regra "${rule.name || ""}".`);
+      console.log(`[wpp-v2] regra pause_agent "${rule.name}" — pausado`);
+      return true;
+    }
   }
 
   // 5. Chama agent-runner e lê o SSE (igual telegram-webhook)
