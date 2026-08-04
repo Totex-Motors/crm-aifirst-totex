@@ -345,6 +345,8 @@ const SalesWhatsAppInbox = () => {
   // É o campo que o round-robin (WhatsApp e Autoconf) popula.
   const [leadOwnerMap, setLeadOwnerMap] = useState<Record<string, string | null>>({});
   const [ownerMapLoaded, setOwnerMapLoaded] = useState(false);
+  // Tags de cada lead (ex: "autoconf") para exibir na linha da conversa.
+  const [leadTagsMap, setLeadTagsMap] = useState<Record<string, string[]>>({});
   // Fila do número compartilhado: "atendendo" (lead com dono) x "aguardando" (sem dono).
   // Padrão "atendendo": o atendente vê só os que são dele; admin vê os de todos.
   const [attendanceScope, setAttendanceScope] = useSessionState<"atendendo" | "aguardando">("sales-inbox-attendance-scope", "atendendo");
@@ -401,19 +403,24 @@ const SalesWhatsAppInbox = () => {
       });
   }, [conversations, pipelines]);
 
-  // Buscar o dono (sales_rep_id) dos leads visíveis para o filtro "meus atendimentos"
+  // Buscar dono (sales_rep_id) + tags dos leads visíveis (filtro "meus" + chips na linha)
   useEffect(() => {
     const leadIds = [...new Set((conversations || []).filter(c => c.lead_id).map(c => c.lead_id!))];
-    if (leadIds.length === 0) { setLeadOwnerMap({}); setOwnerMapLoaded(true); return; }
+    if (leadIds.length === 0) { setLeadOwnerMap({}); setLeadTagsMap({}); setOwnerMapLoaded(true); return; }
     supabase
       .from('leads')
-      .select('id, sales_rep_id')
+      .select('id, sales_rep_id, tags')
       .in('id', leadIds)
       .then(({ data, error }) => {
-        if (error) { console.error('[Inbox] Erro ao buscar donos dos leads'); return; }
+        if (error) { console.error('[Inbox] Erro ao buscar donos/tags dos leads'); return; }
         const ownerMap: Record<string, string | null> = {};
-        for (const l of data || []) ownerMap[l.id] = l.sales_rep_id ?? null;
+        const tagsMap: Record<string, string[]> = {};
+        for (const l of data || []) {
+          ownerMap[l.id] = l.sales_rep_id ?? null;
+          if (Array.isArray(l.tags) && l.tags.length > 0) tagsMap[l.id] = l.tags as string[];
+        }
         setLeadOwnerMap(ownerMap);
+        setLeadTagsMap(tagsMap);
         setOwnerMapLoaded(true);
       });
   }, [conversations]);
@@ -494,6 +501,23 @@ const SalesWhatsAppInbox = () => {
       }
     });
   }, [unmarkAsHandled, toast]);
+
+  // Assumir atendimento: grava leads.sales_rep_id = eu → sai de "Aguardando" e
+  // entra em "Atendendo (meus)". Atualiza o mapa de donos local na hora.
+  const handleClaimConversation = useCallback(async (conv: InboxConversation) => {
+    if (!conv.lead_id || !teamMember?.id) return;
+    const { error } = await supabase
+      .from("leads")
+      .update({ sales_rep_id: teamMember.id })
+      .eq("id", conv.lead_id);
+    if (error) {
+      console.error("[Inbox] Erro ao assumir atendimento");
+      toast({ title: "Erro ao assumir atendimento", variant: "destructive" });
+      return;
+    }
+    setLeadOwnerMap((prev) => ({ ...prev, [conv.lead_id!]: teamMember.id }));
+    toast({ title: "Atendimento assumido", description: "Movido para os seus atendimentos." });
+  }, [teamMember?.id, toast]);
 
   // Status da instância via Realtime (webhook atualiza o banco, frontend escuta)
   useEffect(() => {
@@ -1058,32 +1082,7 @@ const SalesWhatsAppInbox = () => {
               })()}
             </div>
 
-            {/* Fila do número compartilhado: Atendendo x Aguardando */}
-            <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/40 shrink-0 text-[11px]">
-              <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
-              <button
-                onClick={() => setAttendanceScope("atendendo")}
-                className={cn(
-                  "px-2 py-0.5 rounded-md font-medium transition-colors",
-                  attendanceScope === "atendendo" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-                title={isAdmin ? "Leads com dono (toda a equipe)" : "Leads atribuídos a você"}
-              >
-                {isAdmin ? "Atendendo (equipe)" : "Atendendo"}
-              </button>
-              <button
-                onClick={() => setAttendanceScope("aguardando")}
-                className={cn(
-                  "px-2 py-0.5 rounded-md font-medium transition-colors",
-                  attendanceScope === "aguardando" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-muted-foreground hover:text-foreground"
-                )}
-                title="Leads sem dono — aguardando alguém assumir"
-              >
-                Aguardando
-              </button>
-            </div>
-
-            {/* Abas de atendimento: Abertas x Concluídas */}
+            {/* Abas principais: Abertas x Concluídas (fora) */}
             <div className="flex items-stretch border-b border-border/60 px-2 pt-1 gap-1 shrink-0">
               <button
                 onClick={() => setInboxTab("abertas")}
@@ -1111,6 +1110,33 @@ const SalesWhatsAppInbox = () => {
               </button>
             </div>
 
+            {/* Sub-fila (só em Abertas): Atendendo x Aguardando */}
+            {inboxTab === "abertas" && (
+              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/40 shrink-0 text-[11px]">
+                <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                <button
+                  onClick={() => setAttendanceScope("atendendo")}
+                  className={cn(
+                    "px-2 py-0.5 rounded-md font-medium transition-colors",
+                    attendanceScope === "atendendo" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title={isAdmin ? "Leads com dono (toda a equipe)" : "Leads atribuídos a você"}
+                >
+                  {isAdmin ? "Atendendo (equipe)" : "Atendendo"}
+                </button>
+                <button
+                  onClick={() => setAttendanceScope("aguardando")}
+                  className={cn(
+                    "px-2 py-0.5 rounded-md font-medium transition-colors",
+                    attendanceScope === "aguardando" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title="Leads sem dono — aguardando alguém assumir"
+                >
+                  Aguardando
+                </button>
+              </div>
+            )}
+
             {/* List */}
             <ScrollArea className="flex-1" ref={scrollAreaRef}>
               {isError ? (
@@ -1131,15 +1157,20 @@ const SalesWhatsAppInbox = () => {
                   // Aba de atendimento: Abertas = não finalizadas; Concluídas = finalizadas
                   if (inboxTab === "concluidas" && !conv.is_handled) return false;
                   if (inboxTab === "abertas" && conv.is_handled) return false;
-                  // Fila do número compartilhado (por dono = leads.sales_rep_id):
-                  //  - "aguardando": sem dono (pool visível a todos p/ assumir)
-                  //  - "atendendo": com dono (atendente vê só os seus; admin vê os de todos)
+                  // Fila por dono (leads.sales_rep_id). Em Abertas há a sub-fila
+                  // Atendendo x Aguardando; Concluídas não subdivide (só respeita
+                  // que o atendente vê os seus, admin vê os de todos).
                   if (ownerMapLoaded) {
                     const owner = conv.lead_id ? leadOwnerMap[conv.lead_id] : null;
-                    if (attendanceScope === "aguardando") {
-                      if (owner) return false;
+                    if (inboxTab === "abertas") {
+                      if (attendanceScope === "aguardando") {
+                        if (owner) return false;
+                      } else {
+                        if (!owner) return false;
+                        if (!isAdmin && owner !== teamMember?.id) return false;
+                      }
                     } else {
-                      if (!owner) return false;
+                      // Concluídas: sem split; atendente vê só os seus finalizados
                       if (!isAdmin && owner !== teamMember?.id) return false;
                     }
                   }
@@ -1188,6 +1219,9 @@ const SalesWhatsAppInbox = () => {
                         }}
                         onMarkHandled={() => handleMarkAsHandled(conv)}
                         onUnmarkHandled={() => handleUnmarkAsHandled(conv)}
+                        isWaiting={ownerMapLoaded && !!conv.lead_id && !leadOwnerMap[conv.lead_id]}
+                        onClaim={() => handleClaimConversation(conv)}
+                        tags={conv.lead_id ? leadTagsMap[conv.lead_id] : undefined}
                       />
                     ))}
                   </>
@@ -1272,6 +1306,18 @@ const SalesWhatsAppInbox = () => {
                             ? `${Math.floor(selectedConversation.wait_minutes)}min`
                             : `${Math.floor(selectedConversation.wait_minutes / 60)}h${Math.floor(selectedConversation.wait_minutes % 60)}m`}
                         </span>
+                      )}
+                      {/* Assumir atendimento — quando o lead selecionado ainda não tem dono */}
+                      {selectedConversation.lead_id && ownerMapLoaded && !leadOwnerMap[selectedConversation.lead_id] && teamMember?.id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 h-7 text-xs text-primary border-primary/30 hover:bg-primary/10"
+                          onClick={() => handleClaimConversation(selectedConversation)}
+                        >
+                          <UserCheck className="h-3.5 w-3.5" />
+                          Assumir atendimento
+                        </Button>
                       )}
                       {/* Finalizar / Reabrir atendimento — sempre no header, à esquerda de Ações */}
                       {!selectedConversation.is_handled ? (

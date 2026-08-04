@@ -36,6 +36,9 @@ interface SalesConversationRowProps {
   onNavigateToLead: () => void;
   onMarkHandled: () => void;
   onUnmarkHandled: () => void;
+  isWaiting?: boolean;
+  onClaim?: () => void;
+  tags?: string[];
 }
 
 export function SalesConversationRow({
@@ -46,6 +49,9 @@ export function SalesConversationRow({
   onNavigateToLead,
   onMarkHandled,
   onUnmarkHandled,
+  isWaiting = false,
+  onClaim,
+  tags,
 }: SalesConversationRowProps) {
   const isCritical = conv.sla_status === "critical" && !conv.is_handled;
   const isWarning = conv.sla_status === "warning" && !conv.is_handled;
@@ -281,6 +287,27 @@ export function SalesConversationRow({
               </span>
             )}
 
+            {/* Tags do lead (ex: autoconf) — compactas */}
+            {tags && tags.length > 0 && tags.slice(0, 2).map((tag) => (
+              <span
+                key={tag}
+                className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide",
+                  tag.toLowerCase() === "autoconf"
+                    ? "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                )}
+                title={`Tag: ${tag}`}
+              >
+                {tag}
+              </span>
+            ))}
+            {tags && tags.length > 2 && (
+              <span className="text-[10px] px-1 py-0.5 rounded font-medium bg-slate-100 dark:bg-slate-800 text-slate-500" title={tags.slice(2).join(", ")}>
+                +{tags.length - 2}
+              </span>
+            )}
+
             {/* Time display */}
             <span className={cn(
               "text-[10px]",
@@ -325,6 +352,16 @@ export function SalesConversationRow({
 
           {/* Actions */}
           <div className="flex items-center gap-1">
+            {/* Assumir atendimento — quando o lead ainda não tem dono (fila Aguardando) */}
+            {isWaiting && !isHandled && onClaim && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onClaim(); }}
+                className="text-[11px] px-2 py-1 rounded font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1 min-h-[32px]"
+                title="Assumir este atendimento"
+              >
+                <UserCheck className="h-3.5 w-3.5" /> Assumir
+              </button>
+            )}
             {/* Finalizar atendimento — sempre disponível em conversa aberta */}
             {!isHandled && (
               <button
