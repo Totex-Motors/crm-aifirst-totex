@@ -97,6 +97,34 @@ export async function tryHandleViaAgentPlatform(args: {
     sessionId = ns?.id;
   }
 
+  // 4.5 GATE de horário de atendimento (por agente, configurável em Regras).
+  // Só bloqueia se o agente ativou working_hours_enabled. Fora do horário: NÃO
+  // chama o runner (não responde) e retorna true (não cai no legado). Opcional:
+  // manda uma mensagem de fora-de-expediente, com cooldown pra não repetir.
+  const { data: agentCfg } = await supabase
+    .from("agents_registry").select("settings").eq("id", match.agent_id).maybeSingle();
+  const aSettings = (agentCfg?.settings || {}) as Record<string, any>;
+  if (aSettings.working_hours_enabled === true && !isWithinWorkingHours(aSettings)) {
+    const ooMsg = typeof aSettings.out_of_office_message === "string"
+      ? aSettings.out_of_office_message.trim() : "";
+    if (ooMsg) {
+      // Cooldown de 4h por sessão pra não repetir a msg a cada mensagem do lead
+      const COOLDOWN_MS = 4 * 60 * 60 * 1000;
+      const { data: sess } = await supabase
+        .from("agents_sessions").select("provider_state").eq("id", sessionId).maybeSingle();
+      const ps = (sess?.provider_state || {}) as Record<string, any>;
+      const lastOoo = ps.last_ooo_at ? new Date(ps.last_ooo_at).getTime() : 0;
+      if (Date.now() - lastOoo > COOLDOWN_MS) {
+        await sendUazapi(inst, senderDigits, ooMsg);
+        await supabase.from("agents_sessions")
+          .update({ provider_state: { ...ps, last_ooo_at: new Date().toISOString() } })
+          .eq("id", sessionId);
+      }
+    }
+    console.log(`[wpp-v2] fora do horário do agente ${match.agent_slug} — suprimido (sem responder)`);
+    return true; // tratado (suprimido) — não chama runner nem cai no legado
+  }
+
   // 5. Chama agent-runner e lê o SSE (igual telegram-webhook)
   let fullText = "";
   try {
@@ -150,6 +178,18 @@ export async function tryHandleViaAgentPlatform(args: {
 }
 
 function onlyDigits(s: string): string { return String(s).replace(/\D/g, ""); }
+
+// Horário de atendimento do agente (fuso America/Sao_Paulo), espelha a lógica do
+// ai-sales-agent v1. days: 0=Dom..6=Sab. Padrão aberto se campos ausentes.
+function isWithinWorkingHours(s: Record<string, any>): boolean {
+  const start = typeof s.working_hours_start === "string" ? s.working_hours_start : "00:00";
+  const end = typeof s.working_hours_end === "string" ? s.working_hours_end : "23:59";
+  const days: number[] = Array.isArray(s.working_days) ? s.working_days : [0, 1, 2, 3, 4, 5, 6];
+  const brNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  if (!days.includes(brNow.getDay())) return false;
+  const cur = `${String(brNow.getHours()).padStart(2, "0")}:${String(brNow.getMinutes()).padStart(2, "0")}`;
+  return cur >= start && cur <= end;
+}
 
 async function sendUazapi(instance: InstanceLike, number: string, text: string): Promise<void> {
   // api_url vem da tabela de instâncias — NUNCA hardcode de URL UAZAPI (regra do projeto)

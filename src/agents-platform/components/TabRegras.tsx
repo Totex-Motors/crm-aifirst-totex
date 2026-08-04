@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import type { AgentConfig } from '../hooks/useAgentConfig';
 
@@ -104,6 +105,22 @@ export function TabRegras({ draft, setDraft }: Props) {
     }));
   };
 
+  const updateSetting = (key: string, value: unknown) => {
+    setDraft((prev) => ({
+      ...prev,
+      settings: { ...((prev.settings as Record<string, any>) || {}), [key]: value },
+    }));
+  };
+
+  const whEnabled: boolean = settings.working_hours_enabled === true;
+  const whDays: number[] = Array.isArray(settings.working_days) ? settings.working_days : [1, 2, 3, 4, 5];
+  const toggleDay = (day: number) => {
+    updateSetting(
+      'working_days',
+      whDays.includes(day) ? whDays.filter((d) => d !== day).sort() : [...whDays, day].sort(),
+    );
+  };
+
   const add = () => {
     const r = newRule();
     updateRules([...rules, r]);
@@ -125,6 +142,77 @@ export function TabRegras({ draft, setDraft }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Horário de atendimento (gate rígido no WhatsApp) */}
+      <div className="border border-border rounded-xl bg-card p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium">Horário de atendimento</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+              Quando ligado, o agente <strong>só responde no WhatsApp dentro do horário</strong>
+              {' '}(fuso de Brasília). Fora disso ele fica em silêncio (não cai no agente legado).
+            </p>
+          </div>
+          <Switch checked={whEnabled} onCheckedChange={(v) => updateSetting('working_hours_enabled', v)} />
+        </div>
+
+        {whEnabled && (
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div>
+                <Label className="text-[11px]">Início</Label>
+                <Input
+                  type="time"
+                  value={settings.working_hours_start || '08:00'}
+                  onChange={(e) => updateSetting('working_hours_start', e.target.value)}
+                  className="mt-1 h-8 text-sm w-28"
+                />
+              </div>
+              <div>
+                <Label className="text-[11px]">Fim</Label>
+                <Input
+                  type="time"
+                  value={settings.working_hours_end || '18:00'}
+                  onChange={(e) => updateSetting('working_hours_end', e.target.value)}
+                  className="mt-1 h-8 text-sm w-28"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-[11px]">Dias de atendimento</Label>
+              <div className="flex gap-1 mt-1 flex-wrap">
+                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((label, day) => (
+                  <Button
+                    key={day}
+                    type="button"
+                    size="sm"
+                    variant={whDays.includes(day) ? 'default' : 'outline'}
+                    onClick={() => toggleDay(day)}
+                    className="h-8 w-11 text-xs px-0"
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-[11px]">Mensagem de fora do horário (opcional)</Label>
+              <Textarea
+                value={settings.out_of_office_message || ''}
+                onChange={(e) => updateSetting('out_of_office_message', e.target.value)}
+                placeholder="Ex: Nosso atendimento é das 8h às 18h. Retornamos assim que abrirmos! 🙌"
+                className="mt-1 text-xs"
+                rows={2}
+              />
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Se preenchida, é enviada 1× por conversa fora do horário (cooldown de 4h). Deixe vazia para silêncio total.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h3 className="text-sm font-medium">Regras de workflow</h3>
