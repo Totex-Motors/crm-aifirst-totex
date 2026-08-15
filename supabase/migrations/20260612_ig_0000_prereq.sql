@@ -50,6 +50,29 @@ CREATE TABLE IF NOT EXISTS public.config (
   updated_at timestamptz DEFAULT now()
 );
 
+-- is_admin(): usada pelas policies do pack Instagram. Segue o mesmo padrão
+-- das policies existentes do CRM (team_members.auth_user_id + role='admin').
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'is_admin'
+  ) THEN
+    CREATE FUNCTION public.is_admin() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = public
+    AS $fn$
+      SELECT EXISTS (
+        SELECT 1 FROM public.team_members tm
+        WHERE tm.auth_user_id = auth.uid()
+          AND tm.role = 'admin'
+          AND tm.tenant_id = public.get_tenant_id()
+      ) OR current_setting('role', true) = 'service_role'
+    $fn$;
+    GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, service_role;
+  END IF;
+END $$;
+
 -- tenant_config_overrides: usada pelo helper de config das functions.
 CREATE TABLE IF NOT EXISTS public.tenant_config_overrides (
   tenant_id uuid NOT NULL,
