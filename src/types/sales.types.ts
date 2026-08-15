@@ -349,6 +349,7 @@ export interface Negociacao {
     model?: string | null;
     year?: number | null;
     price?: number | null;
+    images?: string[] | null;
   } | null;
   pipeline_stage?: PipelineStage;
   sales_rep?: {
@@ -579,8 +580,8 @@ export interface CreateNegociacaoInput {
   lead_id: string;
   contact_id?: string; // Alias para lead_id (compatibilidade)
   organization_id?: string;
-  product_id?: string;
-  vehicle_id?: string | null;
+  product_id?: string; // Opcional — loja de carros vincula vehicle_id em vez de produto
+  vehicle_id?: string | null; // Veículo do estoque vinculado ao deal
   pipeline_id?: string;
   pipeline_stage_id?: string;
   sales_rep_id?: string;

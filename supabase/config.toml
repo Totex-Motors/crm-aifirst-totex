@@ -39,6 +39,21 @@ verify_jwt = false
 [functions.proxy-pain-webhook]
 verify_jwt = false
 
+# Sync de estoque de veículos — disparado por cron pg_cron sem header de auth.
+# Precisa de verify_jwt=false senão o cron toma 401 e o estoque nunca atualiza.
+[functions.sync-vehicle-stock]
+verify_jwt = false
+
+# Processadores disparados por cron pg_cron sem header de auth (mesmo motivo acima).
+[functions.process-scheduled-messages]
+verify_jwt = false
+
+[functions.process-message-sequences]
+verify_jwt = false
+
+[functions.email-automation-tick]
+verify_jwt = false
+
 # ============================================================
 # ENDPOINTS PÚBLICOS — chamados por páginas sem auth CRM
 # ============================================================
@@ -182,6 +197,32 @@ verify_jwt = false
 
 [functions.telegram-webhook]
 verify_jwt = false
+
+# ============================================================
+# INSTAGRAM OFICIAL (API Meta) — instagram-oficial-pack
+# webhook/crons/tools chamados pela Meta e pg_cron sem JWT;
+# list-media é chamada pela UI logada (verify_jwt = true)
+# ============================================================
+
+[functions.ig-outbound-send]
+verify_jwt = false
+
+[functions.instagram-crons]
+verify_jwt = false
+
+[functions.instagram-tools]
+verify_jwt = false
+
+[functions.instagram-list-media]
+verify_jwt = true
+
+[functions.instagram-send-dm]
+verify_jwt = false
+
+[functions.instagram-send-dm-internal]
+verify_jwt = false
+
+# (instagram-webhook já declarado na seção WEBHOOKS EXTERNOS acima)
 
 # ============================================================
 # DEFAULT (verify_jwt = true) — não listadas aqui

@@ -25,18 +25,18 @@ import {
 } from "@/components/ui/collapsible";
 import { useCreateDeal } from "@/hooks/useNegociacoes";
 import { useCreateDealPaymentsBatch } from "@/hooks/useNegociacaoPayments";
-import { VehiclePicker, type PickedVehicle } from "@/components/sales/VehiclePicker";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { FlexiblePaymentForm } from "./payments/FlexiblePaymentForm";
+import { VehiclePicker, type PickedVehicle } from "./VehiclePicker";
 import type { PaymentPart } from "@/types/payment.types";
 import type { CreateNegociacaoInput } from "@/types/sales.types";
 import {
   Loader2,
   DollarSign,
-  Package,
+  Car,
   CreditCard,
   Calendar,
   ChevronDown,
@@ -151,15 +151,19 @@ export function CreateNegociacaoModal({
     }
   }, [formData.negotiated_price, useFlexiblePayments]);
 
-  const handleVehiclePick = (vehicle: PickedVehicle | null) => {
-    const price = Number(vehicle?.price) || 0;
-    setFormData({
-      ...formData,
-      vehicle_id: vehicle?.id || "",
-      original_price: price,
-      negotiated_price: price,
-      discount_percent: 0,
-    });
+  const handleVehicleChange = (vehicle: PickedVehicle | null) => {
+    if (vehicle) {
+      // Preço do carro do estoque vira o preço de tabela da negociação
+      setFormData({
+        ...formData,
+        vehicle_id: vehicle.id,
+        original_price: Number(vehicle.price) || 0,
+        negotiated_price: Number(vehicle.price) || 0,
+        discount_percent: 0,
+      });
+    } else {
+      setFormData({ ...formData, vehicle_id: "" });
+    }
     setFlexiblePayments([]); // Reset payments when vehicle changes
   };
 
@@ -181,7 +185,7 @@ export function CreateNegociacaoModal({
     if (!formData.vehicle_id) {
       toast({
         title: "Erro",
-        description: "Selecione um veículo",
+        description: "Selecione um veículo do estoque",
         variant: "destructive",
       });
       return;
@@ -308,20 +312,20 @@ export function CreateNegociacaoModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Veículo */}
+          {/* Veículo do estoque */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Veículo *
+              <Car className="h-4 w-4" />
+              Veículo do estoque *
             </Label>
             <VehiclePicker
-              value={formData.vehicle_id}
-              onChange={handleVehiclePick}
-              placeholder="Selecione o veículo do estoque..."
+              value={formData.vehicle_id || null}
+              onChange={handleVehicleChange}
+              placeholder="Buscar carro do estoque..."
             />
           </div>
 
-          {/* Responsável */}
+          {/* Responsável e SDR */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -346,37 +350,36 @@ export function CreateNegociacaoModal({
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* SDR */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              SDR (quem agendou)
-            </Label>
-            <Select
-              value={formData.sdr_id || ""}
-              onValueChange={(value) =>
-                setFormData({ ...formData, sdr_id: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Opcional..." />
-              </SelectTrigger>
-              <SelectContent>
-                {teamMembers.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                SDR (quem agendou)
+              </Label>
+              <Select
+                value={formData.sdr_id || ""}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, sdr_id: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Precos */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Preco Original</Label>
+              <Label>Preco de Tabela (estoque)</Label>
               <Input
                 type="number"
                 value={formData.original_price || ""}

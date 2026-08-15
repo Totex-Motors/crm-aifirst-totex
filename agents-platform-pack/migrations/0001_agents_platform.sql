@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.agents_provider_credentials (
   provider_type text NOT NULL CHECK (provider_type = ANY (ARRAY[
     'anthropic_api','openai_api','openai_codex','google_gemini','groq','together',
     'fireworks','deepseek','custom',
-    'borapostar','buffer','scrape_creators','gemini_image','uazapi','jina_reader','tavily'
+    'borapostar','buffer','scrape_creators','gemini_image','uazapi','jina_reader','tavily','meta_ads'
   ])),
   label text NOT NULL,
   auth_data jsonb NOT NULL,
