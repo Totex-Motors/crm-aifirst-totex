@@ -123,6 +123,9 @@ import SalesCampaignDetail from "./pages/SalesCampaignDetail";
 const BookMeeting = React.lazy(() => import("./pages/BookMeeting"));
 const Unsubscribe = React.lazy(() => import("./pages/public/Unsubscribe"));
 
+// Instagram Oficial (API Meta)
+const InstagramCampaigns = React.lazy(() => import("./pages/marketing/InstagramCampaigns"));
+
 // Plataforma de Agentes IA
 const AgentList = React.lazy(() => import("./agents-platform/pages/AgentList"));
 const AgentConfigPage = React.lazy(() => import("./agents-platform/pages/AgentConfigPage"));
@@ -255,6 +258,7 @@ const AppRoutes = () => {
       <Route path="/marketing/automacoes/:id" element={<ProtectedRoute><MarketingAutomationEditor /></ProtectedRoute>} />
       <Route path="/marketing/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
       <Route path="/marketing/whatsapp-templates/novo" element={<ProtectedRoute><WhatsAppTemplateNew /></ProtectedRoute>} />
+      <Route path="/marketing/instagram" element={<ProtectedRoute><React.Suspense fallback={<div />}><InstagramCampaigns /></React.Suspense></ProtectedRoute>} />
       <Route path="/comercial/campanhas" element={<ProtectedRoute><SalesCampaigns /></ProtectedRoute>} />
       <Route path="/comercial/campanhas/nova" element={<ProtectedRoute><SalesCampaignNew /></ProtectedRoute>} />
       <Route path="/comercial/campanhas/:id" element={<ProtectedRoute><SalesCampaignDetail /></ProtectedRoute>} />

@@ -206,6 +206,32 @@ verify_jwt = false
 verify_jwt = false
 
 # ============================================================
+# INSTAGRAM OFICIAL (API Meta) — instagram-oficial-pack
+# webhook/crons/tools chamados pela Meta e pg_cron sem JWT;
+# list-media é chamada pela UI logada (verify_jwt = true)
+# ============================================================
+
+[functions.ig-outbound-send]
+verify_jwt = false
+
+[functions.instagram-crons]
+verify_jwt = false
+
+[functions.instagram-tools]
+verify_jwt = false
+
+[functions.instagram-list-media]
+verify_jwt = true
+
+[functions.instagram-send-dm]
+verify_jwt = false
+
+[functions.instagram-send-dm-internal]
+verify_jwt = false
+
+# (instagram-webhook já declarado na seção WEBHOOKS EXTERNOS acima)
+
+# ============================================================
 # DEFAULT (verify_jwt = true) — não listadas aqui
 # ============================================================
 # Todas as outras funções (~40) herdam o default `verify_jwt = true`,

@@ -28,6 +28,7 @@ import {
   LogOut,
   LayoutGrid,
   Inbox,
+  Instagram,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ import { ThemeSection } from "@/components/settings/sections/ThemeSection";
 import { IntegrationsSection } from "@/components/settings/sections/IntegrationsSection";
 import { LeadsSection } from "@/components/settings/sections/LeadsSection";
 import { WhatsAppInstancesSection } from "@/components/settings/sections/WhatsAppInstancesSection";
+import { InstagramConfigTab } from "@/components/settings/InstagramConfigTab";
 import { ModulesSection } from "@/components/settings/sections/ModulesSection";
 import { NotificationRulesBuilder } from "@/components/settings/NotificationRulesBuilder";
 import { WhatsAppTaskBotConfig } from "@/components/settings/WhatsAppTaskBotConfig";
@@ -141,6 +143,13 @@ const navigationSections: NavSection[] = [
         icon: Inbox,
         description: "Configure a origem dos leads. Escolha o sistema que envia leads para o CRM (AutoConf, OLX, WebMotors, etc.) e informe as credenciais de integração.",
         hint: "AutoConf, OLX, WebMotors...",
+      },
+      {
+        id: "instagram",
+        label: "Instagram Oficial (API Meta)",
+        icon: Instagram,
+        description: "Conecte a conta do Instagram para inbox, agente de IA e campanhas comentário → DM. Inclui gatilhos de palavra-chave e modo teste.",
+        adminOnly: true,
       },
     ],
   },
@@ -399,6 +408,8 @@ function SettingsContent({ section }: { section: string }) {
       return <WavoipAdminPanel />;
     case "leads":
       return <LeadsSection />;
+    case "instagram":
+      return <InstagramConfigTab />;
 
     // Comercial
     case "pipeline":
