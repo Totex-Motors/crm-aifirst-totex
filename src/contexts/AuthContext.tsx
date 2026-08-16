@@ -35,6 +35,8 @@ interface AuthContextType {
   isComercial: boolean;
   canAccessSettings: boolean;
   canAccessHR: boolean;
+  /** Tenant do usuário logado (team_members.tenant_id, fallback pro JWT) */
+  tenantId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -258,6 +260,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isComercial,
       canAccessSettings,
       canAccessHR,
+      tenantId: teamMember?.tenant_id
+        ?? ((user?.app_metadata as Record<string, unknown> | undefined)?.tenant_id as string | undefined)
+        ?? null,
     }}>
       {children}
     </AuthContext.Provider>
